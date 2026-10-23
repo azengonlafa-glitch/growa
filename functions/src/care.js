@@ -1,10 +1,9 @@
 // Family caregivers, medication stock estimates and dose reminders.
 import { onCall } from 'firebase-functions/v2/https';
-import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import {
   db, auth, FieldValue, Timestamp, HttpsError,
-  requireAuth, str, audit, notify, patientWatchers,
+  requireAuth, requirePatientAccess, str, audit, notify, patientWatchers,
 } from './common.js';
 import { doseSlots, DAY_MS, bangkokClock } from './schedule.js';
 
@@ -116,27 +115,35 @@ export const requestCaregiverAccess = onCall(async (req) => {
   return { status: 'requested' };
 });
 
-// Tell the other party when a caregiver link changes state.
-export const onCaregiverChange = onDocumentWritten('patients/{pid}/caregivers/{cgUid}', async (event) => {
-  const before = event.data?.before?.data();
-  const after = event.data?.after?.data();
-  if (!before || !after || before.status === after.status) return;
-  const patient = await db.doc(`patients/${event.params.pid}`).get();
+// Called by the app after it changes a caregiver link (accept, approve,
+// decline, revoke): tells both sides once per status.
+export const afterCaregiverChange = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const patientId = str(req.data?.patientId, 'patientId', { max: 128 });
+  const caregiverUid = str(req.data?.caregiverUid, 'caregiverUid', { max: 128 });
+  const ref = db.doc(`patients/${patientId}/caregivers/${caregiverUid}`);
+  const [patient, link] = await Promise.all([db.doc(`patients/${patientId}`).get(), ref.get()]);
   const ownerUid = patient.data()?.ownerUid;
+  if (!link.exists || (uid !== ownerUid && uid !== caregiverUid)) {
+    throw new HttpsError('permission-denied', 'ไม่มีสิทธิ์');
+  }
+  const cg = link.data();
   const text = {
     active: 'สิทธิ์ผู้ดูแลเริ่มใช้งานแล้ว',
     declined: 'คำขอหรือคำเชิญถูกปฏิเสธ',
     revoked: 'สิทธิ์ผู้ดูแลถูกยกเลิก',
-  }[after.status];
-  if (!text) return;
+  }[cg.status];
+  if (!text || cg.notifiedStatus === cg.status) return { ok: true };
   const batch = db.batch();
-  for (const uid of new Set([ownerUid, event.params.cgUid])) {
-    notify(batch, uid, {
+  for (const to of new Set([ownerUid, caregiverUid])) {
+    notify(batch, to, {
       type: 'caregiver_change', title: text,
-      body: `${after.caregiverName} · ${after.patientDisplayName}`, patientId: event.params.pid,
+      body: `${cg.caregiverName} · ${cg.patientDisplayName}`, patientId,
     });
   }
+  batch.update(ref, { notifiedStatus: cg.status });
   await batch.commit();
+  return { ok: true };
 });
 
 // ───────────── stock estimates (schedule math is in schedule.js) ─────────────
@@ -177,12 +184,15 @@ export async function recalculateMedication(medRef) {
     lastCalculatedAt: FieldValue.serverTimestamp(),
   };
 
-  // Alert once per stock level (refillAlertedAt resets when stock changes).
+  // Alert once per stock level: a new count (stockOnHand differs from the
+  // level we alerted at) starts a new alert cycle.
   const threshold = med.refillThresholdDays ?? 7;
   const due = runOut && runOut.toMillis() - now <= threshold * DAY_MS;
+  const alreadyAlerted = med.refillAlertedAt && med.refillAlertStock === med.stockOnHand;
   const batch = db.batch();
-  if (due && !med.refillAlertedAt) {
+  if (due && !alreadyAlerted) {
     update.refillAlertedAt = FieldValue.serverTimestamp();
+    update.refillAlertStock = med.stockOnHand;
     const patientId = medRef.parent.parent.id;
     const days = Math.max(0, Math.floor((runOut.toMillis() - now) / DAY_MS));
     for (const uid of await patientWatchers(patientId, 'viewMeds')) {
@@ -201,47 +211,56 @@ export async function recalculateMedication(medRef) {
   }
 }
 
-const SERVER_FIELDS = ['estimatedRemaining', 'estimatedRunOutDate', 'lastCalculatedAt', 'refillAlertedAt', 'verified'];
+// The app calls these right after its own writes (instead of Firestore
+// triggers, which do not exist when the API runs on Vercel). Both are
+// idempotent, so a repeated call is harmless.
 
-export const onMedicationWrite = onDocumentWritten('patients/{pid}/medications/{medId}', async (event) => {
-  const before = event.data?.before?.data();
-  const after = event.data?.after?.data();
-  if (!after) return;
-  // Ignore our own writes (only server fields changed) to avoid a trigger loop.
-  const changed = Object.keys({ ...before, ...after })
-    .filter((k) => JSON.stringify(before?.[k]) !== JSON.stringify(after[k]));
-  if (before && changed.every((k) => SERVER_FIELDS.includes(k))) return;
-  // New stock means a new alert cycle.
-  if (before && after.stockOnHand !== before.stockOnHand && after.refillAlertedAt) {
-    await event.data.after.ref.update({ refillAlertedAt: null });
-  }
-  await recalculateMedication(event.data.after.ref);
+export const afterMedicationWrite = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const patientId = str(req.data?.patientId, 'patientId', { max: 128 });
+  await requirePatientAccess(patientId, uid, 'viewMeds');
+  const medicationId = str(req.data?.medicationId, 'medicationId', { max: 128 });
+  await recalculateMedication(db.doc(`patients/${patientId}/medications/${medicationId}`));
+  return { ok: true };
 });
 
-export const onDoseLogCreated = onDocumentCreated('patients/{pid}/doseLogs/{logId}', async (event) => {
-  const log = event.data.data();
-  const medRef = db.doc(`patients/${event.params.pid}/medications/${log.medicationId}`);
+export const afterDoseLog = onCall(async (req) => {
+  const uid = requireAuth(req);
+  const patientId = str(req.data?.patientId, 'patientId', { max: 128 });
+  await requirePatientAccess(patientId, uid, 'viewMeds');
+  const logRef = db.doc(`patients/${patientId}/doseLogs/${str(req.data?.logId, 'logId', { max: 128 })}`);
+  const logSnap = await logRef.get();
+  if (!logSnap.exists) throw new HttpsError('not-found', 'ไม่พบบันทึกการรับประทานยา');
+  const log = logSnap.data();
+  const medRef = db.doc(`patients/${patientId}/medications/${log.medicationId}`);
   await recalculateMedication(medRef);
 
-  // A confirmed miss is different from "not logged yet": tell caregivers explicitly.
-  if (log.status === 'missed') {
+  // A confirmed miss is different from "not logged yet": tell caregivers explicitly, once.
+  if (log.status === 'missed' && !log.missedNotified) {
     const med = await medRef.get();
     const batch = db.batch();
-    for (const uid of await patientWatchers(event.params.pid, 'viewMeds')) {
-      if (uid === log.loggedBy) continue;
-      notify(batch, uid, {
+    for (const watcher of await patientWatchers(patientId, 'viewMeds')) {
+      if (watcher === log.loggedBy) continue;
+      notify(batch, watcher, {
         type: 'dose_missed', title: 'ยืนยันว่าพลาดมื้อยา',
         body: `${med.data()?.name ?? 'ยา'} มื้อ ${bangkokClock(log.scheduledFor.toMillis())} น.`,
-        patientId: event.params.pid,
+        patientId,
       });
     }
+    batch.update(logRef, { missedNotified: true });
     await batch.commit();
   }
+  return { ok: true };
 });
 
-export const dailyStockRecalc = onSchedule({ schedule: 'every day 06:00', timeZone: 'Asia/Bangkok' }, async () => {
+export async function recalculateAllMedications() {
   const meds = await db.collectionGroup('medications').where('active', '==', true).get();
   for (const m of meds.docs) await recalculateMedication(m.ref);
+  return meds.size;
+}
+
+export const dailyStockRecalc = onSchedule({ schedule: 'every day 06:00', timeZone: 'Asia/Bangkok' }, async () => {
+  await recalculateAllMedications();
 });
 
 // Runs every 30 min and looks at slots due 30–60 min ago that have no log.

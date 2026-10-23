@@ -5,3 +5,9 @@ node_modules/
 functions/.secret.local
 data/raw/
 web/dist/
+.env
+.env.local
+.env.*.local
+*service-account*.json
+.vercel/
+.claude/

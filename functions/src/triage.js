@@ -103,6 +103,9 @@ async function patientContext(patientId) {
 }
 
 async function askClaude(context, history) {
+  // No key configured: behave like a declined request, so the caller routes the
+  // user to a pharmacist instead of failing.
+  if (!ANTHROPIC_API_KEY.value()) return null;
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
   const messages = history.map((m) => ({ role: m.role, content: m.text }));
   messages[0] = { role: 'user', content: `[ข้อมูลผู้ป่วยจากระบบ]\n${context}\n\n[ข้อความผู้ใช้]\n${messages[0].content}` };

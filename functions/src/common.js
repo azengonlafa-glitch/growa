@@ -1,5 +1,5 @@
 // Shared helpers for MediLink Cloud Functions.
-import { initializeApp, getApps } from 'firebase-admin/app';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { HttpsError } from 'firebase-functions/v2/https';
@@ -8,7 +8,12 @@ import { setGlobalOptions } from 'firebase-functions/v2';
 // Must run before any function is defined; every module imports this file first.
 setGlobalOptions({ region: 'asia-southeast1', maxInstances: 10 });
 
-if (getApps().length === 0) initializeApp();
+// On Firebase/emulators credentials come from the environment. On Vercel the
+// service-account JSON is provided in FIREBASE_SERVICE_ACCOUNT.
+if (getApps().length === 0) {
+  const sa = process.env.FIREBASE_SERVICE_ACCOUNT;
+  initializeApp(sa ? { credential: cert(JSON.parse(sa)) } : undefined);
+}
 
 export const db = getFirestore();
 export const auth = getAuth();

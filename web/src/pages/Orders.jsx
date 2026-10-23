@@ -110,9 +110,12 @@ function RateOrder({ order }) {
         ))}
       </div>
       <textarea rows={2} placeholder="เล่าประสบการณ์ (ไม่บังคับ)" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} aria-label="ความคิดเห็น" />
-      <Button busy={busy} onClick={() => run(() => setDoc(doc(db, 'pharmacyRatings', order.id), {
-        userUid: user.uid, pharmacyId: order.pharmacyId, rating, comment, hidden: false, createdAt: serverTimestamp(),
-      }))}>ส่งรีวิว</Button>
+      <Button busy={busy} onClick={() => run(async () => {
+        await setDoc(doc(db, 'pharmacyRatings', order.id), {
+          userUid: user.uid, pharmacyId: order.pharmacyId, rating, comment, hidden: false, createdAt: serverTimestamp(),
+        });
+        await call('afterRating', { orderId: order.id });
+      })}>ส่งรีวิว</Button>
       <ErrorText>{error}</ErrorText>
     </Card>
   );

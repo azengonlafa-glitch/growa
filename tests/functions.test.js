@@ -40,7 +40,11 @@ async function client(name, claims = null) {
   connectFunctionsEmulator(fns, '127.0.0.1', 5001);
   const db = getFirestore(app);
   connectFirestoreEmulator(db, fsHost, Number(fsPort));
-  return { uid, email, db, call: async (fn, data) => (await httpsCallable(fns, fn)(data)).data };
+  return {
+    uid, email, db,
+    idToken: () => auth.currentUser.getIdToken(),
+    call: async (fn, data) => (await httpsCallable(fns, fn)(data)).data,
+  };
 }
 
 const rejectsWith = (promise, code) =>
@@ -180,7 +184,8 @@ describe('orders', () => {
     await setDoc(doc(mom.db, `pharmacyRatings/${orderId}`), {
       userUid: mom.uid, pharmacyId: 'demoRx1', rating: 5, comment: 'ดีมาก', hidden: false, createdAt: serverTimestamp(),
     });
-    await waitFor(async () => (await getDoc('pharmacies/demoRx1')).ratingCount >= 1, 'rating aggregate');
+    await mom.call('afterRating', { orderId });
+    assert.ok((await getDoc('pharmacies/demoRx1')).ratingCount >= 1);
   });
 
   test('rejected order can never be paid', async () => {
@@ -266,16 +271,72 @@ describe('family and refills', () => {
       stockCountedAt: Timestamp.now(), refillThresholdDays: 7, active: true,
       updatedAt: Timestamp.now(), updatedBy: owner.uid,
     });
-    const med = await waitFor(async () => {
-      const d = await getDoc(`patients/${owner.patientId}/medications/amlo`);
-      return d?.lastCalculatedAt ? d : null;
-    }, 'stock recalculation');
+    const hook = { patientId: owner.patientId, medicationId: 'amlo' };
+    await owner.call('afterMedicationWrite', hook);
+    const med = await getDoc(`patients/${owner.patientId}/medications/amlo`);
     assert.equal(med.estimatedRemaining, 4);
-    const alerts = await waitFor(async () => {
-      const s = await adminDb.collection(`users/${owner.uid}/notifications`).where('type', '==', 'refill_due').get();
-      return s.size ? s : null;
-    }, 'refill alert');
-    assert.equal(alerts.size, 1);
+    const alerts = () => adminDb.collection(`users/${owner.uid}/notifications`).where('type', '==', 'refill_due').get();
+    assert.equal((await alerts()).size, 1);
+    // Calling the hook again must not alert twice at the same stock level.
+    await owner.call('afterMedicationWrite', hook);
+    assert.equal((await alerts()).size, 1);
+  });
+});
+
+describe('follow-up hooks (used instead of triggers on Vercel)', () => {
+  test('a confirmed missed dose notifies caregivers exactly once', async () => {
+    const mom = await buyer('momH');
+    const daughter = await buyer('daughterH');
+    await mom.call('inviteCaregiver', { patientId: mom.patientId, email: daughter.email, permissions: { viewMeds: true } });
+    await updateDoc(doc(daughter.db, `patients/${mom.patientId}/caregivers/${daughter.uid}`), { status: 'active', updatedAt: serverTimestamp() });
+    await mom.call('afterCaregiverChange', { patientId: mom.patientId, caregiverUid: daughter.uid });
+    await mom.call('afterCaregiverChange', { patientId: mom.patientId, caregiverUid: daughter.uid }); // repeat: no duplicate
+    const link = await adminDb.collection(`users/${daughter.uid}/notifications`).where('type', '==', 'caregiver_change').get();
+    assert.equal(link.docs.filter((d) => d.data().title.includes('เริ่มใช้งาน')).length, 1);
+    await rejectsWith(buyer('outsider').then((o) => o.call('afterCaregiverChange', { patientId: mom.patientId, caregiverUid: daughter.uid })), 'permission-denied');
+
+    await setDoc(doc(mom.db, `patients/${mom.patientId}/medications/m1`), {
+      name: 'ยาทดสอบ', dosePerIntake: 1, unit: 'เม็ด', times: ['morning'], stockOnHand: 30, stockCountedAt: serverTimestamp(),
+      active: true, updatedAt: serverTimestamp(), updatedBy: mom.uid,
+    });
+    const logRef = await adminDb.collection(`patients/${mom.patientId}/doseLogs`).add({
+      medicationId: 'm1', scheduledFor: Timestamp.now(), status: 'missed', loggedBy: mom.uid, loggedAt: FieldValue.serverTimestamp(),
+    });
+    const hook = { patientId: mom.patientId, logId: logRef.id };
+    await mom.call('afterDoseLog', hook);
+    await mom.call('afterDoseLog', hook);
+    const missed = await adminDb.collection(`users/${daughter.uid}/notifications`).where('type', '==', 'dose_missed').get();
+    assert.equal(missed.size, 1);
+    // Someone without access cannot trigger recalculation for this patient.
+    await rejectsWith(buyer('outsider2').then((o) => o.call('afterDoseLog', hook)), 'permission-denied');
+  });
+});
+
+describe('Vercel API route', () => {
+  const run = async (fn, { token, body = {}, method = 'POST' } = {}) => {
+    const { default: handler } = await import('../api/call/[fn].js');
+    let status;
+    let json;
+    const res = { status(c) { status = c; return this; }, json(j) { json = j; return this; } };
+    await handler({ method, query: { fn }, headers: token ? { authorization: `Bearer ${token}` } : {}, body: { data: body } }, res);
+    return { status, json };
+  };
+
+  test('runs a callable with the caller Firebase token', async () => {
+    const user = await buyer('vercelUser');
+    const res = await run('guidedTriageStart', { token: await user.idToken(), body: { patientId: user.patientId, consent: true } });
+    assert.equal(res.status, 200);
+    assert.equal(res.json.result.question.nodeId, 'red_flags');
+  });
+
+  test('maps errors to HTTP statuses and never exposes non-callables', async () => {
+    const user = await buyer('vercelUser2');
+    assert.equal((await run('guidedTriageStart', { body: {} })).status, 401);
+    assert.equal((await run('guidedTriageStart', { token: await user.idToken(), body: { patientId: user.patientId } })).status, 400);
+    assert.equal((await run('createOrder', { token: 'not-a-token', body: {} })).status, 401);
+    assert.equal((await run('syncProductClass', { token: await user.idToken() })).status, 404);
+    assert.equal((await run('dailyStockRecalc', { token: await user.idToken() })).status, 404);
+    assert.equal((await run('guidedTriageStart', { method: 'GET' })).status, 405);
   });
 });
 

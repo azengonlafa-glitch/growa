@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { auth, db } from '../firebase.js';
+import { auth, db, isProduction } from '../firebase.js';
 import { useAction } from '../lib/hooks.js';
 import { Button, Card, ErrorText, Field, MockBadge, Notice, Segmented } from '../components/ui.jsx';
 
@@ -17,7 +17,8 @@ const DEMO = [
 const DEFAULT_ADDRESS = { label: 'บ้าน', line1: 'ย่านอนุสาวรีย์ชัยฯ (ข้อมูลจำลอง)', geo: { lat: 13.7639, lng: 100.5375 } };
 
 export default function Login() {
-  const [mode, setMode] = useState('demo');
+  // Demo accounts only exist on the local emulator.
+  const [mode, setMode] = useState(isProduction ? 'signin' : 'demo');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -55,7 +56,7 @@ export default function Login() {
           <Segmented
             value={mode}
             onChange={setMode}
-            options={[['demo', 'บัญชีเดโม'], ['signin', 'เข้าสู่ระบบ'], ['signup', 'สมัครสมาชิก']]}
+            options={[...(isProduction ? [] : [['demo', 'บัญชีเดโม']]), ['signin', 'เข้าสู่ระบบ'], ['signup', 'สมัครสมาชิก']]}
           />
 
           {mode === 'demo' ? (
@@ -88,7 +89,7 @@ export default function Login() {
         </Card>
 
         <Notice tone="warn" title="ต้นแบบสำหรับ Hackathon">
-          ระบบนี้ทำงานบน Firebase Emulator ในเครื่อง ร้านพาร์ทเนอร์ สินค้า ราคา การชำระเงิน และการจัดส่งเป็นข้อมูลจำลอง
+          {isProduction ? 'ระบบนี้เป็นต้นแบบ' : 'ระบบนี้ทำงานบน Firebase Emulator ในเครื่อง'} ร้านพาร์ทเนอร์ สินค้า ราคา การชำระเงิน และการจัดส่งเป็นข้อมูลจำลอง
           ไม่ใช่บริการทางการแพทย์จริง หากมีอาการฉุกเฉินโทร 1669
         </Notice>
       </div>

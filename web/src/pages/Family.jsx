@@ -32,7 +32,11 @@ function CaregiverRow({ patient, cg }) {
   const [perms, setPerms] = useState(cg.permissions);
   const [editing, setEditing] = useState(cg.status === 'requested');
   const { busy, error, run } = useAction();
-  const update = (data) => run(() => updateDoc(cg.ref, { ...data, updatedAt: serverTimestamp() }).then(() => setEditing(false)));
+  const update = (data) => run(async () => {
+    await updateDoc(cg.ref, { ...data, updatedAt: serverTimestamp() });
+    await call('afterCaregiverChange', { patientId: patient.id, caregiverUid: cg.id });
+    setEditing(false);
+  });
   const [label, tone] = STATUS[cg.status];
   const full = Object.fromEntries(PERMS.map(([k]) => [k, Boolean(perms[k])]));
 
@@ -100,6 +104,11 @@ function OwnedProfile({ patient }) {
   );
 }
 
+async function answerInvite(inv, status) {
+  await updateDoc(inv.ref, { status, updatedAt: serverTimestamp() });
+  await call('afterCaregiverChange', { patientId: inv.ref.parent.parent.id, caregiverUid: inv.id });
+}
+
 export default function Family() {
   const { user, patients, invitations } = useSession();
   const owned = patients.filter((p) => p.isOwner);
@@ -124,8 +133,8 @@ export default function Family() {
                 <p className="muted small">{PERMS.filter(([k]) => inv.permissions[k]).map(([, l]) => l).join(' · ')}</p>
               </div>
               <div className="row">
-                <Button size="sm" busy={respond.busy} onClick={() => respond.run(() => updateDoc(inv.ref, { status: 'active', updatedAt: serverTimestamp() }))}>ตอบรับ</Button>
-                <Button size="sm" variant="secondary" busy={respond.busy} onClick={() => respond.run(() => updateDoc(inv.ref, { status: 'declined', updatedAt: serverTimestamp() }))}>ปฏิเสธ</Button>
+                <Button size="sm" busy={respond.busy} onClick={() => respond.run(() => answerInvite(inv, 'active'))}>ตอบรับ</Button>
+                <Button size="sm" variant="secondary" busy={respond.busy} onClick={() => respond.run(() => answerInvite(inv, 'declined'))}>ปฏิเสธ</Button>
               </div>
             </Card>
           ))}

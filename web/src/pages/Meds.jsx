@@ -11,14 +11,18 @@ function DoseRow({ slot, patient }) {
   const { user } = useSession();
   const { busy, error, run } = useAction();
   const due = slot.at <= Date.now();
-  const log = (status) => run(() => addDoc(collection(db, 'patients', patient.id, 'doseLogs'), {
+  const log = (status) => run(async () => {
+    const ref = await addDoc(collection(db, 'patients', patient.id, 'doseLogs'), {
     medicationId: slot.med.id,
     scheduledFor: Timestamp.fromMillis(slot.at),
     status,
     loggedBy: user.uid,
     loggedAt: serverTimestamp(),
     ...(slot.log ? { correctsLogId: slot.log.id } : {}),
-  }));
+    });
+    // Updates the stock estimate and tells caregivers about a confirmed miss.
+    await call('afterDoseLog', { patientId: patient.id, logId: ref.id });
+  });
   const [label, tone] = slot.log ? DOSE_STATUS[slot.log.status] : due ? ['ยังไม่ได้บันทึก', 'warn'] : ['ยังไม่ถึงเวลา', 'neutral'];
 
   return (
@@ -106,7 +110,8 @@ function AddMedForm({ patient, onDone }) {
 
   const save = () => run(async () => {
     const { catalogId, ...rest } = f;
-    await setDoc(doc(collection(db, 'patients', patient.id, 'medications')), {
+    const medRef = doc(collection(db, 'patients', patient.id, 'medications'));
+    await setDoc(medRef, {
       ...rest,
       ...(catalogId ? { catalogId } : {}),
       dosePerIntake: Number(f.dosePerIntake),
@@ -118,6 +123,7 @@ function AddMedForm({ patient, onDone }) {
       updatedAt: serverTimestamp(),
       updatedBy: user.uid,
     });
+    await call('afterMedicationWrite', { patientId: patient.id, medicationId: medRef.id });
     onDone();
   });
 
@@ -187,7 +193,11 @@ function MedCard({ med, patient, onRefill }) {
       {can(patient, 'editMeds') ? (
         <form className="row" onSubmit={(e) => {
           e.preventDefault();
-          run(() => updateDoc(med.ref, { stockOnHand: Number(count), stockCountedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: user.uid }).then(() => setCount('')));
+          run(async () => {
+            await updateDoc(med.ref, { stockOnHand: Number(count), stockCountedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: user.uid });
+            await call('afterMedicationWrite', { patientId: patient.id, medicationId: med.id });
+            setCount('');
+          });
         }}>
           <input type="number" min={0} style={{ flex: 1 }} placeholder="นับยาที่เหลือจริง" value={count} onChange={(e) => setCount(e.target.value)} aria-label="จำนวนยาที่นับได้" />
           <Button size="sm" variant="secondary" busy={busy} disabled={count === ''}>อัปเดต</Button>

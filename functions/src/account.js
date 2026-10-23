@@ -1,8 +1,7 @@
-// Account deletion and pharmacy rating aggregates.
+// Account deletion and pharmacy rating summaries.
 import { onCall } from 'firebase-functions/v2/https';
-import { onDocumentWritten } from 'firebase-functions/v2/firestore';
 import { AggregateField } from 'firebase-admin/firestore';
-import { db, auth, FieldValue, HttpsError, requireAuth, audit } from './common.js';
+import { db, auth, FieldValue, HttpsError, requireAuth, audit, str } from './common.js';
 
 // Deletes the user's health profiles, caregiver links and account.
 // Orders stay (pharmacies must keep dispensing records) but lose the link to
@@ -36,20 +35,29 @@ export const deleteAccount = onCall(async (req) => {
   return { ok: true };
 });
 
-export const onRatingWrite = onDocumentWritten('pharmacyRatings/{orderId}', async (event) => {
-  const data = event.data?.after?.data() ?? event.data?.before?.data();
-  if (!data) return;
+// Recomputes a pharmacy's rating summary. Called by the app after it writes
+// a rating (Vercel has no Firestore triggers); idempotent.
+export async function refreshPharmacyRating(pharmacyId) {
   const agg = await db.collection('pharmacyRatings')
-    .where('pharmacyId', '==', data.pharmacyId)
+    .where('pharmacyId', '==', pharmacyId)
     .where('hidden', '==', false)
     .aggregate({ avg: AggregateField.average('rating'), count: AggregateField.count() })
     .get();
   const { avg, count } = agg.data();
-  const pharmacyRef = db.doc(`pharmacies/${data.pharmacyId}`);
+  const pharmacyRef = db.doc(`pharmacies/${pharmacyId}`);
   if (!(await pharmacyRef.get()).exists) return;
   await pharmacyRef.update({
     ratingAvg: avg === null ? null : Math.round(avg * 10) / 10,
     ratingCount: count,
     updatedAt: FieldValue.serverTimestamp(),
   });
+}
+
+export const afterRating = onCall(async (req) => {
+  requireAuth(req);
+  const orderId = str(req.data?.orderId, 'orderId', { max: 128 });
+  const order = await db.doc(`orders/${orderId}`).get();
+  if (!order.exists) throw new HttpsError('not-found', 'ไม่พบคำสั่งซื้อ');
+  await refreshPharmacyRating(order.data().pharmacyId);
+  return { ok: true };
 });

@@ -1,0 +1,7 @@
+data/
+docs/
+tests/
+scripts/
+.claude/
+.jtmp/
+*.log
