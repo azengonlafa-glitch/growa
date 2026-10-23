@@ -47,5 +47,6 @@ await waitForFunctions();
 const seed = spawnSync('node scripts/seed.mjs', { stdio: 'inherit', shell: true });
 if (seed.status !== 0) { stopAll(); process.exit(1); }
 
-start('npm --prefix web run dev');
+// web/src/firebase.js talks to the real Firebase project unless told otherwise.
+start('npm --prefix web run dev', { env: { ...process.env, VITE_USE_EMULATOR: 'true' } });
 console.log('\n  MediLink demo:  http://localhost:5180\n  Demo accounts are on the login page. Ctrl+C to stop.\n');
