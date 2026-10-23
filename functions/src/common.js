@@ -153,12 +153,15 @@ export async function patientSnapshot(patientId) {
   ]);
   const birthYear = patient.data()?.birthYear;
   const h = health.data() ?? {};
+  // The owner can opt out of sharing health details (default: shared).
+  const shared = h.consent?.shareWithPharmacist !== false;
   return {
     displayName: patient.data()?.displayName ?? null,
     age: birthYear ? new Date().getFullYear() - birthYear : null,
-    allergies: (h.allergies ?? []).map((a) => [a.substance, a.reaction].filter(Boolean).join(' – ')),
-    conditions: h.conditions ?? [],
-    currentMeds: meds.docs.map((m) => m.data().name),
+    healthShared: shared,
+    allergies: shared ? (h.allergies ?? []).map((a) => [a.substance, a.reaction].filter(Boolean).join(' – ')) : [],
+    conditions: shared ? h.conditions ?? [] : [],
+    currentMeds: shared ? meds.docs.map((m) => m.data().name) : [],
   };
 }
 

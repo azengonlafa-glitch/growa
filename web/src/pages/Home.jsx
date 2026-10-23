@@ -1,6 +1,6 @@
-import { collection, limit, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, limit, orderBy, query, where } from 'firebase/firestore';
 import { db } from '../firebase.js';
-import { useQueryData } from '../lib/hooks.js';
+import { useDocData, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { useMeds, useTodaySchedule, daysLeft, isLow } from '../lib/meds.js';
 import { ORDER_STATUS, baht, timeAgo } from '../lib/format.js';
@@ -35,8 +35,19 @@ function PatientToday({ patient }) {
   );
 }
 
+function HealthPrompt({ patient }) {
+  const [health, loading] = useDocData(doc(db, 'patients', patient.id, 'health', 'profile'), [patient.id]);
+  if (loading || health) return null;
+  return (
+    <Notice tone="warn" title="ยังไม่ได้กรอกประวัติแพ้ยาและโรคประจำตัว">
+      ข้อมูลนี้ช่วยให้เภสัชกรเลือกยาได้ปลอดภัย <a href="#/health">กรอกตอนนี้</a>
+    </Notice>
+  );
+}
+
 export default function Home() {
   const { user, profile, patients, invitations, staffOf } = useSession();
+  const self = patients.find((p) => p.isSelf && p.isOwner);
   const [orders] = useQueryData(
     query(collection(db, 'orders'), where('placedBy', '==', user.uid), orderBy('createdAt', 'desc'), limit(10)),
     [user.uid],
@@ -49,6 +60,8 @@ export default function Home() {
         <h1>สวัสดี {profile?.displayName ?? ''}</h1>
         <p className="muted">ดูแลการใช้ยาของคุณและครอบครัวในที่เดียว</p>
       </header>
+
+      {self ? <HealthPrompt patient={self} /> : null}
 
       {invitations.length ? (
         <Notice tone="info" title={`มีคำเชิญเป็นผู้ดูแล ${invitations.length} รายการ`}>

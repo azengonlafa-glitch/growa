@@ -61,9 +61,15 @@ function ReviewCard({ review }) {
       <div className="grid-2">
         <div className="stack" style={{ gap: 4 }}>
           <span className="small"><strong>ผู้ป่วย:</strong> {p.displayName ?? '—'}{p.age ? `, ${p.age} ปี` : ''}</span>
-          <span className="small"><strong>แพ้ยา:</strong> {p.allergies?.join(', ') || 'ไม่ได้บันทึก'}</span>
-          <span className="small"><strong>โรคประจำตัว:</strong> {p.conditions?.join(', ') || 'ไม่ได้บันทึก'}</span>
-          <span className="small"><strong>ยาที่ใช้อยู่:</strong> {p.currentMeds?.join(', ') || 'ไม่ได้บันทึก'}</span>
+          {p.healthShared === false ? (
+            <Badge tone="warn">ผู้ป่วยไม่อนุญาตให้แสดงข้อมูลสุขภาพ · ควรถามก่อนจ่ายยา</Badge>
+          ) : (
+            <>
+              <span className="small"><strong>แพ้ยา:</strong> {p.allergies?.join(', ') || 'ไม่ได้บันทึก'}</span>
+              <span className="small"><strong>โรคประจำตัว:</strong> {p.conditions?.join(', ') || 'ไม่ได้บันทึก'}</span>
+              <span className="small"><strong>ยาที่ใช้อยู่:</strong> {p.currentMeds?.join(', ') || 'ไม่ได้บันทึก'}</span>
+            </>
+          )}
         </div>
         <div className="stack" style={{ gap: 4 }}>
           {review.items ? <Items items={review.items} /> : null}

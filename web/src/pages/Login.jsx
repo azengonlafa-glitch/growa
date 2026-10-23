@@ -38,6 +38,8 @@ export default function Login() {
       displayName: name, email, selfPatientId: patientId, addresses: [DEFAULT_ADDRESS], createdAt: serverTimestamp(),
     });
     await batch.commit();
+    // New users fill in allergies and conditions first.
+    window.location.hash = '#/health';
   });
 
   return (

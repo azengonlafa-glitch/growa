@@ -14,6 +14,7 @@ import Family from './pages/Family.jsx';
 import Symptom from './pages/Symptom.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
+import Health from './pages/Health.jsx';
 
 const NAV = [
   ['', 'หน้าแรก', '⌂'],
@@ -35,6 +36,7 @@ function Page({ route }) {
     case 'symptom': return <Symptom />;
     case 'pharmacist': return <Pharmacist />;
     case 'notifications': return <Notifications />;
+    case 'health': return <Health />;
     default: return <Home />;
   }
 }
@@ -46,6 +48,7 @@ function Shell({ session, route }) {
     [session.user.uid],
   );
   const extra = [
+    ['health', 'โปรไฟล์สุขภาพ', '✎'],
     ['family', 'ครอบครัว', '☺'],
     ['notifications', `แจ้งเตือน${unread.length ? ` (${unread.length})` : ''}`, '♪'],
     ...(session.staffOf.length ? [['pharmacist', 'ร้านของฉัน', '⚕']] : []),
@@ -71,6 +74,7 @@ function Shell({ session, route }) {
         <header className="topbar">
           <a className="brand" href="#/"><span className="brand-mark">M</span>MediLink</a>
           <div className="row">
+            <a className="btn btn-ghost btn-sm" href="#/health" aria-label="โปรไฟล์สุขภาพ">✎</a>
             <a className="btn btn-ghost btn-sm" href="#/family" aria-label="ครอบครัว">☺</a>
             {session.staffOf.length ? <a className="btn btn-ghost btn-sm" href="#/pharmacist">⚕ ร้าน</a> : null}
             <a className="btn btn-ghost btn-sm" href="#/notifications" aria-label="แจ้งเตือน">

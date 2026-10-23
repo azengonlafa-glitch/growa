@@ -378,6 +378,38 @@ describe('guided symptom checker', () => {
     assert.ok(session.summary.questionsForPharmacist.length >= 9, 'pharmacist sees every answer');
   });
 
+  test('health details reach the pharmacist only with the owner\'s consent', async () => {
+    const share = async (user) => {
+      const res = await user.call('guidedTriageStart', { patientId: user.patientId, consent: true });
+      // Shortest path to an outcome: "other" complaint.
+      let r = res;
+      for (const text of ['ไม่มีอาการเหล่านี้', '18 – 64', 'ชาย', 'ไม่มี', 'อื่น ๆ']) {
+        const q = r.question;
+        const i = q.options.findIndex((o) => o.label.includes(text));
+        r = await user.call('guidedTriageAnswer', { sessionId: res.sessionId, nodeId: q.nodeId, choices: q.type === 'multi' ? [i] : i });
+      }
+      const { reviewId } = await user.call('triageShareWithPharmacy', { sessionId: res.sessionId, pharmacyId: 'demoRx1', consent: true });
+      return (await getDoc(`pharmacistReviews/${reviewId}`)).patientSnapshot;
+    };
+    const health = (shareWithPharmacist) => ({
+      allergies: [{ substance: 'sulfa', reaction: 'ผื่น', severity: 'moderate' }], conditions: ['หอบหืด'],
+      notes: '', consent: { shareWithPharmacist }, updatedAt: serverTimestamp(),
+    });
+
+    const open = await buyer('healthOpen');
+    await setDoc(doc(open.db, `patients/${open.patientId}/health/profile`), { ...health(true), updatedBy: open.uid });
+    const shown = await share(open);
+    assert.deepEqual(shown.conditions, ['หอบหืด']);
+    assert.match(shown.allergies[0], /sulfa/);
+
+    const closed = await buyer('healthClosed');
+    await setDoc(doc(closed.db, `patients/${closed.patientId}/health/profile`), { ...health(false), updatedBy: closed.uid });
+    const hidden = await share(closed);
+    assert.equal(hidden.healthShared, false);
+    assert.deepEqual(hidden.allergies, []);
+    assert.deepEqual(hidden.conditions, []);
+  });
+
   test('a red flag in the guided checker blocks sharing for purchase', async () => {
     const user = await buyer('guidedUser2');
     const res = await user.call('guidedTriageStart', { patientId: user.patientId, consent: true });
