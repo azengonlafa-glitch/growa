@@ -124,7 +124,10 @@ function Result({ result, sessionId, patientId, onRestart }) {
 export default function Symptom() {
   const { patients } = useSession();
   const allowed = patients.filter((p) => can(p, 'viewHealth'));
-  const [patientId, setPatientId] = useState(allowed[0]?.id ?? '');
+  // Derived so it still works when the cared-for profiles finish loading after first render.
+  const [pickedId, setPatientId] = useState('');
+  const patientId = allowed.find((p) => p.id === pickedId)?.id
+    ?? (allowed.find((p) => p.viaCaregiver) ?? allowed[0])?.id ?? '';
   const [consent, setConsent] = useState(false);
   const [state, setState] = useState(null); // { sessionId, done, question, result }
   const { busy, error, run } = useAction();
