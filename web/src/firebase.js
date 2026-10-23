@@ -8,22 +8,27 @@ import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
 const env = import.meta.env;
-export const isProduction = Boolean(env.VITE_FIREBASE_API_KEY);
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const useEmulator = env.VITE_USE_EMULATOR === 'true' || (isLocalhost && env.VITE_FIREBASE_API_KEY === 'emulator');
 
-const app = initializeApp(isProduction
-  ? {
-      apiKey: env.VITE_FIREBASE_API_KEY,
-      authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
-      projectId: env.VITE_FIREBASE_PROJECT_ID,
-      appId: env.VITE_FIREBASE_APP_ID,
-    }
-  : { projectId: 'demo-medilink', apiKey: 'demo-key', authDomain: 'localhost' });
+const firebaseConfig = {
+  apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyBqhF0FuMXPrgIrAcrKDdDuAy9UU0WZfXY',
+  authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'secret-e67bc.firebaseapp.com',
+  projectId: env.VITE_FIREBASE_PROJECT_ID || 'secret-e67bc',
+  appId: env.VITE_FIREBASE_APP_ID || '1:492222675222:web:43059db315e5875efdf837',
+};
+
+export const isProduction = !useEmulator;
+
+const app = initializeApp(useEmulator
+  ? { projectId: 'demo-medilink', apiKey: 'demo-key', authDomain: 'localhost' }
+  : firebaseConfig);
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-const functions = isProduction ? null : getFunctions(app, 'asia-southeast1');
+const functions = useEmulator ? getFunctions(app, 'asia-southeast1') : null;
 
-if (!isProduction) {
+if (useEmulator) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   connectFirestoreEmulator(db, '127.0.0.1', 8080);
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);

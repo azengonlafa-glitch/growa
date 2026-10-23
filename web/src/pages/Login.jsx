@@ -17,8 +17,7 @@ const DEMO = [
 const DEFAULT_ADDRESS = { label: 'บ้าน', line1: 'ย่านอนุสาวรีย์ชัยฯ (ข้อมูลจำลอง)', geo: { lat: 13.7639, lng: 100.5375 } };
 
 export default function Login() {
-  // Demo accounts only exist on the local emulator.
-  const [mode, setMode] = useState(isProduction ? 'signin' : 'demo');
+  const [mode, setMode] = useState('demo');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -56,7 +55,7 @@ export default function Login() {
           <Segmented
             value={mode}
             onChange={setMode}
-            options={[...(isProduction ? [] : [['demo', 'บัญชีเดโม']]), ['signin', 'เข้าสู่ระบบ'], ['signup', 'สมัครสมาชิก']]}
+            options={[['demo', 'บัญชีเดโม'], ['signin', 'เข้าสู่ระบบ'], ['signup', 'สมัครสมาชิก']]}
           />
 
           {mode === 'demo' ? (
