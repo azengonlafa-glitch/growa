@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>เช็กอาการ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Noto+Sans+Thai+Looped:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0}a{text-decoration:none}</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#FFF7EE;color:#3B2A20;font-family:'Noto Sans Thai Looped','Noto Sans Thai',system-ui,sans-serif;font-size:17px;line-height:1.5;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="position:relative;background:#FDE6D8;border-radius:0 0 44px 44px;padding:16px 24px 28px;overflow:hidden">
+    <svg width="200" height="200" viewBox="0 0 64 64" aria-hidden="true" style="position:absolute;right:-60px;top:-20px;opacity:.5"><g transform="rotate(-28 32 32)"><rect x="17" y="3" width="30" height="58" rx="15" fill="#FFFCF8"/><path d="M17 30V18a15 15 0 0 1 30 0v12z" fill="#F6B9A5"/></g></svg>
+    <div style="position:relative;display:flex;align-items:center;gap:14px">
+      <a href="Home.dc.html" aria-label="ย้อนกลับ" style="width:48px;height:48px;border-radius:50%;background:#FFFCF8;display:grid;place-items:center;color:#3B2A20;flex:none"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></a>
+      <div role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="60" aria-label="ข้อ 5 จากประมาณ 8" style="flex:1;height:12px;border-radius:6px;background:rgba(255,252,248,.8);overflow:hidden"><div style="width:60%;height:100%;border-radius:6px;background:#B8461F"></div></div>
+    </div>
+    <div style="position:relative;display:flex;align-items:center;gap:12px;margin-top:20px">
+      <svg width="68" height="68" viewBox="0 0 64 64" role="img" aria-label="มาสคอตแคปซูลยิ้ม" style="flex:none">
+        <g transform="rotate(-28 32 32)">
+          <rect x="17" y="3" width="30" height="58" rx="15" fill="#FFFCF8" stroke="#3B2A20" stroke-width="2.5"/>
+          <path d="M17 30V18a15 15 0 0 1 30 0v12z" fill="#F0916A"/>
+          <path d="M17 30h30" stroke="#3B2A20" stroke-width="2.5"/>
+          <circle cx="26" cy="42" r="2.4" fill="#3B2A20"/><circle cx="38" cy="42" r="2.4" fill="#3B2A20"/>
+          <path d="M28 48q4 4 8 0" fill="none" stroke="#3B2A20" stroke-width="2.2" stroke-linecap="round"/>
+          <circle cx="22.5" cy="47" r="2.6" fill="#F6B9A5"/><circle cx="41.5" cy="47" r="2.6" fill="#F6B9A5"/>
+        </g>
+      </svg>
+      <div style="background:#FFFCF8;border-radius:20px 20px 20px 6px;padding:10px 16px;font-size:16px">ตอบทีละข้อ ไม่ต้องรีบนะ</div>
+    </div>
+  </div>
+
+  <main style="flex:1;min-height:0;padding:22px 24px 0;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+    <h1 style="margin:0;font-family:'Mitr','Noto Sans Thai Looped',sans-serif;font-weight:500;font-size:30px;line-height:1.3">ไม่สบายตรงไหน<br>มากที่สุด</h1>
+
+    <div role="group" aria-label="ส่วนที่ไม่สบาย" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+      <a href="SymptomResult.dc.html" aria-current="true" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FDE6D8;border:3px solid #B8461F;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:700;font-size:18px;line-height:1.3">ไข้ หวัด เจ็บคอ</a>
+      <a href="SymptomResult.dc.html" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FFFCF8;border:2px solid #9A7F66;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:600;font-size:18px;line-height:1.3">ปวดหัว เวียนหัว</a>
+      <a href="SymptomResult.dc.html" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FFFCF8;border:2px solid #9A7F66;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:600;font-size:18px;line-height:1.3">ท้องเสีย อาเจียน</a>
+      <a href="SymptomResult.dc.html" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FFFCF8;border:2px solid #9A7F66;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:600;font-size:18px;line-height:1.3">ผิวหนัง ผื่น</a>
+      <a href="SymptomResult.dc.html" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FFFCF8;border:2px solid #9A7F66;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:600;font-size:18px;line-height:1.3">ปวดข้อ ปวดหลัง</a>
+      <a href="SymptomResult.dc.html" style="min-height:76px;box-sizing:border-box;border-radius:24px;background:#FFFCF8;border:2px solid #9A7F66;padding:10px 14px;display:flex;align-items:center;color:#3B2A20;font-weight:600;font-size:18px;line-height:1.3">นอนไม่หลับ</a>
+      <a href="SymptomResult.dc.html" style="grid-column:1/-1;min-height:60px;box-sizing:border-box;border-radius:24px;background:transparent;border:2px dashed #9A7F66;padding:10px 14px;display:flex;align-items:center;justify-content:center;color:#3B2A20;font-weight:600;font-size:18px">อย่างอื่น</a>
+    </div>
+  </main>
+
+  <div style="padding:10px 24px 20px">
+    <a href="tel:1669" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:56px;border-radius:999px;background:#FCE4E1;color:#9E2B2B;font-weight:700;font-size:17px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>ฉุกเฉิน โทร 1669</a>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

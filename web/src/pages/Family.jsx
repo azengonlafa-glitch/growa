@@ -3,7 +3,9 @@ import { collection, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/fi
 import { call, db } from '../firebase.js';
 import { useAction, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
-import { Badge, Button, Card, ErrorText, Field, PageHeader } from '../components/ui.jsx';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase.js';
+import { Badge, Button, Card, ErrorText, Field, Icon, PageHeader } from '../components/ui.jsx';
 
 const PERMS = [
   ['viewMeds', 'ดูรายการยาและตารางยา'],
@@ -121,7 +123,19 @@ export default function Family() {
 
   return (
     <div className="stack-lg">
-      <PageHeader title="ครอบครัว" subtitle="ผู้ดูแลเห็นและทำได้เฉพาะสิทธิ์ที่เจ้าของข้อมูลอนุญาต และต้องยินยอมทั้งสองฝ่าย" />
+      <PageHeader eyebrow="ดูแลกันและกัน" title="ครอบครัว" subtitle="ผู้ดูแลทำได้เฉพาะสิทธิ์ที่เจ้าของข้อมูลอนุญาต" mascot />
+
+      <section className="stack" aria-label="บัญชีของฉัน">
+        <h2>บัญชีของฉัน</h2>
+        <div className="tile-grid">
+          <a className="tile tile-peach" href="#/health"><span className="tile-icon"><Icon name="shield" /></span><span className="tile-label">โปรไฟล์สุขภาพ</span></a>
+          <a className="tile tile-honey" href="#/notifications"><span className="tile-icon"><Icon name="bell" /></span><span className="tile-label">แจ้งเตือน</span></a>
+          <a className="tile tile-sage" href="#/orders"><span className="tile-icon"><Icon name="truck" /></span><span className="tile-label">คำสั่งซื้อของฉัน</span></a>
+          <button type="button" className="tile tile-rose" style={{ border: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => signOut(auth)}>
+            <span className="tile-icon"><Icon name="back" /></span><span className="tile-label">ออกจากระบบ</span>
+          </button>
+        </div>
+      </section>
 
       {invitations.length ? (
         <section className="stack">

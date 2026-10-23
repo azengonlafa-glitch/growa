@@ -49,11 +49,9 @@ export default function Pharmacies() {
   const places = result?.places ?? [];
   return (
     <div className="stack-lg">
-      <PageHeader
-        title="ร้านยาใกล้ฉัน"
-        subtitle="ร้านพาร์ทเนอร์สั่งซื้อและปรึกษาเภสัชกรได้ ร้านอื่นแสดงจากข้อมูลใบอนุญาตของ อย."
-        actions={<Button variant="secondary" size="sm" onClick={useMyLocation}>◎ ใช้ตำแหน่งปัจจุบัน</Button>}
-      />
+      <PageHeader eyebrow="เภสัชกรช่วยดูแล" title="ร้านยาใกล้คุณ" />
+      <Button variant="secondary" onClick={useMyLocation}>◎ ใช้ตำแหน่งปัจจุบัน</Button>
+      <p className="muted small">ร้านพาร์ทเนอร์สั่งซื้อและปรึกษาเภสัชกรได้ ร้านอื่นแสดงจากข้อมูลใบอนุญาตของ อย.</p>
 
       <section className="stack">
         <div className="section-title"><h2>ร้านพาร์ทเนอร์ที่สั่งซื้อได้</h2><MockBadge /></div>

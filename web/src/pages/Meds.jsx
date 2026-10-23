@@ -5,7 +5,7 @@ import { go, useAction, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { useMeds, useTodaySchedule, daysLeft, isLow, DOSE_STATUS } from '../lib/meds.js';
 import { NAMED_TIME_LABELS } from '../../../functions/src/schedule.js';
-import { Badge, Button, Card, Empty, ErrorText, Field, Loading, Notice, PageHeader, Segmented } from '../components/ui.jsx';
+import { Badge, Button, Card, Empty, ErrorText, Field, Icon, Loading, Notice, PageHeader, Segmented } from '../components/ui.jsx';
 
 function DoseRow({ slot, patient }) {
   const { user } = useSession();
@@ -27,24 +27,22 @@ function DoseRow({ slot, patient }) {
 
   return (
     <div className="dose-slot">
-      <span className="dose-time num">{slot.time}</span>
-      <div className="stack" style={{ gap: 6 }}>
-        <div className="between">
-          <div>
-            <strong>{slot.med.name}</strong>
-            <div className="muted small">ครั้งละ {slot.med.dosePerIntake} {slot.med.unit ?? ''}{slot.med.mealRelation === 'after' ? ' · หลังอาหาร' : slot.med.mealRelation === 'before' ? ' · ก่อนอาหาร' : ''}</div>
-          </div>
-          <Badge tone={tone}>{label}</Badge>
-        </div>
-        {can(patient, 'logDoses') && (!slot.log || slot.log.status !== 'taken') ? (
-          <div className="row">
-            <Button size="sm" busy={busy} onClick={() => log('taken')}>✓ กินแล้ว</Button>
-            {due ? <Button size="sm" variant="secondary" busy={busy} onClick={() => log('missed')}>พลาดมื้อนี้</Button> : null}
-            <Button size="sm" variant="ghost" busy={busy} onClick={() => log('skipped')}>งดตามแพทย์สั่ง</Button>
-          </div>
-        ) : null}
-        <ErrorText>{error}</ErrorText>
+      <div className="between">
+        <span className="dose-time num">{slot.time}</span>
+        <Badge tone={tone}>{label}</Badge>
       </div>
+      <div>
+        <strong style={{ fontSize: '1.15rem' }}>{slot.med.name}</strong>
+        <div className="muted small">ครั้งละ {slot.med.dosePerIntake} {slot.med.unit ?? ''}{slot.med.mealRelation === 'after' ? ' · หลังอาหาร' : slot.med.mealRelation === 'before' ? ' · ก่อนอาหาร' : ''}</div>
+      </div>
+      {can(patient, 'logDoses') && (!slot.log || slot.log.status !== 'taken') ? (
+        <div className="row">
+          <Button busy={busy} onClick={() => log('taken')} style={{ flex: '1 1 100%' }}><Icon name="check" stroke={2.8} />กินแล้ว</Button>
+          {due ? <Button size="sm" variant="secondary" busy={busy} onClick={() => log('missed')}>พลาดมื้อนี้</Button> : null}
+          <Button size="sm" variant="ghost" busy={busy} onClick={() => log('skipped')}>งดตามแพทย์สั่ง</Button>
+        </div>
+      ) : null}
+      <ErrorText>{error}</ErrorText>
     </div>
   );
 }
@@ -212,8 +210,8 @@ function MedCard({ med, patient, onRefill }) {
 export default function Meds() {
   const { patients } = useSession();
   const visible = patients.filter((p) => can(p, 'viewMeds'));
-  const [patientId, setPatientId] = useState(() => sessionStorage.getItem('medsPatient') ?? visible[0]?.id);
-  const patient = visible.find((p) => p.id === patientId) ?? visible[0];
+  const [patientId, setPatientId] = useState(() => sessionStorage.getItem('medsPatient'));
+  const patient = visible.find((p) => p.id === patientId) ?? visible.find((p) => p.viaCaregiver) ?? visible[0];
   const [meds, loading] = useMeds(patient?.id);
   const [slots] = useTodaySchedule(patient?.id, meds);
   const [panel, setPanel] = useState(null); // 'add' | med
@@ -224,12 +222,12 @@ export default function Meds() {
   return (
     <div className="stack-lg">
       <PageHeader
-        title="ยาประจำ"
-        subtitle="ตารางยา บันทึกการรับประทาน และยาคงเหลือ"
-        actions={can(patient, 'editMeds') ? <Button size="sm" onClick={() => setPanel('add')}>+ เพิ่มยา</Button> : null}
+        eyebrow={`วันนี้ ${slots.length} มื้อ`}
+        title={patient.isSelf && !patient.viaCaregiver ? 'ยาของฉัน' : `ยาของ${patient.displayName}`}
+        actions={can(patient, 'editMeds') ? <button type="button" className="round-btn round-btn-primary" aria-label="เพิ่มยา" onClick={() => setPanel('add')}><Icon name="plus" size={28} stroke={2.8} /></button> : null}
       />
       {visible.length > 1 ? (
-        <Segmented value={patient.id} onChange={pick} options={visible.map((p) => [p.id, p.isSelf ? 'ตัวเอง' : p.displayName])} />
+        <Segmented value={patient.id} onChange={pick} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
       ) : null}
       {patient.viaCaregiver ? <Notice tone="info">คุณกำลังดูข้อมูลของ {patient.displayName} ในฐานะผู้ดูแล ทุกการบันทึกจะระบุชื่อคุณ</Notice> : null}
 

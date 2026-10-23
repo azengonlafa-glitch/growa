@@ -138,7 +138,7 @@ export default function Symptom() {
 
   return (
     <div className="stack-lg">
-      <PageHeader title="ประเมินอาการเบื้องต้น" subtitle="ตอบทีละข้อ ระบบจะช่วยบอกว่าควรดูแลตัวเอง ปรึกษาเภสัชกร หรือพบแพทย์" />
+      <PageHeader eyebrow="ตอบทีละข้อ ไม่ต้องรีบนะ" title="เช็กอาการ" mascot />
 
       {!state ? (
         <Card className="stack">
@@ -148,7 +148,7 @@ export default function Symptom() {
           {allowed.length > 1 ? (
             <Field label="ประเมินให้ใคร">
               <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-                {allowed.map((p) => <option key={p.id} value={p.id}>{p.isSelf ? 'ตัวเอง' : p.displayName}</option>)}
+                {allowed.map((p) => <option key={p.id} value={p.id}>{p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName}</option>)}
               </select>
             </Field>
           ) : null}

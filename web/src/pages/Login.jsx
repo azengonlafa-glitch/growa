@@ -3,7 +3,7 @@ import { createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfi
 import { doc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db, isProduction } from '../firebase.js';
 import { useAction } from '../lib/hooks.js';
-import { Button, Card, ErrorText, Field, MockBadge, Notice, Segmented } from '../components/ui.jsx';
+import { Button, Card, ErrorText, Field, Mascot, MockBadge, Notice, Segmented } from '../components/ui.jsx';
 
 // Emulator-only demo accounts created by `npm run seed`.
 const DEMO_PASSWORD = 'demo-medilink';
@@ -46,7 +46,7 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-card stack-lg">
         <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <span className="brand-mark" style={{ width: 52, height: 52, fontSize: '1.5rem', borderRadius: 14 }}>M</span>
+          <Mascot size={96} label="MediLink" />
           <h1>MediLink</h1>
           <p className="muted">ร้านยาใกล้บ้าน เภสัชกรช่วยดูแล และระบบดูแลยาของครอบครัว</p>
         </div>

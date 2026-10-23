@@ -1,0 +1,41 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-23T09:30:00Z" },
+  "title": "MediLink — ดีไซน์ใหม่",
+  "launch": { "view": "canvas" },
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1240, "h": 1360, "title": "ระบบดีไซน์: สี ตัวอักษร ปุ่ม" },
+    "Layout.dc.html": { "x": 1320, "y": 0, "w": 1240, "h": 1360, "title": "แผนผังหน้าและโครงเลย์เอาต์" },
+    "Home.dc.html": { "x": 0, "y": 1740, "w": 390, "h": 844, "title": "หน้าแรก: วันนี้", "is_interactive": true },
+    "Meds.dc.html": { "x": 470, "y": 1740, "w": 390, "h": 844, "title": "ยาของฉัน", "is_interactive": true },
+    "SymptomQ.dc.html": { "x": 940, "y": 1740, "w": 390, "h": 844, "title": "ประเมินอาการ: ถามทีละข้อ", "is_interactive": true },
+    "Pharmacies.dc.html": { "x": 1410, "y": 1740, "w": 390, "h": 844, "title": "ร้านยา", "is_interactive": true },
+    "Order.dc.html": { "x": 1880, "y": 1740, "w": 390, "h": 844, "title": "ติดตามคำสั่งซื้อ", "is_interactive": true },
+    "SymptomResult.dc.html": { "x": 0, "y": 3064, "w": 390, "h": 844, "title": "ผลประเมินอาการ", "is_interactive": true },
+    "Family.dc.html": { "x": 470, "y": 3064, "w": 390, "h": 844, "title": "ครอบครัว", "is_interactive": true },
+    "Pharmacist.dc.html": { "x": 940, "y": 3064, "w": 1280, "h": 844, "title": "พื้นที่ทำงานเภสัชกร (เดสก์ท็อป)" },
+    "Landing.dc.html": { "x": 0, "y": 4288, "w": 1280, "h": 1500, "title": "หน้าแรกของเว็บ (ก่อนล็อกอิน)", "expand": "fill" },
+    "ThreeScreens.dc.html": { "x": 1360, "y": 4288, "w": 1440, "h": 900, "title": "เดโม: จอสามฝั่งเรียลไทม์" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Layout.dc.html",
+    "Home.dc.html",
+    "Meds.dc.html",
+    "SymptomQ.dc.html",
+    "Pharmacies.dc.html",
+    "Order.dc.html",
+    "SymptomResult.dc.html",
+    "Family.dc.html",
+    "Pharmacist.dc.html",
+    "Landing.dc.html",
+    "ThreeScreens.dc.html"
+  ],
+  "notes": {
+    "t1": { "x": 0, "y": -260, "text": "1 · ระบบดีไซน์และแผนผังหน้า", "kind": "title1", "maxW": 2560 },
+    "t2": { "x": 0, "y": 1490, "text": "2 · แอปสำหรับผู้ใช้และผู้ดูแล (มือถือก่อน)", "kind": "title1", "maxW": 2270 },
+    "t3": { "x": 0, "y": 2814, "text": "3 · ผลประเมิน ครอบครัว และพื้นที่เภสัชกร", "kind": "title1", "maxW": 2220 },
+    "t4": { "x": 0, "y": 4038, "text": "4 · หน้าแรกของเว็บและภาพรวมเดโม", "kind": "title1", "maxW": 2800 },
+    "s1": { "x": 2340, "y": 1740, "w": 300, "text": "กด Play ที่หน้ามือถือแล้วลองแตะแถบเมนูล่างหรือปุ่มต่าง ๆ จะพาไปหน้าถัดไปตามลำดับการใช้งานจริง", "fill": "orange" }
+  }
+}

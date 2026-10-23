@@ -108,7 +108,7 @@ export default function Store({ pharmacyId }) {
                 <p className="muted small">ค่าจัดส่งและยอดรวมคำนวณจากระบบตามที่อยู่ของคุณ ({profile?.addresses?.[0]?.label ?? 'ที่อยู่หลัก'})</p>
                 <Field label="สั่งให้ใคร">
                   <select value={patientId} onChange={(e) => setPatientId(e.target.value)}>
-                    {buyFor.map((p) => <option key={p.id} value={p.id}>{p.isSelf ? 'ตัวเอง' : p.displayName}</option>)}
+                    {buyFor.map((p) => <option key={p.id} value={p.id}>{p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName}</option>)}
                   </select>
                 </Field>
                 {needsReview && !reviewId ? (

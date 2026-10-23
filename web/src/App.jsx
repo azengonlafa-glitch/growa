@@ -3,7 +3,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { auth, db } from './firebase.js';
 import { useAuthUser, useHashRoute, useQueryData } from './lib/hooks.js';
 import { SessionContext, useSessionData } from './lib/session.js';
-import { Loading } from './components/ui.jsx';
+import { Icon, Loading, Mascot } from './components/ui.jsx';
 import Login from './pages/Login.jsx';
 import Home from './pages/Home.jsx';
 import Pharmacies from './pages/Pharmacies.jsx';
@@ -16,12 +16,13 @@ import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Health from './pages/Health.jsx';
 
+// The centre tab (symptom checker) is drawn as a raised round button on phones.
 const NAV = [
-  ['', 'หน้าแรก', '⌂'],
-  ['pharmacies', 'ร้านยา', '✚'],
-  ['symptom', 'ประเมินอาการ', '♡'],
-  ['meds', 'ยาของฉัน', '◷'],
-  ['orders', 'คำสั่งซื้อ', '▤'],
+  ['', 'หน้าแรก', 'home'],
+  ['meds', 'ยา', 'pill'],
+  ['symptom', 'เช็กอาการ', 'heart'],
+  ['pharmacies', 'ร้านยา', 'store'],
+  ['family', 'ครอบครัว', 'people'],
 ];
 
 function Page({ route }) {
@@ -47,21 +48,27 @@ function Shell({ session, route }) {
     query(collection(db, 'users', session.user.uid, 'notifications'), where('readAt', '==', null)),
     [session.user.uid],
   );
-  const extra = [
-    ['health', 'โปรไฟล์สุขภาพ', '✎'],
-    ['family', 'ครอบครัว', '☺'],
-    ['notifications', `แจ้งเตือน${unread.length ? ` (${unread.length})` : ''}`, '♪'],
-    ...(session.staffOf.length ? [['pharmacist', 'ร้านของฉัน', '⚕']] : []),
+  const side = [
+    ...NAV,
+    ['orders', 'คำสั่งซื้อ', 'truck'],
+    ['health', 'โปรไฟล์สุขภาพ', 'shield'],
+    ['notifications', `แจ้งเตือน${unread.length ? ` (${unread.length})` : ''}`, 'bell'],
+    ...(session.staffOf.length ? [['pharmacist', 'ร้านของฉัน', 'list']] : []),
   ];
-  const isActive = (p) => (p === '' ? current === '' : current === p || (p === 'pharmacies' && current === 'store'));
+  const isActive = (p, wide) => {
+    if (p === '') return current === '';
+    if (p === 'pharmacies') return current === 'pharmacies' || current === 'store' || (!wide && current === 'orders');
+    if (p === 'family') return current === 'family' || (!wide && (current === 'health' || current === 'notifications'));
+    return current === p;
+  };
 
   return (
     <div className="shell">
       <nav className="sidebar" aria-label="เมนูหลัก">
-        <a className="brand" href="#/"><span className="brand-mark">M</span>MediLink</a>
-        {[...NAV, ...extra].map(([p, label, icon]) => (
-          <a key={p} href={`#/${p}`} className={isActive(p) ? 'active' : ''}>
-            <span className="nav-icon" aria-hidden>{icon}</span>{label}
+        <a className="brand" href="#/"><Mascot size={40} />MediLink</a>
+        {side.map(([p, label, icon]) => (
+          <a key={p} href={`#/${p}`} className={isActive(p, true) ? 'active' : ''} aria-current={isActive(p, true) ? 'page' : undefined}>
+            <Icon name={icon} size={24} />{label}
           </a>
         ))}
         <div className="sidebar-foot stack">
@@ -70,29 +77,22 @@ function Shell({ session, route }) {
         </div>
       </nav>
 
-      <div>
-        <header className="topbar">
-          <a className="brand" href="#/"><span className="brand-mark">M</span>MediLink</a>
-          <div className="row">
-            <a className="btn btn-ghost btn-sm" href="#/health" aria-label="โปรไฟล์สุขภาพ">✎</a>
-            <a className="btn btn-ghost btn-sm" href="#/family" aria-label="ครอบครัว">☺</a>
-            {session.staffOf.length ? <a className="btn btn-ghost btn-sm" href="#/pharmacist">⚕ ร้าน</a> : null}
-            <a className="btn btn-ghost btn-sm" href="#/notifications" aria-label="แจ้งเตือน">
-              ♪{unread.length ? <span className="dot" aria-label={`${unread.length} รายการใหม่`} /> : null}
-            </a>
-            <button className="btn btn-ghost btn-sm" onClick={() => signOut(auth)}>ออก</button>
-          </div>
-        </header>
-        <main className="main">
-          <Page route={route} />
-        </main>
-      </div>
+      <main className="main">
+        <Page route={route} />
+      </main>
 
       <nav className="bottom-nav" aria-label="เมนูหลัก">
         {NAV.map(([p, label, icon]) => (
-          <a key={p} href={`#/${p}`} className={isActive(p) ? 'active' : ''}>
-            <span className="nav-icon" aria-hidden>{icon}</span>{label}
-          </a>
+          p === 'symptom' ? (
+            <a key={p} href={`#/${p}`} className="nav-center" aria-current={current === p ? 'page' : undefined}>
+              <span className="nav-center-btn"><Icon name={icon} size={30} stroke={2.2} /></span>{label}
+            </a>
+          ) : (
+            <a key={p} href={`#/${p}`} className={isActive(p) ? 'active' : ''} aria-current={isActive(p) ? 'page' : undefined} style={{ position: 'relative' }}>
+              <Icon name={icon} stroke={isActive(p) ? 2.2 : 2} />{label}
+              {p === 'family' && unread.length ? <span className="nav-badge" aria-label={`แจ้งเตือนใหม่ ${unread.length}`}>{unread.length}</span> : null}
+            </a>
+          )
         ))}
       </nav>
     </div>

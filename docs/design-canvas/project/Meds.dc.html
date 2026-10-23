@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ยาของคุณแม่</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Noto+Sans+Thai+Looped:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>body{margin:0}a{text-decoration:none}</style>
+</helmet>
+<div style="width:390px;height:844px;box-sizing:border-box;background:#FFF7EE;color:#3B2A20;font-family:'Noto Sans Thai Looped','Noto Sans Thai',system-ui,sans-serif;font-size:17px;line-height:1.5;display:flex;flex-direction:column;overflow:hidden">
+
+  <div style="position:relative;background:#FDE6D8;border-radius:0 0 44px 44px;padding:20px 24px 24px;overflow:hidden">
+    <svg width="200" height="200" viewBox="0 0 64 64" aria-hidden="true" style="position:absolute;right:-50px;top:-30px;opacity:.5"><g transform="rotate(-28 32 32)"><rect x="17" y="3" width="30" height="58" rx="15" fill="#FFFCF8"/><path d="M17 30V18a15 15 0 0 1 30 0v12z" fill="#F6B9A5"/></g></svg>
+    <div style="position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
+      <div>
+        <span style="font-size:16px;color:#A83F1A;font-weight:700">วันนี้ 4 มื้อ</span>
+        <h1 style="margin:2px 0 0;font-family:'Mitr','Noto Sans Thai Looped',sans-serif;font-weight:500;font-size:34px;line-height:1.2">ยาของคุณแม่</h1>
+      </div>
+      <button type="button" aria-label="เพิ่มยา" style="width:56px;height:56px;border-radius:50%;border:0;background:#B8461F;color:#FFFFFF;display:grid;place-items:center;box-shadow:0 4px 0 #8F3414;flex:none"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    </div>
+    <div role="group" aria-label="มุมมอง" style="position:relative;display:flex;background:rgba(255,252,248,.7);border-radius:999px;padding:4px;gap:4px;margin-top:20px">
+      <button type="button" aria-pressed="true" style="flex:1;min-height:48px;border-radius:999px;border:0;background:#FFFCF8;color:#3B2A20;font:700 17px 'Noto Sans Thai Looped',sans-serif">วันนี้</button>
+      <button type="button" aria-pressed="false" style="flex:1;min-height:48px;border-radius:999px;border:0;background:transparent;color:#6F5A4C;font:600 17px 'Noto Sans Thai Looped',sans-serif">ทั้งหมด</button>
+    </div>
+  </div>
+
+  <main style="flex:1;min-height:0;padding:24px 24px 0;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+
+    <!-- มื้อที่ต้องกิน -->
+    <section aria-label="มื้อถัดไป" style="background:#FFFCF8;border-radius:28px;padding:18px 20px;box-shadow:0 8px 0 -2px #F3C9B2, 0 12px 26px rgba(143,52,20,.10);display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="font-family:'Mitr',sans-serif;font-weight:500;font-size:32px;line-height:1;color:#B8461F">08:00</div>
+        <div style="flex:1;min-width:0"><div style="font-size:19px;font-weight:700;line-height:1.3">แอมโลดิปีน 5 มก.</div><div style="font-size:15px;color:#6F5A4C">1 เม็ด · หลังอาหาร</div></div>
+        <span style="background:#FFEDC2;color:#6B4500;border-radius:999px;padding:2px 10px;font-weight:700;font-size:13px;white-space:nowrap">ยังไม่บันทึก</span>
+      </div>
+      <button type="button" style="display:flex;justify-content:center;align-items:center;gap:8px;min-height:56px;border-radius:999px;border:0;background:#B8461F;color:#FFFFFF;font:700 19px 'Noto Sans Thai Looped',sans-serif;box-shadow:0 3px 0 #8F3414"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>กินแล้ว</button>
+    </section>
+
+    <div style="display:flex;align-items:center;gap:14px;background:#E3F1E8;border-radius:24px;padding:14px 20px">
+      <div style="font-family:'Mitr',sans-serif;font-weight:500;font-size:24px;line-height:1;color:#245A3E">08:00</div>
+      <div style="flex:1;min-width:0"><div style="font-size:18px;font-weight:700">เมทฟอร์มิน 500 มก.</div><div style="font-size:14px;color:#245A3E;font-weight:600">ลูกสาวบันทึก 08:12</div></div>
+      <span style="width:40px;height:40px;border-radius:50%;background:#3F7D5C;color:#FFFFFF;display:grid;place-items:center;flex:none"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="กินแล้ว"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:14px;padding:6px 20px">
+      <div style="font-family:'Mitr',sans-serif;font-weight:500;font-size:24px;line-height:1;color:#6F5A4C">18:00</div>
+      <div style="flex:1;min-width:0;font-size:18px;font-weight:600">เมทฟอร์มิน 500 มก.</div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6F5A4C" stroke-width="2.2" stroke-linecap="round" role="img" aria-label="ยังไม่ถึงเวลา"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </div>
+    <div style="height:1.5px;background:#EADBC8;margin:0 20px"></div>
+    <div style="display:flex;align-items:center;gap:14px;padding:6px 20px">
+      <div style="font-family:'Mitr',sans-serif;font-weight:500;font-size:24px;line-height:1;color:#6F5A4C">21:00</div>
+      <div style="flex:1;min-width:0;font-size:18px;font-weight:600">ซิมวาสแตติน 20 มก.</div>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6F5A4C" stroke-width="2.2" stroke-linecap="round" role="img" aria-label="ยังไม่ถึงเวลา"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+    </div>
+  </main>
+
+  <nav aria-label="เมนูหลัก" style="display:flex;align-items:flex-end;justify-content:space-around;padding:6px 8px 12px;background:#FFFCF8;border-radius:28px 28px 0 0;box-shadow:0 -6px 20px rgba(143,52,20,.08)">
+    <a href="Home.dc.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;padding:6px 2px;border-radius:18px;color:#6F5A4C;font-size:14px;font-weight:600"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>หน้าแรก</a>
+    <a href="Meds.dc.html" aria-current="page" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;padding:6px 2px;border-radius:18px;background:#FDE6D8;color:#A83F1A;font-size:14px;font-weight:700"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-45 12 12)"/><path d="M9.2 14.8l5.6-5.6"/></svg>ยา</a>
+    <a href="SymptomQ.dc.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;color:#A83F1A;font-size:14px;font-weight:700"><span style="width:60px;height:60px;border-radius:50%;background:#B8461F;color:#FFFFFF;display:grid;place-items:center;margin-top:-30px;border:5px solid #FFFCF8;box-shadow:0 4px 0 #8F3414"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M6 12h3l1.5-2.5L13 14l1.5-2H18"/></svg></span>เช็กอาการ</a>
+    <a href="Pharmacies.dc.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;padding:6px 2px;border-radius:18px;color:#6F5A4C;font-size:14px;font-weight:600"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0A2.7 2.7 0 0 0 20 9"/><path d="M5 12v8h14v-8"/><path d="M10 20v-4h4v4"/></svg>ร้านยา</a>
+    <a href="Family.dc.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;min-height:56px;padding:6px 2px;border-radius:18px;color:#6F5A4C;font-size:14px;font-weight:600"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.3c3 .2 5 2.2 5 5.2"/></svg>ครอบครัว</a>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

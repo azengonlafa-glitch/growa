@@ -43,7 +43,7 @@ export default function Orders() {
   );
   return (
     <div className="stack-lg">
-      <PageHeader title="คำสั่งซื้อ" subtitle="ติดตามสถานะได้แบบเรียลไทม์" />
+      <PageHeader tone="honey" eyebrow="ติดตามสถานะแบบเรียลไทม์" title="คำสั่งซื้อ" />
       {loading ? <Loading /> : mine.length ? (
         <Card><div className="list">{mine.map((o) => <OrderRow key={o.id} o={o} />)}</div></Card>
       ) : (
@@ -136,8 +136,11 @@ export function OrderDetail({ orderId }) {
 
   return (
     <div className="stack-lg">
-      <PageHeader title={`คำสั่งซื้อ #${order.id.slice(0, 6)}`} subtitle={pharmacy?.name} back="orders" />
-      <div className="row"><Badge tone={tone}>{label}</Badge><span className="muted small">{dateTime(order.createdAt)}</span></div>
+      <PageHeader tone="honey" eyebrow="ตอนนี้" title={label} back="orders" mascot />
+      <p className="muted small">#{order.id.slice(0, 6)} · {pharmacy?.name} · {dateTime(order.createdAt)}</p>
+      {order.needsPharmacistReview && ['pharmacy_checking', 'awaiting_pharmacist', 'need_more_info'].includes(order.status) ? (
+        <Notice tone="good" title="เภสัชกรอนุมัติ ไม่ใช่ AI">ยังไม่มีการเก็บเงินจนกว่าเภสัชกรจะอนุมัติ</Notice>
+      ) : null}
 
       {stepIndex >= 0 ? (
         <div className="progress" aria-label={`ขั้นที่ ${stepIndex + 1} จาก ${STEPS.length}`}>

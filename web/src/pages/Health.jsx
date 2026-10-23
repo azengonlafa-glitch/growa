@@ -183,7 +183,7 @@ export default function Health() {
     <div className="stack-lg">
       <PageHeader title="โปรไฟล์สุขภาพ" subtitle="ข้อมูลที่ช่วยให้เภสัชกรเลือกยาได้ปลอดภัย" />
       {visible.length > 1 ? (
-        <Segmented value={patient.id} onChange={setPatientId} options={visible.map((p) => [p.id, p.isSelf ? 'ตัวเอง' : p.displayName])} />
+        <Segmented value={patient.id} onChange={setPatientId} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
       ) : null}
       <HealthForm key={patient.id} patient={patient} />
     </div>
