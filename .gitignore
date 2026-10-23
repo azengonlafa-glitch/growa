@@ -1,0 +1,7 @@
+node_modules/
+.jtmp/
+*-debug.log
+*.log
+functions/.secret.local
+data/raw/
+web/dist/

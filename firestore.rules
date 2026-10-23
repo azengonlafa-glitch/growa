@@ -1,0 +1,456 @@
+rules_version = '2';
+
+// MediLink — Firestore Security Rules
+// Schema: docs/firestore-schema.md
+//
+// Collections marked "function-only" are written by Cloud Functions via the
+// Admin SDK, which bypasses these rules. Clients only ever read them.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ───────────────────────── helpers ─────────────────────────
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function isSelf(userId) { return signedIn() && uid() == userId; }
+    function isAdmin() { return signedIn() && request.auth.token.get('admin', false) == true; }
+    function isAuditor() { return signedIn() && request.auth.token.get('auditor', false) == true; }
+
+    // Only the listed keys may differ between the stored and incoming doc.
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    function isNonEmptyString(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
+
+    // ── patients & caregivers ──
+
+    function patient(pid) { return get(/databases/$(database)/documents/patients/$(pid)).data; }
+
+    function isPatientOwner(pid) {
+      return signedIn() && patient(pid).ownerUid == uid();
+    }
+
+    function caregiverPath(pid) { return /databases/$(database)/documents/patients/$(pid)/caregivers/$(uid()); }
+
+    function isActiveCaregiver(pid) {
+      return signedIn()
+        && exists(caregiverPath(pid))
+        && get(caregiverPath(pid)).data.status == 'active';
+    }
+
+    function caregiverCan(pid, perm) {
+      return isActiveCaregiver(pid)
+        && get(caregiverPath(pid)).data.permissions.get(perm, false) == true;
+    }
+
+    function permissionKeys() {
+      return ['viewMeds', 'viewHealth', 'logDoses', 'editMeds', 'requestRefill', 'viewOrders'];
+    }
+
+    function validPermissions(p) {
+      return p is map
+        && p.keys().hasOnly(permissionKeys())
+        && p.values().hasOnly([true, false]);
+    }
+
+    // ── pharmacies ──
+
+    function staffPath(phId) { return /databases/$(database)/documents/pharmacies/$(phId)/staff/$(uid()); }
+
+    function isStaff(phId) {
+      return signedIn()
+        && exists(staffPath(phId))
+        && get(staffPath(phId)).data.active == true;
+    }
+
+    function hasStaffRole(phId, roles) {
+      return isStaff(phId) && get(staffPath(phId)).data.role in roles;
+    }
+
+    function isVerifiedPharmacist(phId) {
+      return hasStaffRole(phId, ['pharmacist'])
+        && get(staffPath(phId)).data.licenseVerified == true;
+    }
+
+    function pharmacyApproved(phId) {
+      return get(/databases/$(database)/documents/pharmacies/$(phId)).data.verificationStatus == 'approved';
+    }
+
+    // ── orders ──
+
+    function canReadOrder(o) {
+      return signedIn() && (
+        o.placedBy == uid()
+        || isAdmin()
+        || isStaff(o.pharmacyId)
+        || isPatientOwner(o.patientId)
+        || caregiverCan(o.patientId, 'viewOrders')
+      );
+    }
+
+    // ─────────────────────── users ───────────────────────
+
+    function userKeys() {
+      return ['displayName', 'email', 'phone', 'addresses', 'emergencyContact',
+              'notificationPrefs', 'selfPatientId', 'createdAt'];
+    }
+
+    function validUser(d) {
+      return isNonEmptyString(d.displayName, 100)
+        && (!('addresses' in d) || (d.addresses is list && d.addresses.size() <= 10));
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasOnly(userKeys())
+        && request.resource.data.createdAt == request.time
+        && validUser(request.resource.data);
+      allow update: if isSelf(userId)
+        && onlyChanges(userKeys().removeAll(['createdAt']))
+        && validUser(request.resource.data);
+      // Account deletion cascades through the deleteAccount function.
+      allow delete: if false;
+
+      match /notifications/{notifId} {
+        allow read, delete: if isSelf(userId);
+        allow update: if isSelf(userId)
+          && onlyChanges(['readAt'])
+          && request.resource.data.readAt == request.time;
+        allow create: if false; // function-only
+      }
+    }
+
+    // ─────────────────── patients (health data) ───────────────────
+    // Platform admins have no read path here on purpose.
+
+    match /patients/{pid} {
+      allow get: if signedIn()
+        && (resource.data.ownerUid == uid() || isActiveCaregiver(pid));
+      // Owners list their own profiles; caregivers find theirs through the
+      // caregivers collection-group query below and then get() each one.
+      allow list: if signedIn() && resource.data.ownerUid == uid();
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['ownerUid', 'isSelf', 'displayName', 'birthYear', 'archived', 'createdAt'])
+        && request.resource.data.ownerUid == uid()
+        && request.resource.data.isSelf is bool
+        && request.resource.data.archived == false
+        && request.resource.data.createdAt == request.time
+        && isNonEmptyString(request.resource.data.displayName, 100);
+
+      allow update: if signedIn()
+        && resource.data.ownerUid == uid()
+        && onlyChanges(['displayName', 'birthYear', 'archived'])
+        && isNonEmptyString(request.resource.data.displayName, 100)
+        && request.resource.data.archived is bool;
+
+      // Soft delete only (archived), so history and audit trail survive.
+      allow delete: if false;
+
+      // ── allergies, conditions, consent ──
+      match /health/{docId} {
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewHealth');
+        allow create, update: if isPatientOwner(pid)
+          && docId == 'profile'
+          && request.resource.data.keys().hasOnly(
+               ['allergies', 'conditions', 'notes', 'consent', 'updatedAt', 'updatedBy'])
+          && request.resource.data.allergies is list
+          && request.resource.data.conditions is list
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedBy == uid();
+        allow delete: if isPatientOwner(pid);
+      }
+
+      // ── medication list and schedule ──
+      function medClientKeys() {
+        return ['name', 'form', 'strength', 'catalogId', 'dosePerIntake', 'unit', 'times',
+                'mealRelation', 'asNeeded', 'startDate', 'endDate', 'stockOnHand',
+                'stockCountedAt', 'refillThresholdDays', 'sourcePharmacyId', 'active',
+                'updatedAt', 'updatedBy'];
+      }
+
+      function validMedication(d) {
+        return isNonEmptyString(d.name, 200)
+          && d.dosePerIntake is number && d.dosePerIntake > 0
+          && d.times is list && d.times.size() <= 12
+          && d.stockOnHand is number && d.stockOnHand >= 0
+          && d.active is bool
+          && (!('mealRelation' in d) || d.mealRelation in ['before', 'after', 'with', 'none'])
+          && (!('refillThresholdDays' in d)
+               || (d.refillThresholdDays is int && d.refillThresholdDays >= 0 && d.refillThresholdDays <= 90))
+          && d.updatedAt == request.time
+          && d.updatedBy == uid();
+      }
+
+      match /medications/{medId} {
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds');
+        // estimatedRemaining / estimatedRunOutDate / lastCalculatedAt / verified
+        // are server-computed and therefore absent from medClientKeys().
+        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds'))
+          && request.resource.data.keys().hasOnly(medClientKeys())
+          && validMedication(request.resource.data);
+        allow update: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds'))
+          && onlyChanges(medClientKeys())
+          && validMedication(request.resource.data);
+        allow delete: if isPatientOwner(pid);
+      }
+
+      // ── dose logs: append-only ──
+      // "Not logged yet" is the absence of a log; "missed" is a confirmed miss.
+      match /doseLogs/{logId} {
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds');
+        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'logDoses'))
+          && request.resource.data.keys().hasAll(
+               ['medicationId', 'scheduledFor', 'status', 'loggedBy', 'loggedAt'])
+          && request.resource.data.keys().hasOnly(
+               ['medicationId', 'scheduledFor', 'status', 'loggedBy', 'loggedAt', 'correctsLogId'])
+          && request.resource.data.status in ['taken', 'skipped', 'missed']
+          && request.resource.data.loggedBy == uid()
+          && request.resource.data.loggedAt == request.time
+          && request.resource.data.scheduledFor is timestamp
+          && request.resource.data.scheduledFor < request.time + duration.value(1, 'd')
+          && exists(/databases/$(database)/documents/patients/$(pid)/medications/$(request.resource.data.medicationId));
+        // Corrections are new logs carrying correctsLogId.
+        allow update, delete: if false;
+      }
+
+      // ── caregiver access: both sides must consent ──
+      //   invited   --(caregiver accepts)--> active
+      //   requested --(owner approves)-----> active
+      // Invitations and requests are created by functions that resolve the
+      // other party's uid (inviteCaregiver / requestCaregiverAccess).
+      match /caregivers/{cgUid} {
+        allow get: if isPatientOwner(pid) || isSelf(cgUid);
+        allow list: if isPatientOwner(pid);
+        allow create, delete: if false;
+
+        allow update: if
+          (
+            isPatientOwner(pid)
+            && onlyChanges(['permissions', 'status', 'updatedAt'])
+            && request.resource.data.updatedAt == request.time
+            && validPermissions(request.resource.data.permissions)
+            && (
+              request.resource.data.status == resource.data.status
+              || request.resource.data.status == 'revoked'
+              || (resource.data.status == 'requested'
+                  && request.resource.data.status in ['active', 'declined'])
+            )
+          )
+          ||
+          (
+            isSelf(cgUid)
+            && onlyChanges(['status', 'updatedAt'])
+            && request.resource.data.updatedAt == request.time
+            && (
+              (resource.data.status == 'invited'
+                && request.resource.data.status in ['active', 'declined'])
+              || (resource.data.status == 'active'
+                && request.resource.data.status == 'revoked')
+            )
+          );
+      }
+    }
+
+    // Lets a caregiver list every profile they have been invited to or manage.
+    match /{path=**}/caregivers/{cgUid} {
+      allow list: if signedIn() && resource.data.caregiverUid == uid();
+    }
+
+    // ─────────────────── drug catalog (master data) ───────────────────
+
+    match /catalog/{drugId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Licensed pharmacies from FDA open data (scripts/import-fda-directory.mjs).
+    // Public, read-only; also queryable from the client by geohash5.
+    match /pharmacyDirectory/{directoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ─────────────────── pharmacies ───────────────────
+
+    function pharmacyEditableKeys() {
+      return ['name', 'address', 'phone', 'geo', 'geohash', 'openingHours',
+              'deliveryZones', 'services', 'updatedAt'];
+    }
+
+    match /pharmacies/{phId} {
+      // Public queries must filter verificationStatus == 'approved'.
+      allow get: if resource.data.verificationStatus == 'approved'
+        || isStaff(phId) || isAdmin();
+      allow list: if resource.data.verificationStatus == 'approved' || isAdmin();
+
+      // Created by registerPharmacy; status changes via reviewPharmacy.
+      allow create, delete: if false;
+      allow update: if hasStaffRole(phId, ['owner', 'manager'])
+        && onlyChanges(pharmacyEditableKeys())
+        && request.resource.data.updatedAt == request.time
+        && isNonEmptyString(request.resource.data.name, 200);
+
+      // ── licence documents and reviewer notes ──
+      match /private/{docId} {
+        allow read: if hasStaffRole(phId, ['owner', 'manager']) || isAdmin();
+        allow create, delete: if isAdmin();
+        allow update: if isAdmin()
+          || (
+            docId == 'verification'
+            && hasStaffRole(phId, ['owner'])
+            && get(/databases/$(database)/documents/pharmacies/$(phId)).data.verificationStatus in ['pending', 'needs_changes']
+            && onlyChanges(['documents', 'submittedAt'])
+            && request.resource.data.documents is list
+            && request.resource.data.documents.size() <= 20
+            && request.resource.data.submittedAt == request.time
+          );
+      }
+
+      // ── staff: managed by inviteStaff / updateStaff / verifyPharmacistLicense ──
+      match /staff/{staffUid} {
+        allow get: if isSelf(staffUid) || isStaff(phId) || isAdmin();
+        allow list: if isStaff(phId) || isAdmin();
+        allow write: if false;
+      }
+
+      // ── products ──
+      // drugClass / requiresPharmacistReview / deliverable are copied from
+      // catalog by syncProductClass, so a store cannot downgrade a drug.
+      function productClientKeys() {
+        return ['catalogId', 'name', 'packSize', 'description', 'price', 'currency',
+                'stockStatus', 'stockQty', 'stockUpdatedAt', 'stockSource', 'active', 'imageUrl',
+                'unitsPerPack'];
+      }
+
+      function validProduct(d) {
+        return isNonEmptyString(d.catalogId, 128)
+          && isNonEmptyString(d.name, 200)
+          && d.price is number && d.price >= 0
+          && d.stockStatus in ['in_stock', 'low', 'out_of_stock', 'unknown']
+          && (!('stockQty' in d) || (d.stockQty is int && d.stockQty >= 0))
+          && (!('unitsPerPack' in d) || (d.unitsPerPack is int && d.unitsPerPack > 0 && d.unitsPerPack <= 1000))
+          && d.stockSource in ['manual', 'pos_sync']
+          && d.active is bool;
+      }
+
+      match /products/{productId} {
+        allow read: if pharmacyApproved(phId) || isStaff(phId) || isAdmin();
+        allow create: if isStaff(phId)
+          && request.resource.data.keys().hasOnly(productClientKeys())
+          && validProduct(request.resource.data)
+          && request.resource.data.stockUpdatedAt == request.time;
+        allow update: if isStaff(phId)
+          && onlyChanges(productClientKeys())
+          && validProduct(request.resource.data)
+          && (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['stockStatus', 'stockQty'])
+            || request.resource.data.stockUpdatedAt == request.time
+          );
+        allow delete: if hasStaffRole(phId, ['owner', 'manager']);
+      }
+    }
+
+    // ─────────────────── orders (function-only writes) ───────────────────
+    // Queries must filter on placedBy, patientId or pharmacyId so the rule
+    // can be checked against the query.
+
+    match /orders/{orderId} {
+      // Separate statements on purpose: in a list query, a get() on a field the
+      // query doesn't filter on errors out, and an error inside one expression
+      // fails the whole query. Each statement is evaluated on its own, so a
+      // query by placedBy, pharmacyId or patientId matches its own statement.
+      allow read: if signedIn() && resource.data.placedBy == uid();
+      allow read: if isAdmin();
+      allow read: if isStaff(resource.data.pharmacyId);
+      allow read: if isPatientOwner(resource.data.patientId);
+      allow read: if caregiverCan(resource.data.patientId, 'viewOrders');
+      allow write: if false;
+
+      match /events/{eventId} {
+        allow read: if canReadOrder(get(/databases/$(database)/documents/orders/$(orderId)).data);
+        allow write: if false;
+      }
+    }
+
+    // ─────────────────── pharmacist reviews (function-only writes) ───────────────────
+
+    match /pharmacistReviews/{reviewId} {
+      // Separate statements for list queries, as for orders.
+      allow read: if signedIn() && resource.data.requestedBy == uid();
+      allow read: if isVerifiedPharmacist(resource.data.pharmacyId);
+      allow read: if isPatientOwner(resource.data.patientId);
+      allow read: if caregiverCan(resource.data.patientId, 'viewOrders');
+      allow write: if false;
+    }
+
+    // ─────────────────── AI triage (function-only writes) ───────────────────
+    // Messages go through triageSendMessage so red-flag checks run server-side.
+
+    function canReadTriage(t) {
+      return signedIn() && (
+        t.userUid == uid()
+        || isPatientOwner(t.patientId)
+        || (t.route == 'pharmacist'
+            && t.get('sharedWithPharmacyId', null) is string
+            && isVerifiedPharmacist(t.sharedWithPharmacyId))
+      );
+    }
+
+    match /triageSessions/{sessionId} {
+      allow read: if canReadTriage(resource.data);
+      allow write: if false;
+
+      match /messages/{msgId} {
+        allow read: if canReadTriage(get(/databases/$(database)/documents/triageSessions/$(sessionId)).data);
+        allow write: if false;
+      }
+    }
+
+    // ─────────────────── pharmacy ratings ───────────────────
+    // Doc id is the orderId: one rating per delivered order, by its buyer.
+
+    function validRating(d) {
+      return d.rating is int && d.rating >= 1 && d.rating <= 5
+        && d.comment is string && d.comment.size() <= 1000;
+    }
+
+    function orderDeliveredTo(orderId, phId) {
+      let o = get(/databases/$(database)/documents/orders/$(orderId)).data;
+      return o.placedBy == uid() && o.status == 'delivered' && o.pharmacyId == phId;
+    }
+
+    match /pharmacyRatings/{orderId} {
+      // Public queries must filter hidden == false. A missing doc is readable
+      // so the app can check "already rated?" for an order.
+      allow read: if resource == null
+        || resource.data.hidden == false
+        || (signedIn() && resource.data.userUid == uid())
+        || isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(
+             ['userUid', 'pharmacyId', 'rating', 'comment', 'hidden', 'createdAt'])
+        && request.resource.data.userUid == uid()
+        && request.resource.data.hidden == false
+        && request.resource.data.createdAt == request.time
+        && validRating(request.resource.data)
+        && orderDeliveredTo(orderId, request.resource.data.pharmacyId);
+      allow update: if signedIn()
+        && resource.data.userUid == uid()
+        && onlyChanges(['rating', 'comment'])
+        && validRating(request.resource.data);
+      allow delete: if (signedIn() && resource.data.userUid == uid()) || isAdmin();
+    }
+
+    // ─────────────────── audit logs ───────────────────
+
+    match /auditLogs/{logId} {
+      allow read: if isAuditor();
+      allow write: if false;
+    }
+  }
+}

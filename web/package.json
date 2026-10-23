@@ -1,0 +1,19 @@
+{
+  "name": "medilink-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5180 --strictPort",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "firebase": "^13.1.0",
+    "leaflet": "^1.9.4",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.5"
+  }
+}

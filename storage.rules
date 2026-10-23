@@ -1,0 +1,86 @@
+rules_version = '2';
+
+// MediLink — Cloud Storage Security Rules
+// Cross-service checks read Firestore (firestore.get / firestore.exists), so the
+// same roles apply here as in firestore.rules.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && request.auth.token.get('admin', false) == true; }
+
+    function staffPath(phId) {
+      return /databases/(default)/documents/pharmacies/$(phId)/staff/$(request.auth.uid);
+    }
+    function isStaff(phId) {
+      return signedIn()
+        && firestore.exists(staffPath(phId))
+        && firestore.get(staffPath(phId)).data.active == true;
+    }
+    function hasStaffRole(phId, roles) {
+      return isStaff(phId) && firestore.get(staffPath(phId)).data.role in roles;
+    }
+    function pharmacy(phId) {
+      return firestore.get(/databases/(default)/documents/pharmacies/$(phId)).data;
+    }
+
+    function isPatientOwner(pid) {
+      return signedIn()
+        && firestore.get(/databases/(default)/documents/patients/$(pid)).data.ownerUid == request.auth.uid;
+    }
+    function caregiverCan(pid, perm) {
+      let path = /databases/(default)/documents/patients/$(pid)/caregivers/$(request.auth.uid);
+      return signedIn()
+        && firestore.exists(path)
+        && firestore.get(path).data.status == 'active'
+        && firestore.get(path).data.permissions.get(perm, false) == true;
+    }
+
+    function isPdfOrImage() {
+      return request.resource.contentType.matches('application/pdf')
+        || request.resource.contentType.matches('image/(jpeg|png|webp|heic)');
+    }
+    function isImage() {
+      return request.resource.contentType.matches('image/(jpeg|png|webp)');
+    }
+    function underMb(mb) { return request.resource.size < mb * 1024 * 1024; }
+
+    // ── pharmacy licence documents ──
+    // Only the owner uploads, and only while the application is open for edits.
+    // Reviewers (admin) and owner/manager can read. Files are never deleted by
+    // clients so the review trail survives.
+    match /pharmacies/{phId}/verification/{fileName} {
+      allow read: if hasStaffRole(phId, ['owner', 'manager']) || isAdmin();
+      allow create: if resource == null
+        && hasStaffRole(phId, ['owner'])
+        && pharmacy(phId).verificationStatus in ['pending', 'needs_changes']
+        && isPdfOrImage()
+        && underMb(10);
+      allow update, delete: if false;
+    }
+
+    // ── product images ──
+    // Public once the store is approved; any active staff member can manage them.
+    match /pharmacies/{phId}/products/{productId}/{fileName} {
+      allow read: if pharmacy(phId).verificationStatus == 'approved' || isStaff(phId) || isAdmin();
+      allow create, update: if isStaff(phId) && isImage() && underMb(5);
+      allow delete: if isStaff(phId);
+    }
+
+    // ── prescription / medicine label photos ──
+    // Health data: owner and caregivers with editMeds write, viewMeds read.
+    // Pharmacists get access through a function-issued signed URL, not here.
+    match /patients/{pid}/documents/{fileName} {
+      allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds');
+      allow create: if resource == null
+        && (isPatientOwner(pid) || caregiverCan(pid, 'editMeds'))
+        && isPdfOrImage()
+        && underMb(10);
+      allow delete: if isPatientOwner(pid);
+      allow update: if false;
+    }
+
+    // Everything else is closed.
+  }
+}
