@@ -82,14 +82,16 @@ export default function MapStep() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center, nearKey]);
 
-  // Directory stores are shown for context only; the FDA directory search reaches about 10 km.
+  // The map starts with the partner (sample) stores only. The FDA directory, about 10 km around, is searched only
+  // when the customer ticks the box, so opening the map does not touch the directory at all.
   useEffect(() => {
+    if (!showOthers) return undefined;
     let cancelled = false;
     call('searchPharmacies', { location: center, radiusM: 10000 })
       .then((res) => !cancelled && setOthers((res.places ?? []).filter((p) => !p.partnerPharmacyId)))
       .catch(() => !cancelled && setOthers([]));
     return () => { cancelled = true; };
-  }, [center]);
+  }, [center, showOthers]);
 
   const locate = () => {
     if (!navigator.geolocation) return setError('อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง');
@@ -198,7 +200,7 @@ export default function MapStep() {
           </div>
           <label className="check">
             <input type="checkbox" checked={showOthers} onChange={(e) => setShowOthers(e.target.checked)} />
-            แสดงร้านยาที่มีใบอนุญาตรอบตัว ({others.length}) บนแผนที่
+            แสดงร้านยาที่มีใบอนุญาตรอบตัวบนแผนที่{showOthers ? ` (${others.length})` : ''}
           </label>
           <p className="muted small">
             ร้านอื่นสั่งซื้อออนไลน์ไม่ได้ ข้อมูล อย. ไม่มีที่อยู่ร้าน ตำแหน่งจึงเป็นจุดกึ่งกลางแขวง/เขต และค้นหาได้ไกลสุดราว 10 กม. ตำแหน่งของคุณเริ่มจากที่อยู่ในโปรไฟล์
