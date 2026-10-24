@@ -98,7 +98,12 @@ function HealthForm({ patient }) {
   const set = (k) => (v) => { setForm({ ...form, [k]: v }); setSaved(false); };
 
   const save = () => run(async () => {
-    const year = birthYear === '' ? null : Number(birthYear);
+    // Thai users usually know their year in พ.ศ.; store ค.ศ. as the field expects.
+    let year = birthYear === '' ? null : Number(birthYear);
+    if (year !== null && year > thisYear && year - 543 <= thisYear) year -= 543;
+    if (year !== null && !(Number.isInteger(year) && year >= 1900 && year <= thisYear)) {
+      throw new Error('ปีเกิดไม่ถูกต้อง กรอกเป็น ค.ศ. เช่น 1985 หรือ พ.ศ. เช่น 2528');
+    }
     if (year !== (patient.birthYear ?? null)) {
       await updateDoc(doc(db, 'patients', patient.id), {
         displayName: patient.displayName, archived: patient.archived ?? false, birthYear: year,
@@ -131,8 +136,8 @@ function HealthForm({ patient }) {
     <div className="stack-lg">
       <Card className="stack">
         <h2>ข้อมูลพื้นฐาน</h2>
-        <Field label="ปีเกิด (ค.ศ.)" hint="ใช้คำนวณอายุ เพราะขนาดยาและข้อห้ามขึ้นกับอายุ">
-          <input type="number" min={1900} max={thisYear} value={birthYear} onChange={(e) => { setBirthYear(e.target.value); setSaved(false); }} placeholder="เช่น 1985" />
+        <Field label="ปีเกิด" hint="กรอกเป็น ค.ศ. หรือ พ.ศ. ก็ได้ ใช้คำนวณอายุ เพราะขนาดยาและข้อห้ามขึ้นกับอายุ">
+          <input type="number" name="birth-year" inputMode="numeric" autoComplete="off" min={1900} max={thisYear + 543} value={birthYear} onChange={(e) => { setBirthYear(e.target.value); setSaved(false); }} placeholder="เช่น 1985 หรือ 2528" />
         </Field>
       </Card>
 
@@ -165,7 +170,7 @@ function HealthForm({ patient }) {
 
       <div className="row">
         <Button busy={busy} onClick={save}>บันทึก</Button>
-        {saved ? <Badge tone="good">บันทึกแล้ว</Badge> : null}
+        <span role="status" aria-live="polite">{saved ? <Badge tone="good">บันทึกแล้ว</Badge> : null}</span>
       </div>
       <ErrorText>{error}</ErrorText>
     </div>
@@ -183,7 +188,7 @@ export default function Health() {
     <div className="stack-lg">
       <PageHeader title="โปรไฟล์สุขภาพ" subtitle="ข้อมูลที่ช่วยให้เภสัชกรเลือกยาได้ปลอดภัย" />
       {visible.length > 1 ? (
-        <Segmented value={patient.id} onChange={setPatientId} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
+        <Segmented label="เลือกโปรไฟล์" value={patient.id} onChange={setPatientId} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
       ) : null}
       <HealthForm key={patient.id} patient={patient} />
     </div>

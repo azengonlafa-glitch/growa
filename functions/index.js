@@ -16,6 +16,7 @@ export {
 } from './src/care.js';
 
 export { deleteAccount, afterRating } from './src/account.js';
+export { demoPharmacyReview, demoPharmacyOrder } from './src/demo.js';
 export { searchPharmacies, getPharmacyPlaceDetails } from './src/places.js';
 export { searchPharmacyDirectory } from './src/directory.js';
 export { triageStart, triageSendMessage, triageShareWithPharmacy } from './src/triage.js';

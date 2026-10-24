@@ -141,6 +141,21 @@ describe('pharmacy onboarding', () => {
 });
 
 describe('orders', () => {
+  test('general goods skip the pharmacist but still wait for stock confirmation before payment', async () => {
+    const shopper = await buyer('goodsShopper');
+    const { orderId, total, needsPharmacistReview } = await shopper.call('createOrder', {
+      patientId: shopper.patientId, pharmacyId: 'demoRx1',
+      items: [{ productId: 'shampooGentle', qty: 2 }, { productId: 'vitc500', qty: 1 }],
+    });
+    assert.equal(needsPharmacistReview, false);
+    assert.equal(total, 99 * 2 + 120 + 30); // server prices + zone fee, never client prices
+    assert.equal((await getDoc(`pharmacies/demoRx1/products/shampooGentle`)).drugClass, 'general');
+    await rejectsWith(shopper.call('payOrder', { orderId }), 'failed-precondition'); // stock not confirmed yet
+    assert.equal((await clerk.call('pharmacyRespondOrder', { orderId, available: true })).status, 'awaiting_payment');
+    await shopper.call('payOrder', { orderId });
+    assert.equal((await getDoc(`orders/${orderId}`)).status, 'paid');
+  });
+
   test('pharmacist gate: no payment before approval, then full delivery flow', async () => {
     const mom = await buyer('mom');
     const { orderId, total, needsPharmacistReview } = await mom.call('createOrder', {
@@ -437,6 +452,88 @@ describe('guided symptom checker', () => {
     assert.equal(review.triageResult.outcomeId, 'sore_throat_bacterial');
     const session = await getDoc(`triageSessions/${sessionId}`);
     assert.ok(session.summary.questionsForPharmacist.length >= 9, 'pharmacist sees every answer');
+  });
+
+  test('demo simulator asks, then approves; only for the requester at sample stores', async () => {
+    const user = await buyer('demoSim');
+    const other = await buyer('demoSimOther');
+    let res = await user.call('guidedTriageStart', { patientId: user.patientId, consent: true });
+    const { sessionId } = res;
+    for (const t of ['ไม่มีอาการเหล่านี้', '18 – 64', 'ชาย', 'ไม่มี', 'ไข้ หวัด', 'เจ็บคอ', 'เจ็บแต่ยัง', 'ไม่เกิน 3 วัน', 'มีไข้ ต่อมทอนซิล']) {
+      const q = res.question;
+      const i = pick(q, t);
+      res = await user.call('guidedTriageAnswer', { sessionId, nodeId: q.nodeId, choices: q.type === 'multi' ? [i] : i });
+    }
+    assert.equal(res.result.route, 'pharmacist');
+    const { reviewId } = await user.call('triageShareWithPharmacy', { sessionId, pharmacyId: 'demoRx1', consent: true });
+
+    await rejectsWith(other.call('demoPharmacyReview', { reviewId }), 'not-found'); // not their consultation
+
+    assert.deepEqual((await user.call('demoPharmacyReview', { reviewId })).decision, 'need_more_info');
+    await rejectsWith(user.call('demoPharmacyReview', { reviewId }), 'failed-precondition'); // waiting for the user's answer
+    await user.call('answerPharmacistQuestion', { reviewId, answer: 'ไม่มียาประจำ ไม่แพ้ยา' });
+
+    const approved = await user.call('demoPharmacyReview', { reviewId });
+    assert.equal(approved.decision, 'approved');
+    const review = await getDoc(`pharmacistReviews/${reviewId}`);
+    assert.equal(review.pharmacistUid, 'demo-simulator'); // never mistaken for a real pharmacist
+    assert.ok(review.validUntil);
+
+    // The approval is usable for ordering, exactly like a real one, and it is audited as a demo action.
+    const { orderId } = await user.call('createOrder', {
+      patientId: user.patientId, pharmacyId: 'demoRx1', items: [{ productId: approved.approvedCatalogIds[0], qty: 1 }], reviewId, triageId: sessionId,
+    });
+    assert.equal((await getDoc(`orders/${orderId}`)).status, 'pharmacy_checking');
+    const logs = await adminDb.collection('auditLogs').where('action', '==', 'demo.review.simulate').where('actorUid', '==', user.uid).get();
+    assert.equal(logs.size, 2);
+
+    // A store that is not a sample store is never simulated.
+    await adminDb.doc('pharmacies/demoRx2').update({ sample: false });
+    try {
+      const u2 = await buyer('demoSim2');
+      const start2 = await u2.call('guidedTriageStart', { patientId: u2.patientId, consent: true });
+      let r2 = start2;
+      for (const t of ['ไม่มีอาการเหล่านี้', '18 – 64', 'ชาย', 'ไม่มี', 'อื่น ๆ']) {
+        const q = r2.question;
+        const i = pick(q, t);
+        r2 = await u2.call('guidedTriageAnswer', { sessionId: start2.sessionId, nodeId: q.nodeId, choices: q.type === 'multi' ? [i] : i });
+      }
+      await adminDb.doc('pharmacies/demoRx2/staff/rph2').set({ role: 'pharmacist', active: true, licenseVerified: true });
+      const real = await u2.call('triageShareWithPharmacy', { sessionId: start2.sessionId, pharmacyId: 'demoRx2', consent: true });
+      await rejectsWith(u2.call('demoPharmacyReview', { reviewId: real.reviewId }), 'failed-precondition');
+    } finally {
+      await adminDb.doc('pharmacies/demoRx2').update({ sample: true });
+    }
+  });
+
+  test('demo order simulator: stock, preparing, shipping with a courier; money steps stay with the buyer', async () => {
+    const user = await buyer('demoOrder');
+    const other = await buyer('demoOrderOther');
+    const { orderId } = await user.call('createOrder', {
+      patientId: user.patientId, pharmacyId: 'demoRx1', items: [{ productId: 'shampooGentle', qty: 1 }],
+    });
+
+    await rejectsWith(other.call('demoPharmacyOrder', { orderId }), 'not-found'); // not their order
+    assert.equal((await user.call('demoPharmacyOrder', { orderId })).status, 'awaiting_payment');
+    await rejectsWith(user.call('demoPharmacyOrder', { orderId }), 'failed-precondition'); // waiting for the buyer to pay
+    await user.call('payOrder', { orderId });
+    assert.equal((await user.call('demoPharmacyOrder', { orderId })).status, 'preparing');
+    assert.equal((await user.call('demoPharmacyOrder', { orderId })).status, 'shipping');
+
+    const order = await getDoc(`orders/${orderId}`);
+    assert.ok(order.delivery.courier.name);
+    assert.ok(order.delivery.etaMinutes >= 10);
+    assert.equal(order.delivery.simulated, true);
+    await user.call('confirmReceived', { orderId });
+    assert.equal((await getDoc(`orders/${orderId}`)).status, 'delivered');
+
+    // Drugs that need a pharmacist are not confirmed by the simulator without an approval attached.
+    const risky = await buyer('demoOrderRisky');
+    const { orderId: riskyId } = await risky.call('createOrder', {
+      patientId: risky.patientId, pharmacyId: 'demoRx1', items: [{ productId: 'loratadine10', qty: 1 }],
+    });
+    await rejectsWith(risky.call('demoPharmacyOrder', { orderId: riskyId }), 'failed-precondition');
+    assert.equal((await getDoc(`orders/${riskyId}`)).status, 'pharmacy_checking');
   });
 
   test('health details reach the pharmacist only with the owner\'s consent', async () => {

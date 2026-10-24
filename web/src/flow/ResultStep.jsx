@@ -1,0 +1,163 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { collection, query, where } from 'firebase/firestore';
+import { db } from '../firebase.js';
+import { go, useQueryData } from '../lib/hooks.js';
+import { baht, DRUG_CLASS, timeAgo } from '../lib/format.js';
+import { Badge, Button, Card, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
+import FlowPage, { Redirect } from './FlowPage.jsx';
+import { useFlow } from './state.jsx';
+
+// The three outcomes the customer sees: 1 household medicines, 2 talk to the pharmacist, 3 see a doctor.
+export const outcomeOf = (route) => (route === 'self_care' ? 1 : route === 'pharmacist' ? 2 : 3);
+
+export function useFocus() {
+  const ref = useRef(null);
+  useEffect(() => { ref.current?.focus({ preventScroll: true }); }, []);
+  return ref;
+}
+
+// Stock is an estimate, so always say when it was updated and where it came from (not real-time).
+export function StockLine({ product, compact = false }) {
+  const manual = product.stockSource === 'manual';
+  return (
+    <span className="muted small">
+      {compact
+        ? `สต็อกประมาณ · อัปเดต ${timeAgo(product.stockUpdatedAt)}${manual ? ' · ร้านกรอกเอง' : ''}`
+        : `ประมาณการสต็อก อัปเดต ${timeAgo(product.stockUpdatedAt)}${manual ? ' · ร้านกรอกเอง ไม่ใช่เรียลไทม์' : ''}`}
+    </span>
+  );
+}
+
+// Turns a product doc into the line kept in the cart (the server re-reads price and class from the database).
+export const toLine = (p, qty) => ({
+  productId: p.id, catalogId: p.catalogId, name: p.name, packSize: p.packSize ?? null, price: p.price, qty,
+  requiresPharmacistReview: p.requiresPharmacistReview === true, drugClass: p.drugClass ?? 'unknown',
+});
+
+function SuggestedDrugs({ result, pharmacyId, onOrder }) {
+  const [products, loading] = useQueryData(
+    query(collection(db, 'pharmacies', pharmacyId, 'products'), where('active', '==', true)), [pharmacyId],
+  );
+  const wanted = result.suggestedCatalogIds ?? [];
+  const items = useMemo(
+    () => products.filter((p) => wanted.includes(p.catalogId) && p.deliverable !== false && p.stockStatus !== 'out_of_stock'),
+    [products, wanted],
+  );
+  const [qty, setQty] = useState({});
+  const lines = items.filter((p) => qty[p.id]).map((p) => toLine(p, qty[p.id]));
+  const total = lines.reduce((s, l) => s + l.price * l.qty, 0);
+
+  if (loading) return <Loading />;
+  return (
+    <>
+      <div className="between"><h2>ยาที่ร้านนี้มีและเข้ากับอาการ</h2><MockBadge /></div>
+      {items.length ? (
+        <Card>
+          <div className="list">
+            {items.map((p) => (
+              <div key={p.id} className="list-item">
+                <div className="list-item-main stack" style={{ gap: 2 }}>
+                  <strong>{p.name}</strong>
+                  <span className="muted small">{p.packSize} · {baht(p.price)}</span>
+                  <Badge tone="neutral">{DRUG_CLASS[p.drugClass] ?? DRUG_CLASS.unknown}</Badge>
+                  <StockLine product={p} />
+                </div>
+                {qty[p.id] ? (
+                  <div className="qty" role="group" aria-label={`จำนวน ${p.name}`}>
+                    <button type="button" onClick={() => setQty({ ...qty, [p.id]: Math.max(0, qty[p.id] - 1) })} aria-label={`ลด ${p.name}`}>−</button>
+                    <span aria-live="polite">{qty[p.id]}</span>
+                    <button type="button" onClick={() => setQty({ ...qty, [p.id]: Math.min(10, qty[p.id] + 1) })} aria-label={`เพิ่ม ${p.name}`}>+</button>
+                  </div>
+                ) : <Button size="sm" variant="secondary" onClick={() => setQty({ ...qty, [p.id]: 1 })} aria-label={`เลือก ${p.name}`}>เลือก</Button>}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ) : (
+        <Notice tone="info" title="ร้านนี้ยังไม่มียาที่ตรงกับอาการในรายการ">
+          ปรึกษาเภสัชกรของร้านเพื่อให้ช่วยเลือกสินค้าที่เหมาะสมได้
+        </Notice>
+      )}
+      <p className="muted small">
+        เป็นตัวอย่างสินค้าที่เข้ากับอาการ ไม่ใช่ใบสั่งยา ไม่ได้ระบุขนาดยา ให้อ่านฉลากและถามเภสัชกรเมื่อไม่แน่ใจ
+        สินค้าและราคาเป็นข้อมูลจำลอง
+      </p>
+      {items.length ? (
+        <Button size="lg" block disabled={!lines.length} onClick={() => onOrder(lines)}>
+          {lines.length ? `สั่งยา · ${baht(total)}` : 'เลือกยาก่อนสั่ง'}
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
+function Emergency({ result, headingRef }) {
+  const mental = result.outcomeId === 'mental_health';
+  return (
+    <div className="emergency" role="alert">
+      <h2 ref={headingRef} tabIndex={-1} style={{ outline: 'none' }}>{result.title}</h2>
+      {result.advice.map((a) => <p key={a}>{a}</p>)}
+      <a className="call" href="tel:1669">โทร 1669 (เจ็บป่วยฉุกเฉิน)</a>
+      {mental ? <a className="call" href="tel:1323">โทร 1323 (สายด่วนสุขภาพจิต)</a> : null}
+    </div>
+  );
+}
+
+export default function ResultStep() {
+  const flow = useFlow();
+  const headingRef = useFocus();
+  const { pharmacy, triage } = flow;
+  if (!pharmacy) return <Redirect to="" />;
+  if (!triage?.result) return <Redirect to="choose" />;
+
+  const { result } = triage;
+  const outcome = outcomeOf(result.route);
+  const emergency = result.route === 'emergency';
+  const order = (lines) => { flow.update({ cart: lines }); go('checkout'); };
+  const again = () => { flow.restart(); go('choose'); };
+
+  return (
+    <FlowPage
+      step={4}
+      title={emergency ? 'ต้องการความช่วยเหลือทันที' : 'ผลการประเมิน'}
+      onBack={again}
+      footer={outcome === 2 ? (
+        <Button size="lg" block onClick={() => go('consult')}><Icon name="people" />คุยกับเภสัชกรของร้าน</Button>
+      ) : null}
+    >
+      {emergency ? <Emergency result={result} headingRef={headingRef} /> : (
+        <>
+          <div className="result-head">
+            <Badge tone={outcome === 1 ? 'good' : outcome === 2 ? 'info' : 'warn'}>
+              {outcome === 1 ? 'ยาทั่วไป · ดูแลตัวเองเบื้องต้นได้' : outcome === 2 ? 'ต้องให้เภสัชกรช่วยเลือกยา' : result.route === 'urgent' ? 'ควรพบแพทย์ภายในวันนี้' : 'ควรพบแพทย์'}
+            </Badge>
+            <h2 ref={headingRef} tabIndex={-1} style={{ outline: 'none' }}>{result.title}</h2>
+          </div>
+          <ul className="advice">{result.advice.map((a) => <li key={a}>{a}</li>)}</ul>
+          {result.notes.map((n) => <Notice key={n} tone="info">{n}</Notice>)}
+          {result.warn.length ? (
+            <Notice tone="warn" title="ไปพบแพทย์ทันทีถ้ามีอาการเหล่านี้">{result.warn.map((w) => <p key={w}>{w}</p>)}</Notice>
+          ) : null}
+
+          {outcome === 1 ? <SuggestedDrugs result={result} pharmacyId={pharmacy.id} onOrder={order} /> : null}
+          {outcome === 2 ? (
+            <Notice tone="info" title="ขั้นต่อไป">
+              ผลนี้ต้องให้เภสัชกรของ {pharmacy.name} ช่วยเลือกยา คุณจะแชตหรือโทรคุยกับร้านได้ในหน้าถัดไป
+              และสั่งยาที่เภสัชกรอนุมัติได้จากที่นั่น ระบบประเมินอาการไม่ได้อนุมัติการจ่ายยา
+            </Notice>
+          ) : null}
+          {outcome === 3 ? (
+            <Notice tone="warn" title="ยังไม่ควรสั่งยาเอง">
+              อาการนี้ควรได้รับการตรวจจากแพทย์ ระหว่างนี้ปรึกษาเภสัชกรเรื่องการบรรเทาอาการเบื้องต้นได้
+              {result.route === 'doctor' ? (
+                <div style={{ marginTop: 10 }}><Button size="sm" variant="secondary" onClick={() => go('consult')}>ปรึกษาเภสัชกรระหว่างนี้</Button></div>
+              ) : null}
+            </Notice>
+          ) : null}
+        </>
+      )}
+      <p className="muted small">{result.disclaimer}</p>
+      <Button variant="secondary" block onClick={again}>ประเมินใหม่</Button>
+    </FlowPage>
+  );
+}

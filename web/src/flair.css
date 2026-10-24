@@ -1,0 +1,176 @@
+/* ───────── flair: livelier look, loaded after styles.css so it can restyle the base pieces ─────────
+   Motion is decorative only; everything here is switched off under prefers-reduced-motion (end of file). */
+
+:root {
+  --grad: linear-gradient(120deg, #11b87a 0%, #0b8a4a 38%, #0f7fcf 100%);
+  --grad-soft: linear-gradient(120deg, #d6f5e4, #dcefff);
+  --glass: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-border: color-mix(in srgb, #ffffff 70%, var(--border));
+  --glow: 0 10px 30px rgb(11 138 74 / 28%);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grad: linear-gradient(120deg, #3ddc84 0%, #19b27a 40%, #3a9bf0 100%);
+    --grad-soft: linear-gradient(120deg, #14392b, #112f4a);
+    --glass-border: color-mix(in srgb, #ffffff 14%, var(--border));
+    --glow: 0 10px 34px rgb(61 220 132 / 25%);
+  }
+}
+
+/* ───────── animated backdrop ───────── */
+.backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
+.blob-a { width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax; background: #3ddc84; animation: drift 22s ease-in-out infinite alternate; }
+.blob-b { width: 42vmax; height: 42vmax; right: -14vmax; top: 10vmax; background: #4aa8ff; animation: drift 26s ease-in-out -6s infinite alternate-reverse; }
+.blob-c { width: 34vmax; height: 34vmax; left: 30vmax; bottom: -18vmax; background: #9ff0c9; animation: drift 30s ease-in-out -12s infinite alternate; }
+@media (prefers-color-scheme: dark) { .blob { opacity: .22; } }
+.floater { position: absolute; color: var(--primary); opacity: .16; animation: bob 7s ease-in-out infinite; }
+@keyframes drift { to { transform: translate3d(8vmax, 6vmax, 0) scale(1.15); } }
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-22px) rotate(8deg); } }
+.shell, .login-wrap { position: relative; z-index: 1; }
+.shell { background: none; }
+.leaflet-container { z-index: 0; }
+
+/* ───────── page entrance: each screen rises in, its blocks follow one by one ───────── */
+.flow, .login-card { animation: page-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.flow-body > * { animation: rise .55s cubic-bezier(.2, .8, .2, 1) both; }
+.flow-body > :nth-child(1) { animation-delay: .05s; } .flow-body > :nth-child(2) { animation-delay: .12s; }
+.flow-body > :nth-child(3) { animation-delay: .19s; } .flow-body > :nth-child(4) { animation-delay: .26s; }
+.flow-body > :nth-child(5) { animation-delay: .33s; } .flow-body > :nth-child(n+6) { animation-delay: .4s; }
+@keyframes page-in { from { opacity: 0; transform: translateY(18px) scale(.985); } }
+@keyframes rise { from { opacity: 0; transform: translateY(22px); } }
+
+/* ───────── top bar and progress ───────── */
+.flow-top { background: transparent; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.flow-title { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.flow-top .round-btn { box-shadow: 0 4px 14px rgb(10 110 90 / 14%); transition: transform .2s, box-shadow .2s; }
+.flow-top .round-btn:hover { transform: translateY(-2px) rotate(-4deg); box-shadow: var(--glow); }
+.flow-dots span { transition: background .4s; }
+.flow-dots span.on { background: var(--grad); background-size: 200% 100%; animation: flow-bar 3s linear infinite; }
+@keyframes flow-bar { to { background-position: -200% 0; } }
+
+/* ───────── splash banner ───────── */
+.splash {
+  position: relative; overflow: hidden; isolation: isolate; color: #fff; text-align: left;
+  border-radius: 36px; padding: 24px 32px 26px; margin-bottom: 18px;
+  background: var(--grad); background-size: 220% 220%; animation: sheen 12s ease-in-out infinite;
+  box-shadow: var(--glow);
+}
+.splash::after { content: ''; position: absolute; inset: 0; z-index: -1; background: radial-gradient(circle at 85% 20%, rgb(255 255 255 / 28%), transparent 45%); }
+.splash-orb { position: absolute; z-index: -1; border-radius: 50%; background: rgb(255 255 255 / 16%); }
+.splash-orb-a { width: 220px; height: 220px; right: -60px; top: -80px; animation: bob 9s ease-in-out infinite; }
+.splash-orb-b { width: 120px; height: 120px; right: 140px; bottom: -50px; animation: bob 7s ease-in-out -3s infinite; }
+.splash-art { position: absolute; z-index: -1; right: 6%; top: 50%; margin-top: -130px; color: rgb(255 255 255 / 22%); animation: spin-slow 28s linear infinite; }
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+.splash-icon { display: inline-grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: rgb(255 255 255 / 22%); backdrop-filter: blur(6px); margin-bottom: 12px; animation: wiggle 5s ease-in-out infinite; }
+.splash-title { color: #fff; font-size: clamp(1.7rem, 3.4vw, 2.5rem); text-shadow: 0 2px 14px rgb(0 40 30 / 25%); }
+.splash-sub { margin-top: 6px; max-width: 46ch; font-size: 1.1rem; opacity: .95; }
+.splash-chips { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.splash-chips li { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: .95rem; background: rgb(255 255 255 / 20%); border: 1.5px solid rgb(255 255 255 / 40%); backdrop-filter: blur(6px); }
+@keyframes sheen { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes wiggle { 0%, 88%, 100% { transform: rotate(0); } 92% { transform: rotate(-12deg) scale(1.08); } 96% { transform: rotate(10deg) scale(1.08); } }
+@media (max-width: 560px) {
+  .splash { padding: 18px 18px 20px; border-radius: 26px; margin-bottom: 8px; }
+  .splash-orb-b, .splash-art { display: none; }
+  .splash-icon { width: 44px; height: 44px; margin-bottom: 6px; }
+  .splash-sub { font-size: 1rem; }
+  .splash-chips { gap: 6px; margin-top: 10px; }
+  .splash-chips li { padding: 5px 11px; font-size: .82rem; gap: 5px; }
+}
+
+/* ───────── buttons ───────── */
+.btn { transition: transform .18s cubic-bezier(.2, .8, .2, 1), box-shadow .2s, background-position .5s, filter .2s; position: relative; overflow: hidden; }
+.btn-primary {
+  background: var(--grad); background-size: 180% 100%; color: var(--primary-ink);
+  box-shadow: 0 4px 0 var(--primary-dark), 0 12px 24px rgb(11 138 74 / 24%);
+}
+.btn-primary:hover:not(:disabled) { background-position: 100% 0; transform: translateY(-3px); box-shadow: 0 7px 0 var(--primary-dark), var(--glow); }
+.btn-primary:active:not(:disabled) { transform: translateY(2px) scale(.99); box-shadow: 0 1px 0 var(--primary-dark); }
+.btn-primary::after { content: ''; position: absolute; top: 0; bottom: 0; width: 42%; left: -60%; transform: skewX(-20deg); background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); }
+.btn-primary:hover:not(:disabled)::after { animation: shine .8s ease; }
+.flow-bottom .btn-primary:not(:disabled) { animation: breathe 2.8s ease-in-out infinite; }
+@keyframes shine { to { left: 130%; } }
+@keyframes breathe { 50% { box-shadow: 0 4px 0 var(--primary-dark), 0 0 0 8px rgb(11 138 74 / 14%), var(--glow); } }
+.btn-secondary:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 8px 18px rgb(11 138 74 / 14%); }
+
+/* ───────── glass cards, lifted on hover ───────── */
+.card, .notice, .option, .product, .demo-box { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.card { background: var(--glass); border: 1.5px solid var(--glass-border); box-shadow: 0 10px 30px rgb(10 110 90 / 8%); transition: transform .25s, box-shadow .25s, border-color .25s; }
+.card:hover { box-shadow: 0 14px 36px rgb(10 110 90 / 14%); }
+.option { transition: transform .2s, box-shadow .2s, border-color .2s, background .2s; background: var(--glass); }
+.option:hover { transform: translateY(-3px); box-shadow: var(--glow); }
+.option.selected { background: var(--grad-soft); box-shadow: var(--glow); animation: pop .35s cubic-bezier(.2, 1.4, .4, 1); }
+.option.selected .option-box { background: var(--grad); color: #fff; border-color: transparent; }
+@keyframes pop { 0% { transform: scale(.96); } 60% { transform: scale(1.025); } 100% { transform: scale(1); } }
+.badge-good, .badge-info { box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent); }
+
+/* ───────── choice cards ───────── */
+.choice { position: relative; overflow: hidden; transition: transform .3s cubic-bezier(.2, .8, .2, 1), box-shadow .3s, border-color .3s; border: 2px solid var(--glass-border); }
+.choice-drug { background: linear-gradient(150deg, var(--accent-soft), color-mix(in srgb, var(--accent-soft) 40%, var(--surface))); }
+.choice-goods { background: linear-gradient(150deg, var(--good-soft), color-mix(in srgb, var(--good-soft) 40%, var(--surface))); }
+.choice::before { content: ''; position: absolute; width: 240px; height: 240px; right: -90px; top: -90px; border-radius: 50%; background: radial-gradient(circle, rgb(255 255 255 / 55%), transparent 70%); transition: transform .5s; }
+.choice::after { content: '›'; position: absolute; right: 22px; bottom: 16px; font-size: 2.4rem; font-weight: 800; line-height: 1; opacity: .35; transition: transform .3s, opacity .3s; }
+.choice:hover { transform: translateY(-8px) rotate(-.4deg); box-shadow: 0 22px 44px rgb(10 110 90 / 22%); border-color: var(--primary); }
+.choice:hover::before { transform: scale(1.4); }
+.choice:hover::after { transform: translateX(8px); opacity: .9; }
+.choice .tile-icon { width: 64px; height: 64px; border-radius: 20px; box-shadow: 0 8px 18px rgb(10 110 90 / 16%); animation: float-icon 4s ease-in-out infinite; }
+.choice-goods .tile-icon { animation-delay: -2s; }
+@keyframes float-icon { 50% { transform: translateY(-6px) rotate(4deg); } }
+
+/* ───────── shop ───────── */
+.product { transition: transform .25s cubic-bezier(.2, .8, .2, 1), box-shadow .25s, border-color .25s; background: var(--glass); }
+.product:hover { transform: translateY(-6px); box-shadow: 0 18px 34px rgb(10 110 90 / 18%); border-color: var(--primary); }
+.thumb { overflow: hidden; position: relative; transition: transform .3s; }
+.thumb::after { content: ''; position: absolute; inset: 0; background: linear-gradient(120deg, transparent 30%, rgb(255 255 255 / 55%) 50%, transparent 70%); transform: translateX(-120%); }
+.product:hover .thumb::after { transition: transform .7s; transform: translateX(120%); }
+.thumb svg { transition: transform .35s cubic-bezier(.2, 1.4, .4, 1); }
+.product:hover .thumb svg { transform: scale(1.25) rotate(-8deg); }
+.chip { transition: transform .15s, background .2s, border-color .2s, box-shadow .2s; }
+.chip:hover { transform: translateY(-2px); border-color: var(--primary); }
+.chip.on { background: var(--grad); color: var(--primary-ink); border-color: transparent; box-shadow: var(--glow); animation: pop .3s; }
+.qty span { animation: pop .25s; }
+.qty:has(span) { animation: pop .25s; }
+
+/* ───────── stages, courier, tracking ───────── */
+.stage-dot { transition: background .4s, transform .3s; }
+.stages li.done .stage-dot { background: var(--grad); border-color: transparent; animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); }
+.stages li.now .stage-dot { background: var(--grad); border-color: transparent; color: #fff; animation: ring 1.8s ease-out infinite; }
+@keyframes ring { 0% { box-shadow: 0 0 0 0 rgb(11 138 74 / 55%); } 100% { box-shadow: 0 0 0 16px rgb(11 138 74 / 0%); } }
+.courier-avatar { background: var(--grad); color: #fff; animation: bounce 2.4s ease-in-out infinite; }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } 60% { transform: translateY(0); } 75% { transform: translateY(-3px); } }
+.eta strong { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.qr-mock { background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--surface) 0 50%) 50% / 24px 24px; color: var(--text); animation: bob 5s ease-in-out infinite; }
+
+/* ───────── map pins ───────── */
+.pin-wrap { background: none; border: 0; }
+.pin { position: relative; display: block; width: 36px; height: 36px; }
+.pin i { position: absolute; inset: 9px; border-radius: 50%; background: var(--grad); border: 3px solid #fff; box-shadow: 0 3px 10px rgb(0 0 0 / 30%); }
+.pin::before, .pin::after { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--primary); opacity: .45; animation: pulse 2.4s ease-out infinite; }
+.pin::after { animation-delay: 1.2s; }
+.pin-on i { inset: 4px; background: #ffd23f; }
+.pin-on::before, .pin-on::after { background: #ffd23f; }
+@keyframes pulse { to { transform: scale(2.2); opacity: 0; } }
+.rider { display: grid; place-items: center; width: 44px; height: 44px; font-size: 26px; border-radius: 50%; background: #fff; border: 3px solid var(--primary); box-shadow: 0 6px 16px rgb(0 0 0 / 30%); animation: bounce 1.2s ease-in-out infinite; }
+.track-map .leaflet-marker-icon.pin-wrap { transition: transform 1s linear; }
+
+/* ───────── celebration ───────── */
+.confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; overflow: hidden; }
+.confetti span { position: absolute; top: -24px; border-radius: 2px; opacity: 0; animation: confetti-fall linear forwards; }
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(var(--rot)); }
+  100% { opacity: 0; transform: translate3d(calc(var(--rot) * .4), 105vh, 0) rotate(calc(var(--rot) + 720deg)); }
+}
+
+/* ───────── notices and inputs ───────── */
+.notice { border: 1.5px solid color-mix(in srgb, currentColor 18%, transparent); animation: rise .5s both; }
+input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 25%, transparent); }
+.login-card { backdrop-filter: blur(14px); }
+
+/* ───────── desktop: let the bottom bar glow too ───────── */
+@media (min-width: 900px) { .flow-bottom { background: var(--glass); backdrop-filter: blur(16px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .blob, .floater { opacity: .12; }
+  .confetti { display: none; }
+}

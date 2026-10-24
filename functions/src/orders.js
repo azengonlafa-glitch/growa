@@ -46,7 +46,7 @@ const STATUS_TEXT = {
 };
 
 // Applies one transition inside `tx`: order update + event + audit + notify buyer.
-function transition(tx, ref, order, to, { actorUid, note = null, extra = {}, notifyUids = null }) {
+export function transition(tx, ref, order, to, { actorUid, note = null, extra = {}, notifyUids = null }) {
   if (!TRANSITIONS[order.status]?.includes(to)) {
     throw new HttpsError('failed-precondition', `เปลี่ยนสถานะจาก ${order.status} เป็น ${to} ไม่ได้`);
   }
@@ -64,7 +64,7 @@ function transition(tx, ref, order, to, { actorUid, note = null, extra = {}, not
   }
 }
 
-async function loadOrder(tx, orderId) {
+export async function loadOrder(tx, orderId) {
   const ref = db.doc(`orders/${str(orderId, 'orderId', { max: 128 })}`);
   const snap = await tx.get(ref);
   if (!snap.exists) throw new HttpsError('not-found', 'ไม่พบคำสั่งซื้อ');

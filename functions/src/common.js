@@ -1,4 +1,4 @@
-// Shared helpers for MediLink Cloud Functions.
+// Shared helpers for growa Cloud Functions.
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';

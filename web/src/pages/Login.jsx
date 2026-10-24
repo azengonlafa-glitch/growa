@@ -46,13 +46,14 @@ export default function Login() {
     <div className="login-wrap">
       <div className="login-card stack-lg">
         <div className="stack" style={{ alignItems: 'center', textAlign: 'center' }}>
-          <Mascot size={96} label="MediLink" />
-          <h1>MediLink</h1>
+          <Mascot size={96} label="growa" />
+          <h1>growa</h1>
           <p className="muted">ร้านยาใกล้บ้าน เภสัชกรช่วยดูแล และระบบดูแลยาของครอบครัว</p>
         </div>
 
         <Card className="stack">
           <Segmented
+            label="วิธีเข้าใช้งาน"
             value={mode}
             onChange={setMode}
             options={[['demo', 'บัญชีเดโม'], ['signin', 'เข้าสู่ระบบ'], ['signup', 'สมัครสมาชิก']]}
@@ -75,11 +76,11 @@ export default function Login() {
           ) : (
             <form className="stack" onSubmit={(e) => { e.preventDefault(); return mode === 'signin' ? signIn(email, password) : signUp(); }}>
               {mode === 'signup' ? (
-                <Field label="ชื่อที่แสดง"><input required value={name} onChange={(e) => setName(e.target.value)} /></Field>
+                <Field label="ชื่อที่แสดง"><input name="name" autoComplete="name" required value={name} onChange={(e) => setName(e.target.value)} /></Field>
               ) : null}
-              <Field label="อีเมล"><input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
+              <Field label="อีเมล"><input type="email" name="email" inputMode="email" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></Field>
               <Field label="รหัสผ่าน" hint={mode === 'signup' ? 'อย่างน้อย 6 ตัวอักษร' : null}>
-                <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
+                <input type="password" name="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} />
               </Field>
               <Button type="submit" busy={busy}>{mode === 'signin' ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</Button>
             </form>

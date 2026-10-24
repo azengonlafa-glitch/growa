@@ -36,7 +36,7 @@ async function loadOsm() {
     const query = '[out:json][timeout:120];rel["boundary"="administrative"]["admin_level"~"^(6|8)$"](13.45,100.30,14.0,100.95);out center tags;';
     const res = await fetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
-      headers: { 'User-Agent': 'MediLink-hackathon-prototype/0.1', 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'User-Agent': 'growa-hackathon-prototype/0.1', 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `data=${encodeURIComponent(query)}`,
     });
     if (!res.ok) throw new Error(`Overpass ${res.status}`);

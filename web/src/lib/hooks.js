@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { onSnapshot } from 'firebase/firestore';
 import { auth } from '../firebase.js';
@@ -68,6 +68,19 @@ export function useAction() {
     }
   }, []);
   return { busy, error, run, setError };
+}
+
+// Short-lived confirmation text ("saved") that clears itself.
+export function useFlash(ms = 4000) {
+  const [text, setText] = useState('');
+  const timer = useRef(null);
+  const flash = useCallback((msg) => {
+    setText(msg);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setText(''), ms);
+  }, [ms]);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return [text, flash];
 }
 
 // Minimal hash router: #/path/a/b -> ['path','a','b'].

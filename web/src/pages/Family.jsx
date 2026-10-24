@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { collection, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { call, db } from '../firebase.js';
-import { useAction, useQueryData } from '../lib/hooks.js';
+import { useAction, useFlash, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase.js';
-import { Badge, Button, Card, ErrorText, Field, Icon, PageHeader } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, ErrorText, Field, Flash, Icon, PageHeader } from '../components/ui.jsx';
 
 const PERMS = [
   ['viewMeds', 'ดูรายการยาและตารางยา'],
@@ -43,7 +43,7 @@ function CaregiverRow({ patient, cg }) {
   const full = Object.fromEntries(PERMS.map(([k]) => [k, Boolean(perms[k])]));
 
   return (
-    <div className="list-item" style={{ alignItems: 'flex-start' }}>
+    <div className="list-item list-item-wrap" style={{ alignItems: 'flex-start' }}>
       <div className="list-item-main stack" style={{ gap: 6 }}>
         <div className="row"><strong>{cg.caregiverName}</strong><Badge tone={tone}>{label}</Badge></div>
         {editing ? <PermissionPicker value={perms} onChange={setPerms} /> : (
@@ -51,7 +51,7 @@ function CaregiverRow({ patient, cg }) {
         )}
         <ErrorText>{error}</ErrorText>
       </div>
-      <div className="stack" style={{ gap: 6 }}>
+      <div className="actions-col">
         {cg.status === 'requested' ? (
           <>
             <Button size="sm" busy={busy} onClick={() => update({ status: 'active', permissions: full })}>อนุมัติ</Button>
@@ -62,7 +62,7 @@ function CaregiverRow({ patient, cg }) {
             {editing
               ? <Button size="sm" busy={busy} onClick={() => update({ permissions: full })}>บันทึกสิทธิ์</Button>
               : <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>แก้สิทธิ์</Button>}
-            <Button size="sm" variant="ghost" busy={busy} onClick={() => update({ status: 'revoked' })}>ยกเลิกสิทธิ์</Button>
+            <ConfirmButton size="sm" variant="ghost" busy={busy} question={`ยกเลิกสิทธิ์ของ ${cg.caregiverName}?`} yes="ยกเลิกสิทธิ์" onConfirm={() => update({ status: 'revoked' })}>ยกเลิกสิทธิ์</ConfirmButton>
           </>
         ) : null}
       </div>
@@ -75,6 +75,7 @@ function OwnedProfile({ patient }) {
   const [email, setEmail] = useState('');
   const [perms, setPerms] = useState({ viewMeds: true, logDoses: true, requestRefill: true, viewOrders: true });
   const [open, setOpen] = useState(false);
+  const [sent, flash] = useFlash();
   const { busy, error, run } = useAction();
 
   return (
@@ -89,10 +90,10 @@ function OwnedProfile({ patient }) {
       {open ? (
         <form className="stack" onSubmit={(e) => {
           e.preventDefault();
-          run(() => call('inviteCaregiver', { patientId: patient.id, email, permissions: perms }).then(() => { setEmail(''); setOpen(false); }));
+          run(() => call('inviteCaregiver', { patientId: patient.id, email, permissions: perms }).then(() => { setEmail(''); setOpen(false); flash('ส่งคำเชิญแล้ว รอผู้ดูแลตอบรับ'); }));
         }}>
           <Field label="อีเมลของผู้ดูแล" hint="ผู้ดูแลต้องสมัครสมาชิกก่อน และต้องกดตอบรับคำเชิญ">
-            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="email" name="caregiver-email" inputMode="email" autoComplete="off" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Field label="สิทธิ์ที่ให้"><PermissionPicker value={perms} onChange={setPerms} /></Field>
           <div className="row">
@@ -100,7 +101,8 @@ function OwnedProfile({ patient }) {
             <Button variant="secondary" onClick={() => setOpen(false)}>ยกเลิก</Button>
           </div>
         </form>
-      ) : <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>+ เชิญผู้ดูแล</Button>}
+      ) : <Button size="sm" variant="secondary" onClick={() => setOpen(true)}><Icon name="plus" size={18} stroke={2.6} />เชิญผู้ดูแล</Button>}
+      <Flash>{sent}</Flash>
       <ErrorText>{error}</ErrorText>
     </Card>
   );
@@ -120,28 +122,18 @@ export default function Family() {
   const add = useAction();
   const request = useAction();
   const respond = useAction();
+  const [added, flashAdded] = useFlash();
+  const [requested, flashRequested] = useFlash();
 
   return (
     <div className="stack-lg">
       <PageHeader eyebrow="ดูแลกันและกัน" title="ครอบครัว" subtitle="ผู้ดูแลทำได้เฉพาะสิทธิ์ที่เจ้าของข้อมูลอนุญาต" mascot />
 
-      <section className="stack" aria-label="บัญชีของฉัน">
-        <h2>บัญชีของฉัน</h2>
-        <div className="tile-grid">
-          <a className="tile tile-peach" href="#/health"><span className="tile-icon"><Icon name="shield" /></span><span className="tile-label">โปรไฟล์สุขภาพ</span></a>
-          <a className="tile tile-honey" href="#/notifications"><span className="tile-icon"><Icon name="bell" /></span><span className="tile-label">แจ้งเตือน</span></a>
-          <a className="tile tile-sage" href="#/orders"><span className="tile-icon"><Icon name="truck" /></span><span className="tile-label">คำสั่งซื้อของฉัน</span></a>
-          <button type="button" className="tile tile-rose" style={{ border: 0, font: 'inherit', textAlign: 'left', cursor: 'pointer' }} onClick={() => signOut(auth)}>
-            <span className="tile-icon"><Icon name="back" /></span><span className="tile-label">ออกจากระบบ</span>
-          </button>
-        </div>
-      </section>
-
       {invitations.length ? (
         <section className="stack">
           <h2>คำเชิญถึงคุณ</h2>
           {invitations.map((inv) => (
-            <Card key={inv.id} className="between">
+            <Card key={inv.id} className="between list-item-wrap">
               <div>
                 <strong>ช่วยดูแล {inv.patientDisplayName}</strong>
                 <p className="muted small">{PERMS.filter(([k]) => inv.permissions[k]).map(([, l]) => l).join(' · ')}</p>
@@ -155,6 +147,15 @@ export default function Family() {
           <ErrorText>{respond.error}</ErrorText>
         </section>
       ) : null}
+
+      <section className="stack" aria-label="บัญชีของฉัน">
+        <h2>บัญชีของฉัน</h2>
+        <div className="tile-grid">
+          <a className="tile tile-peach" href="#/health"><span className="tile-icon"><Icon name="shield" /></span><span className="tile-label">โปรไฟล์สุขภาพ</span></a>
+          <a className="tile tile-honey" href="#/notifications"><span className="tile-icon"><Icon name="bell" /></span><span className="tile-label">แจ้งเตือน</span></a>
+          <a className="tile tile-sage" href="#/orders"><span className="tile-icon"><Icon name="truck" /></span><span className="tile-label">คำสั่งซื้อของฉัน</span></a>
+        </div>
+      </section>
 
       {cared.length ? (
         <section className="stack">
@@ -180,11 +181,12 @@ export default function Family() {
             e.preventDefault();
             add.run(() => setDoc(doc(collection(db, 'patients')), {
               ownerUid: user.uid, isSelf: false, displayName: newName, archived: false, createdAt: serverTimestamp(),
-            }).then(() => setNewName('')));
+            }).then(() => { setNewName(''); flashAdded('เพิ่มโปรไฟล์แล้ว'); }));
           }}>
-            <input style={{ flex: '1 1 200px' }} required placeholder="ชื่อหรือชื่อเรียก" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="ชื่อสมาชิก" />
+            <input style={{ flex: '1 1 200px' }} required name="member-name" autoComplete="off" placeholder="ชื่อหรือชื่อเรียก เช่น คุณยาย…" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="ชื่อสมาชิก" />
             <Button type="submit" busy={add.busy}>เพิ่ม</Button>
           </form>
+          <Flash>{added}</Flash>
           <ErrorText>{add.error}</ErrorText>
         </Card>
       </section>
@@ -195,13 +197,24 @@ export default function Family() {
           <p className="muted small">ระบบจะส่งคำขอไปให้เจ้าของข้อมูลอนุมัติก่อน คุณจะยังไม่เห็นข้อมูลใด ๆ จนกว่าจะได้รับอนุมัติ</p>
           <form className="row" onSubmit={(e) => {
             e.preventDefault();
-            request.run(() => call('requestCaregiverAccess', { ownerEmail }).then(() => setOwnerEmail('')));
+            request.run(() => call('requestCaregiverAccess', { ownerEmail }).then(() => { setOwnerEmail(''); flashRequested('ส่งคำขอแล้ว รอเจ้าของข้อมูลอนุมัติ'); }));
           }}>
-            <input type="email" style={{ flex: '1 1 200px' }} required placeholder="อีเมลของเจ้าของข้อมูล" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} aria-label="อีเมลเจ้าของข้อมูล" />
+            <input type="email" name="owner-email" inputMode="email" autoComplete="off" spellCheck={false} style={{ flex: '1 1 200px' }} required placeholder="อีเมลของเจ้าของข้อมูล เช่น name@example.com" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} aria-label="อีเมลเจ้าของข้อมูล" />
             <Button type="submit" busy={request.busy}>ส่งคำขอ</Button>
           </form>
+          <Flash>{requested}</Flash>
           <ErrorText>{request.error}</ErrorText>
         </Card>
+      </section>
+
+      <section className="stack" aria-label="ออกจากระบบ">
+        <hr className="sep" />
+        <div className="between">
+          <span className="muted small truncate">{user.email}</span>
+          <ConfirmButton variant="secondary" size="sm" question="ออกจากระบบ?" yes="ออกจากระบบ" onConfirm={() => signOut(auth)}>
+            <Icon name="logout" size={18} />ออกจากระบบ
+          </ConfirmButton>
+        </div>
       </section>
     </div>
   );

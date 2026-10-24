@@ -49,4 +49,4 @@ if (seed.status !== 0) { stopAll(); process.exit(1); }
 
 // web/src/firebase.js talks to the real Firebase project unless told otherwise.
 start('npm --prefix web run dev', { env: { ...process.env, VITE_USE_EMULATOR: 'true' } });
-console.log('\n  MediLink demo:  http://localhost:5180\n  Demo accounts are on the login page. Ctrl+C to stop.\n');
+console.log('\n  growa demo:  http://localhost:5180\n  Demo accounts are on the login page. Ctrl+C to stop.\n');

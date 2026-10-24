@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addDoc, collection, doc, getDocs, query, serverTimestamp, setDoc, Timestamp, updateDoc, where } from 'firebase/firestore';
 import { call, db } from '../firebase.js';
-import { go, useAction, useQueryData } from '../lib/hooks.js';
+import { go, useAction, useFlash, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { useMeds, useTodaySchedule, daysLeft, isLow, DOSE_STATUS } from '../lib/meds.js';
 import { NAMED_TIME_LABELS } from '../../../functions/src/schedule.js';
-import { Badge, Button, Card, Empty, ErrorText, Field, Icon, Loading, Notice, PageHeader, Segmented } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, Flash, Icon, Loading, Notice, PageHeader, Segmented } from '../components/ui.jsx';
 
 function DoseRow({ slot, patient }) {
   const { user } = useSession();
@@ -13,12 +13,12 @@ function DoseRow({ slot, patient }) {
   const due = slot.at <= Date.now();
   const log = (status) => run(async () => {
     const ref = await addDoc(collection(db, 'patients', patient.id, 'doseLogs'), {
-    medicationId: slot.med.id,
-    scheduledFor: Timestamp.fromMillis(slot.at),
-    status,
-    loggedBy: user.uid,
-    loggedAt: serverTimestamp(),
-    ...(slot.log ? { correctsLogId: slot.log.id } : {}),
+      medicationId: slot.med.id,
+      scheduledFor: Timestamp.fromMillis(slot.at),
+      status,
+      loggedBy: user.uid,
+      loggedAt: serverTimestamp(),
+      ...(slot.log ? { correctsLogId: slot.log.id } : {}),
     });
     // Updates the stock estimate and tells caregivers about a confirmed miss.
     await call('afterDoseLog', { patientId: patient.id, logId: ref.id });
@@ -37,9 +37,18 @@ function DoseRow({ slot, patient }) {
       </div>
       {can(patient, 'logDoses') && (!slot.log || slot.log.status !== 'taken') ? (
         <div className="row">
-          <Button busy={busy} onClick={() => log('taken')} style={{ flex: '1 1 100%' }}><Icon name="check" stroke={2.8} />กินแล้ว</Button>
-          {due ? <Button size="sm" variant="secondary" busy={busy} onClick={() => log('missed')}>พลาดมื้อนี้</Button> : null}
-          <Button size="sm" variant="ghost" busy={busy} onClick={() => log('skipped')}>งดตามแพทย์สั่ง</Button>
+          <Button busy={busy} onClick={() => log('taken')} style={{ flex: '1 1 100%' }} aria-label={`กินแล้ว ${slot.med.name} ${slot.time}`}><Icon name="check" stroke={2.8} />กินแล้ว</Button>
+          {due ? (
+            <ConfirmButton size="sm" busy={busy} question="ยืนยันว่าพลาดมื้อนี้?" yes="ยืนยันว่าพลาด" onConfirm={() => log('missed')} ariaLabel={`พลาดมื้อนี้ ${slot.med.name} ${slot.time}`}>พลาดมื้อนี้</ConfirmButton>
+          ) : null}
+          <Button size="sm" variant="ghost" busy={busy} onClick={() => log('skipped')} aria-label={`งดตามแพทย์สั่ง ${slot.med.name} ${slot.time}`}>งดตามแพทย์สั่ง</Button>
+        </div>
+      ) : null}
+      {can(patient, 'logDoses') && slot.log?.status === 'taken' ? (
+        <div className="row">
+          <span className="hint">บันทึกผิด? แก้เป็น</span>
+          <ConfirmButton size="sm" busy={busy} question="ยืนยันว่ายังไม่ได้กิน?" yes="ยืนยันว่าพลาด" onConfirm={() => log('missed')} ariaLabel={`แก้เป็นพลาดมื้อ ${slot.med.name} ${slot.time}`}>พลาดมื้อนี้</ConfirmButton>
+          <Button size="sm" variant="ghost" busy={busy} onClick={() => log('skipped')} aria-label={`แก้เป็นงดมื้อนี้ ${slot.med.name} ${slot.time}`}>งดมื้อนี้</Button>
         </div>
       ) : null}
       <ErrorText>{error}</ErrorText>
@@ -172,6 +181,7 @@ function AddMedForm({ patient, onDone }) {
 function MedCard({ med, patient, onRefill }) {
   const { user } = useSession();
   const [count, setCount] = useState('');
+  const [saved, flash] = useFlash();
   const { busy, error, run } = useAction();
   const left = daysLeft(med);
   return (
@@ -195,12 +205,14 @@ function MedCard({ med, patient, onRefill }) {
             await updateDoc(med.ref, { stockOnHand: Number(count), stockCountedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: user.uid });
             await call('afterMedicationWrite', { patientId: patient.id, medicationId: med.id });
             setCount('');
+            flash('อัปเดตจำนวนยาแล้ว');
           });
         }}>
-          <input type="number" min={0} style={{ flex: 1 }} placeholder="นับยาที่เหลือจริง" value={count} onChange={(e) => setCount(e.target.value)} aria-label="จำนวนยาที่นับได้" />
-          <Button size="sm" variant="secondary" busy={busy} disabled={count === ''}>อัปเดต</Button>
+          <input type="number" min={0} inputMode="numeric" style={{ flex: 1 }} placeholder="นับยาที่เหลือจริง…" value={count} onChange={(e) => setCount(e.target.value)} aria-label={`จำนวน${med.name}ที่นับได้จริง`} />
+          <Button type="submit" size="sm" variant="secondary" busy={busy} disabled={count === ''} aria-label={`อัปเดตจำนวน${med.name}`}>อัปเดต</Button>
         </form>
       ) : null}
+      <Flash>{saved}</Flash>
       {can(patient, 'requestRefill') ? <Button size="sm" variant={isLow(med) ? 'primary' : 'secondary'} onClick={onRefill}>ขอเติมยา</Button> : null}
       <ErrorText>{error}</ErrorText>
     </Card>
@@ -215,6 +227,14 @@ export default function Meds() {
   const [meds, loading] = useMeds(patient?.id);
   const [slots] = useTodaySchedule(patient?.id, meds);
   const [panel, setPanel] = useState(null); // 'add' | med
+  const panelRef = useRef(null);
+
+  // The add/refill forms open above the list; bring them into view so the tap visibly does something.
+  useEffect(() => {
+    if (!panel) return;
+    panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    panelRef.current?.querySelector('input, select')?.focus({ preventScroll: true });
+  }, [panel]);
 
   if (!patient) return <Empty title="ยังไม่มีโปรไฟล์ที่ดูได้" />;
   const pick = (id) => { sessionStorage.setItem('medsPatient', id); setPatientId(id); setPanel(null); };
@@ -227,12 +247,15 @@ export default function Meds() {
         actions={can(patient, 'editMeds') ? <button type="button" className="round-btn round-btn-primary" aria-label="เพิ่มยา" onClick={() => setPanel('add')}><Icon name="plus" size={28} stroke={2.8} /></button> : null}
       />
       {visible.length > 1 ? (
-        <Segmented value={patient.id} onChange={pick} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
+        <Segmented label="เลือกโปรไฟล์" value={patient.id} onChange={pick} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
       ) : null}
       {patient.viaCaregiver ? <Notice tone="info">คุณกำลังดูข้อมูลของ {patient.displayName} ในฐานะผู้ดูแล ทุกการบันทึกจะระบุชื่อคุณ</Notice> : null}
 
-      {panel === 'add' ? <AddMedForm patient={patient} onDone={() => setPanel(null)} /> : null}
-      {panel && panel !== 'add' ? <RefillForm patient={patient} med={panel} onDone={() => setPanel(null)} /> : null}
+      {panel ? (
+        <div ref={panelRef} style={{ scrollMarginTop: 16 }}>
+          {panel === 'add' ? <AddMedForm patient={patient} onDone={() => setPanel(null)} /> : <RefillForm patient={patient} med={panel} onDone={() => setPanel(null)} />}
+        </div>
+      ) : null}
 
       <section className="stack">
         <h2>วันนี้</h2>
@@ -247,7 +270,7 @@ export default function Meds() {
         <div className="grid-cards">
           {meds.map((m) => <MedCard key={m.id} med={m} patient={patient} onRefill={() => setPanel(m)} />)}
         </div>
-        {!loading && !meds.length ? <Empty icon="◷" title="ยังไม่มียาในรายการ" /> : null}
+        {!loading && !meds.length ? <Empty icon="pill" title="ยังไม่มียาในรายการ" /> : null}
       </section>
     </div>
   );

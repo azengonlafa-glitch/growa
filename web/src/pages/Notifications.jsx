@@ -3,7 +3,7 @@ import { db } from '../firebase.js';
 import { useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { timeAgo } from '../lib/format.js';
-import { Badge, Button, Card, Empty, PageHeader } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, Empty, Icon, PageHeader } from '../components/ui.jsx';
 
 const TYPE = {
   dose_unlogged: ['ยังไม่ได้บันทึก', 'warn'],
@@ -35,20 +35,27 @@ export default function Notifications() {
               const [label, tone] = TYPE[n.type] ?? ['ทั่วไป', 'neutral'];
               const href = n.orderId ? `#/orders/${n.orderId}` : n.type?.startsWith('dose') || n.type === 'refill_due' ? '#/meds' : null;
               return (
-                <div key={n.id} className="list-item" style={n.readAt ? { opacity: 0.65 } : null}>
-                  <a className="list-item-main" href={href ?? undefined} onClick={() => markRead(n)} style={{ color: 'inherit' }}>
-                    <div className="row"><Badge tone={tone}>{label}</Badge>{!n.readAt ? <span className="dot" aria-label="ยังไม่อ่าน" /> : null}</div>
-                    <strong>{n.title}</strong>
-                    <p className="small">{n.body}</p>
-                    <span className="muted small">{timeAgo(n.createdAt)}</span>
-                  </a>
-                  <Button size="sm" variant="ghost" onClick={() => deleteDoc(n.ref)} aria-label="ลบการแจ้งเตือน">✕</Button>
+                <div key={n.id} className="list-item">
+                  {(() => {
+                    const content = (
+                      <>
+                        <div className="row"><Badge tone={tone}>{label}</Badge>{!n.readAt ? <span className="dot" role="img" aria-label="ยังไม่อ่าน" /> : null}</div>
+                        <strong style={n.readAt ? { fontWeight: 500 } : null}>{n.title}</strong>
+                        <p className="small">{n.body}</p>
+                        <span className="muted small">{timeAgo(n.createdAt)}</span>
+                      </>
+                    );
+                    return href
+                      ? <a className="list-item-main" href={href} onClick={() => markRead(n)} style={{ color: 'inherit' }}>{content}</a>
+                      : <div className="list-item-main">{content}{!n.readAt ? <Button size="sm" variant="ghost" onClick={() => markRead(n)}>ทำเครื่องหมายว่าอ่านแล้ว</Button> : null}</div>;
+                  })()}
+                  <ConfirmButton size="sm" variant="ghost" question="ลบแจ้งเตือนนี้?" yes="ลบ" ariaLabel={`ลบแจ้งเตือน ${n.title}`} onConfirm={() => deleteDoc(n.ref)}><Icon name="close" size={20} /></ConfirmButton>
                 </div>
               );
             })}
           </div>
         </Card>
-      ) : <Empty icon="♪" title="ยังไม่มีการแจ้งเตือน" />}
+      ) : <Empty icon="bell" title="ยังไม่มีการแจ้งเตือน" />}
     </div>
   );
 }

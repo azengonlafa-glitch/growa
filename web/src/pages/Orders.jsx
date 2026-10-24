@@ -4,7 +4,7 @@ import { call, db } from '../firebase.js';
 import { useAction, useDocData, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { ORDER_STATUS, baht, dateTime, timeAgo } from '../lib/format.js';
-import { Badge, Button, Card, Empty, ErrorText, Field, Loading, MockBadge, Notice, PageHeader } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, Loading, MockBadge, Notice, PageHeader } from '../components/ui.jsx';
 
 function OrderRow({ o }) {
   const [label, tone] = ORDER_STATUS[o.status] ?? [o.status, 'neutral'];
@@ -47,7 +47,7 @@ export default function Orders() {
       {loading ? <Loading /> : mine.length ? (
         <Card><div className="list">{mine.map((o) => <OrderRow key={o.id} o={o} />)}</div></Card>
       ) : (
-        <Empty icon="▤" title="ยังไม่มีคำสั่งซื้อ"><a href="#/pharmacies">ค้นหาร้านยา</a></Empty>
+        <Empty icon="list" title="ยังไม่มีคำสั่งซื้อ"><a href="#/pharmacies">ค้นหาร้านยา</a></Empty>
       )}
       {patients.filter((p) => p.viaCaregiver && can(p, 'viewOrders')).map((p) => <FamilyOrders key={p.id} patient={p} />)}
     </div>
@@ -104,9 +104,9 @@ function RateOrder({ order }) {
   return (
     <Card className="stack">
       <h3>รีวิวร้านนี้</h3>
-      <div className="row" role="radiogroup" aria-label="คะแนน">
+      <div className="row" role="group" aria-label={`ให้คะแนน ปัจจุบัน ${rating} ดาว`}>
         {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} className={`btn btn-sm ${n <= rating ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRating(n)} aria-label={`${n} ดาว`} role="radio" aria-checked={n === rating}>★</button>
+          <button key={n} type="button" className={`btn btn-sm ${n <= rating ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setRating(n)} aria-label={`${n} ดาว`} aria-pressed={n === rating}>★</button>
         ))}
       </div>
       <textarea rows={2} placeholder="เล่าประสบการณ์ (ไม่บังคับ)" value={comment} onChange={(e) => setComment(e.target.value)} maxLength={1000} aria-label="ความคิดเห็น" />
@@ -143,8 +143,14 @@ export function OrderDetail({ orderId }) {
       ) : null}
 
       {stepIndex >= 0 ? (
-        <div className="progress" aria-label={`ขั้นที่ ${stepIndex + 1} จาก ${STEPS.length}`}>
-          <span style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
+        <div className="steps">
+          <div className="between">
+            <span className="steps-label">ขั้นที่ {stepIndex + 1} จาก {STEPS.length}</span>
+            <span className="muted small">{stepIndex + 1 < STEPS.length ? `ถัดไป: ${ORDER_STATUS[STEPS[stepIndex + 1]]?.[0] ?? ''}` : 'ครบทุกขั้นตอนแล้ว'}</span>
+          </div>
+          <div className="progress" role="progressbar" aria-label="ความคืบหน้าคำสั่งซื้อ" aria-valuemin={1} aria-valuemax={STEPS.length} aria-valuenow={stepIndex + 1} aria-valuetext={`ขั้นที่ ${stepIndex + 1} จาก ${STEPS.length}: ${label}`}>
+            <span style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
+          </div>
         </div>
       ) : null}
 
@@ -153,9 +159,14 @@ export function OrderDetail({ orderId }) {
           <h3>ชำระเงิน <MockBadge label="จำลอง" /></h3>
           <p className="muted small">ร้านยืนยันสินค้าแล้ว{order.needsPharmacistReview ? ' และเภสัชกรอนุมัติแล้ว' : ''} ระบบจึงเปิดให้ชำระเงิน</p>
           {isBuyer ? (
-            <div className="row">
+            <div className="stack">
               <Button busy={busy} onClick={() => run(() => call('payOrder', { orderId }))}>ชำระ {baht(order.total)}</Button>
-              <Button variant="secondary" busy={busy} onClick={() => run(() => call('payOrder', { orderId, simulateFailure: true }))}>จำลองชำระไม่สำเร็จ</Button>
+              <details>
+                <summary className="muted small">สำหรับทดสอบการสาธิต</summary>
+                <div style={{ marginTop: 8 }}>
+                  <Button size="sm" variant="secondary" busy={busy} onClick={() => run(() => call('payOrder', { orderId, simulateFailure: true }))}>จำลองชำระไม่สำเร็จ</Button>
+                </div>
+              </details>
             </div>
           ) : <p className="muted">รอผู้สั่งซื้อชำระเงิน</p>}
         </Card>
@@ -198,7 +209,7 @@ export function OrderDetail({ orderId }) {
       <div className="row">
         {order.status === 'shipping' ? <Button busy={busy} onClick={() => run(() => call('confirmReceived', { orderId }))}>ยืนยันว่าได้รับยาแล้ว</Button> : null}
         {CANCELLABLE.includes(order.status) ? (
-          <Button variant="secondary" busy={busy} onClick={() => run(() => call('cancelOrder', { orderId, reason: 'ผู้ใช้ยกเลิก' }))}>ยกเลิกคำสั่งซื้อ</Button>
+          <ConfirmButton busy={busy} question="ยกเลิกคำสั่งซื้อนี้?" yes="ยกเลิกคำสั่งซื้อ" no="ไม่ยกเลิก" onConfirm={() => run(() => call('cancelOrder', { orderId, reason: 'ผู้ใช้ยกเลิก' }))}>ยกเลิกคำสั่งซื้อ</ConfirmButton>
         ) : null}
       </div>
       <ErrorText>{error}</ErrorText>

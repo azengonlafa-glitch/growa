@@ -13,6 +13,12 @@
 //           chosen options with `to` win (most severe first), else node.to
 //   route:  { rules: [{ when: { fact: [values] }, to }], to }   (auto, no question)
 // `to` is a node id or "outcome:<id>".
+//
+// Outcomes may carry `suggest: [catalogId]` (self_care only): household
+// medicines (no pharmacist review needed) the shop can list under the result.
+// These are product suggestions, not a prescription: no dose is ever given,
+// and the pharmacy still confirms stock before payment. Reviewers: check each
+// pairing as part of the clinical review above.
 
 // ───────────── outcomes ─────────────
 // route: self_care < pharmacist < doctor < urgent < emergency
@@ -79,6 +85,7 @@ export const OUTCOMES = {
   cold_common: {
     title: 'อาการเข้าได้กับหวัดทั่วไป',
     route: 'self_care',
+    suggest: ['para500'],
     advice: ['พักผ่อน ดื่มน้ำอุ่น ล้างจมูกด้วยน้ำเกลือ', 'มักดีขึ้นเองใน 7–10 วัน', 'หากต้องการยาบรรเทาอาการ ให้ปรึกษาเภสัชกร'],
     warn: ['ไข้สูง หายใจเหนื่อย น้ำมูกข้นเขียวร่วมกับปวดหน้าผาก/โหนกแก้มเกิน 10 วัน ควรพบแพทย์'],
   },
@@ -103,6 +110,7 @@ export const OUTCOMES = {
   sore_throat_viral: {
     title: 'อาการเจ็บคอเข้าได้กับการติดเชื้อไวรัส',
     route: 'self_care',
+    suggest: ['para500'],
     advice: ['กลั้วคอด้วยน้ำเกลืออุ่น ดื่มน้ำมาก ๆ', 'ส่วนใหญ่ไม่จำเป็นต้องใช้ยาปฏิชีวนะ', 'ปรึกษาเภสัชกรเรื่องยาอมหรือยาบรรเทาปวด'],
     warn: ['กลืนน้ำลายไม่ได้ อ้าปากไม่ขึ้น เสียงเปลี่ยน หายใจลำบาก ควรพบแพทย์ทันที'],
   },
@@ -145,6 +153,7 @@ export const OUTCOMES = {
   headache_tension: {
     title: 'อาการเข้าได้กับปวดศีรษะจากความตึงเครียด',
     route: 'self_care',
+    suggest: ['para500'],
     advice: ['พักผ่อน นวดต้นคอ ประคบอุ่น ลดเวลาหน้าจอ ดื่มน้ำให้พอ', 'ปรึกษาเภสัชกรเรื่องยาแก้ปวดที่เหมาะสม'],
     warn: ['ปวดบ่อยกว่า 2–3 ครั้งต่อสัปดาห์ หรือต้องกินยาแก้ปวดบ่อย ควรพบแพทย์'],
   },
@@ -210,6 +219,7 @@ export const OUTCOMES = {
   diarrhea_simple: {
     title: 'ท้องเสียเฉียบพลันที่มักดูแลเองได้',
     route: 'self_care',
+    suggest: ['ors'],
     advice: ['ดื่มผงเกลือแร่ (ORS) ทีละน้อยแต่บ่อย ๆ', 'กินอาหารอ่อน เลี่ยงนม อาหารมัน และอาหารรสจัด', 'ไม่จำเป็นต้องใช้ยาปฏิชีวนะ และไม่ควรใช้ยาหยุดถ่ายเองถ้ามีไข้หรือถ่ายมีมูกเลือด'],
     warn: ['ถ่ายเป็นน้ำมากจนอ่อนเพลีย ปัสสาวะน้อย ปากแห้ง ถ่ายมีเลือด ไข้สูง เกิน 3 วัน ควรพบแพทย์'],
   },
@@ -285,6 +295,7 @@ export const OUTCOMES = {
   insect_bite: {
     title: 'ผื่นหรือตุ่มคันจากแมลงกัดต่อย',
     route: 'self_care',
+    suggest: ['calamine'],
     advice: ['ล้างด้วยสบู่และน้ำ ประคบเย็น ไม่เกา', 'ปรึกษาเภสัชกรเรื่องยาทาลดคัน'],
     warn: ['บวมแดงร้อนลามกว้างขึ้น มีไข้ หรือมีอาการแพ้ทั้งตัว ควรพบแพทย์'],
   },

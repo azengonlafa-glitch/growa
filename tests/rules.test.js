@@ -193,6 +193,16 @@ describe('pharmacies and products', () => {
     }));
     await assertFails(updateDoc(doc(c, 'pharmacies/ok'), { verificationStatus: 'approved' }));
   });
+
+  test('shop category is limited to the known list', async () => {
+    const c = db('clerk');
+    const product = {
+      catalogId: 'vitc500', name: 'Vitamin C', price: 120, currency: 'THB',
+      stockStatus: 'in_stock', stockSource: 'manual', active: true, stockUpdatedAt: serverTimestamp(),
+    };
+    await assertSucceeds(setDoc(doc(c, 'pharmacies/ok/products/p3'), { ...product, category: 'vitamin' }));
+    await assertFails(setDoc(doc(c, 'pharmacies/ok/products/p4'), { ...product, category: 'weapons' }));
+  });
 });
 
 describe('orders, reviews and triage', () => {

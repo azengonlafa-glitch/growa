@@ -65,6 +65,8 @@ export function result(state) {
     route,
     routeText: ROUTE_TEXT[route],
     advice: outcome.advice,
+    // Only while the route is still self-care: a vulnerable person is sent to the pharmacist instead.
+    suggestedCatalogIds: route === 'self_care' ? outcome.suggest ?? [] : [],
     warn: outcome.warn ?? [],
     notes,
     disclaimer: 'ผลนี้เป็นข้อมูลเบื้องต้นจากคำตอบของคุณ ไม่ใช่การวินิจฉัยโรค',

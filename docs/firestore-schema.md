@@ -1,4 +1,4 @@
-# MediLink — Firestore Schema
+# growa — Firestore Schema
 
 ใช้คู่กับ [`firestore.rules`](../firestore.rules) และ [`firestore.indexes.json`](../firestore.indexes.json)
 

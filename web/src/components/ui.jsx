@@ -1,12 +1,40 @@
 // Small presentational building blocks shared by every page.
+import { useState } from 'react';
 
-export function Button({ variant = 'primary', size, busy, children, ...props }) {
+// `disabled` comes after the spread so a caller's `disabled={false}` cannot cancel `busy`.
+export function Button({ variant = 'primary', size, block, busy, children, ...props }) {
   return (
-    <button className={`btn btn-${variant}${size ? ` btn-${size}` : ''}`} disabled={busy || props.disabled} {...props}>
+    <button
+      type="button"
+      className={`btn btn-${variant}${size ? ` btn-${size}` : ''}${block ? ' btn-block' : ''}`}
+      {...props}
+      disabled={busy || props.disabled}
+      aria-busy={busy || undefined}
+    >
       {busy ? <span className="spinner" aria-hidden /> : null}
       {children}
     </button>
   );
+}
+
+// Two-step button for actions that cannot be undone: the first tap asks, the second does it.
+export function ConfirmButton({ onConfirm, question = 'ยืนยันหรือไม่?', yes = 'ยืนยัน', no = 'ไม่', children, variant = 'secondary', size, busy, disabled, ariaLabel }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking) {
+    return <Button variant={variant} size={size} busy={busy} disabled={disabled} aria-label={ariaLabel} onClick={() => setAsking(true)}>{children}</Button>;
+  }
+  return (
+    <span className="confirm" role="group" aria-label={question}>
+      <span className="confirm-q">{question}</span>
+      <Button variant="danger" size="sm" busy={busy} onClick={() => { setAsking(false); onConfirm(); }}>{yes}</Button>
+      <Button variant="secondary" size="sm" onClick={() => setAsking(false)}>{no}</Button>
+    </span>
+  );
+}
+
+// Polite status line for "saved" style feedback. Keep it mounted so screen readers announce changes.
+export function Flash({ children }) {
+  return <p className="flash" role="status" aria-live="polite">{children}</p>;
 }
 
 export function Card({ children, className = '', ...props }) {
@@ -37,6 +65,10 @@ const ICONS = {
   shield: <><path d="M12 3l7 3v5c0 5-3.2 8.3-7 10-3.8-1.7-7-5-7-10V6z" /><path d="M9 12l2.2 2.2L15.5 10" /></>,
   user: <><circle cx="12" cy="8" r="3.2" /><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6" /></>,
   list: <><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 9h8M8 13h8M8 17h5" /></>,
+  close: <path d="M6 6l12 12M18 6L6 18" />,
+  locate: <><circle cx="12" cy="12" r="3.5" /><circle cx="12" cy="12" r="8" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3" /></>,
+  phone: <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A15 15 0 0 1 3 6a2 2 0 0 1 2-2z" />,
+  logout: <><path d="M10 4H5v16h5" /><path d="M15 8l4 4-4 4M19 12H9" /></>,
 };
 
 export function Icon({ name, size = 26, stroke = 2 }) {
@@ -52,12 +84,12 @@ export function Mascot({ size = 96, label }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
       <g transform="rotate(-28 32 32)">
-        <rect x="17" y="3" width="30" height="58" rx="15" fill="#FFFCF8" stroke="#3B2A20" strokeWidth="2.5" />
-        <path d="M17 30V18a15 15 0 0 1 30 0v12z" fill="#F0916A" />
-        <path d="M17 30h30" stroke="#3B2A20" strokeWidth="2.5" />
-        <circle cx="26" cy="42" r="2.4" fill="#3B2A20" /><circle cx="38" cy="42" r="2.4" fill="#3B2A20" />
-        <path d="M28 48q4 4 8 0" fill="none" stroke="#3B2A20" strokeWidth="2.2" strokeLinecap="round" />
-        <circle cx="22.5" cy="47" r="2.6" fill="#F6B9A5" /><circle cx="41.5" cy="47" r="2.6" fill="#F6B9A5" />
+        <rect x="17" y="3" width="30" height="58" rx="15" fill="#FFFFFF" stroke="#10303A" strokeWidth="2.5" />
+        <path d="M17 30V18a15 15 0 0 1 30 0v12z" fill="#2FC27A" />
+        <path d="M17 30h30" stroke="#10303A" strokeWidth="2.5" />
+        <circle cx="26" cy="42" r="2.4" fill="#10303A" /><circle cx="38" cy="42" r="2.4" fill="#10303A" />
+        <path d="M28 48q4 4 8 0" fill="none" stroke="#10303A" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="22.5" cy="47" r="2.6" fill="#9BE7C1" /><circle cx="41.5" cy="47" r="2.6" fill="#9BE7C1" />
       </g>
     </svg>
   );
@@ -81,10 +113,10 @@ export function PageHeader({ title, subtitle, eyebrow, back, actions, tone, masc
   );
 }
 
-export function Empty({ icon = '○', title, children }) {
+export function Empty({ icon = 'list', title, children }) {
   return (
     <div className="empty">
-      <div className="empty-icon" aria-hidden>{icon}</div>
+      <div className="empty-icon" aria-hidden>{ICONS[icon] ? <Icon name={icon} size={36} /> : icon}</div>
       <p className="empty-title">{title}</p>
       {children ? <div className="muted">{children}</div> : null}
     </div>
@@ -118,13 +150,13 @@ export function Notice({ tone = 'info', title, children }) {
   );
 }
 
-// Chip-style segmented choice.
-export function Segmented({ options, value, onChange }) {
+// Chip-style segmented choice. Not real tabs (no panels), so it is a button group.
+export function Segmented({ options, value, onChange, label }) {
   return (
-    <div className="segmented" role="tablist">
-      {options.map(([v, label]) => (
-        <button key={v} role="tab" aria-selected={value === v} className={value === v ? 'active' : ''} onClick={() => onChange(v)}>
-          {label}
+    <div className="segmented" role="group" aria-label={label}>
+      {options.map(([v, text]) => (
+        <button key={v} type="button" aria-pressed={value === v} className={value === v ? 'active' : ''} onClick={() => onChange(v)}>
+          {text}
         </button>
       ))}
     </div>

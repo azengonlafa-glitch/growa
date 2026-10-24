@@ -324,7 +324,7 @@ service cloud.firestore {
       function productClientKeys() {
         return ['catalogId', 'name', 'packSize', 'description', 'price', 'currency',
                 'stockStatus', 'stockQty', 'stockUpdatedAt', 'stockSource', 'active', 'imageUrl',
-                'unitsPerPack'];
+                'unitsPerPack', 'category'];
       }
 
       function validProduct(d) {
@@ -334,6 +334,7 @@ service cloud.firestore {
           && d.stockStatus in ['in_stock', 'low', 'out_of_stock', 'unknown']
           && (!('stockQty' in d) || (d.stockQty is int && d.stockQty >= 0))
           && (!('unitsPerPack' in d) || (d.unitsPerPack is int && d.unitsPerPack > 0 && d.unitsPerPack <= 1000))
+          && (!('category' in d) || d.category in ['hairskin', 'vitamin', 'supplement', 'oral', 'gear'])
           && d.stockSource in ['manual', 'pos_sync']
           && d.active is bool;
       }

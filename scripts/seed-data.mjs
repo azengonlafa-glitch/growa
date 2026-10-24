@@ -31,6 +31,22 @@ export const CATALOG = {
   antacid: { genericName: 'Aluminium hydroxide + Magnesium hydroxide', form: 'suspension', strength: '240 ml', drugClass: 'household', requiresPharmacistReview: false, deliverable: true },
   calamine: { genericName: 'Calamine lotion', form: 'lotion', strength: '60 ml', drugClass: 'household', requiresPharmacistReview: false, deliverable: true },
   vitc500: { genericName: 'Vitamin C', form: 'tablet', strength: '500 mg', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  shampooAntiDandruff: { genericName: 'แชมพูขจัดรังแค', form: 'shampoo', strength: '200 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  shampooGentle: { genericName: 'แชมพูสูตรอ่อนโยน', form: 'shampoo', strength: '300 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  conditioner: { genericName: 'ครีมนวดผม', form: 'conditioner', strength: '250 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  sunscreen: { genericName: 'ครีมกันแดด SPF50', form: 'cream', strength: '50 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  moisturizer: { genericName: 'โลชั่นบำรุงผิว', form: 'lotion', strength: '250 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  lipBalm: { genericName: 'ลิปบาล์มบำรุงริมฝีปาก', form: 'balm', strength: '4 ก.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  toothpaste: { genericName: 'ยาสีฟันฟลูออไรด์', form: 'toothpaste', strength: '160 ก.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  handGel: { genericName: 'เจลล้างมือแอลกอฮอล์', form: 'gel', strength: '100 มล.', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  multivit: { genericName: 'วิตามินรวม', form: 'tablet', strength: '60 เม็ด', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  calciumD: { genericName: 'แคลเซียมพลัสวิตามินดี', form: 'tablet', strength: '30 เม็ด', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  fishOil: { genericName: 'น้ำมันปลา', form: 'capsule', strength: '30 แคปซูล', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  probiotic: { genericName: 'โพรไบโอติก', form: 'powder', strength: '10 ซอง', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  collagen: { genericName: 'คอลลาเจนผง', form: 'powder', strength: '14 ซอง', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  faceMask: { genericName: 'หน้ากากอนามัย', form: 'mask', strength: '50 ชิ้น', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  thermometer: { genericName: 'ปรอทวัดไข้ดิจิทัล', form: 'device', strength: '1 เครื่อง', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
+  bandage: { genericName: 'พลาสเตอร์ปิดแผล', form: 'bandage', strength: '100 ชิ้น', drugClass: 'general', requiresPharmacistReview: false, deliverable: true },
   loratadine10: { genericName: 'Loratadine', form: 'tablet', strength: '10 mg', drugClass: 'dangerous', requiresPharmacistReview: true, deliverable: true },
   cetirizine10: { genericName: 'Cetirizine', form: 'tablet', strength: '10 mg', drugClass: 'dangerous', requiresPharmacistReview: true, deliverable: true },
   ibuprofen400: { genericName: 'Ibuprofen', form: 'tablet', strength: '400 mg', drugClass: 'dangerous', requiresPharmacistReview: true, deliverable: true },
@@ -44,7 +60,7 @@ export const CATALOG = {
 // Fictional partner stores near Victory Monument, Bangkok.
 export const PHARMACIES = {
   demoRx1: {
-    name: 'ร้านยาเมดิลิงก์ สาขาอนุสาวรีย์ (ข้อมูลจำลอง)',
+    name: 'ร้านยา growa สาขาอนุสาวรีย์ (ข้อมูลจำลอง)',
     address: 'ถนนพหลโยธิน แขวงทุ่งพญาไท เขตราชเทวี กรุงเทพฯ (ข้อมูลจำลอง)',
     phone: '02-000-0001',
     licenseNo: 'DEMO-0001',
@@ -67,19 +83,36 @@ export const PHARMACIES = {
   },
 };
 
-// [catalogId, display name, pack size, units per pack, price THB]
+// [catalogId, display name, pack size, units per pack, price THB, shop category (general goods only)]
 const PRODUCTS = [
   ['para500', 'พาราเซตามอล 500 มก.', 'แผง 10 เม็ด', 10, 15],
   ['ors', 'ผงเกลือแร่ ORS', 'กล่อง 10 ซอง', 10, 45],
   ['cpm4', 'คลอร์เฟนิรามีน 4 มก.', 'แผง 10 เม็ด', 10, 10],
   ['antacid', 'ยาลดกรดชนิดน้ำ', 'ขวด 240 มล.', 1, 65],
-  ['vitc500', 'วิตามินซี 500 มก.', 'ขวด 30 เม็ด', 30, 120],
+  ['vitc500', 'วิตามินซี 500 มก.', 'ขวด 30 เม็ด', 30, 120, 'vitamin'],
   ['loratadine10', 'ลอราทาดีน 10 มก.', 'แผง 10 เม็ด', 10, 60],
   ['ibuprofen400', 'ไอบูโพรเฟน 400 มก.', 'แผง 10 เม็ด', 10, 35],
   ['omeprazole20', 'โอเมพราโซล 20 มก.', 'แผง 10 แคปซูล', 10, 80],
   ['amlodipine5', 'แอมโลดิปีน 5 มก.', 'กล่อง 30 เม็ด', 30, 150],
   ['metformin500', 'เมทฟอร์มิน 500 มก.', 'กล่อง 50 เม็ด', 50, 120],
   ['diazepam5', 'ไดอะซีแพม 5 มก.', 'แผง 10 เม็ด', 10, 50],
+  // General goods (drugClass "general"): [catalogId, name, pack, units, price, category]
+  ['shampooAntiDandruff', 'แชมพูขจัดรังแค 200 มล.', 'ขวด 200 มล.', 1, 129, 'hairskin'],
+  ['shampooGentle', 'แชมพูสูตรอ่อนโยน 300 มล.', 'ขวด 300 มล.', 1, 99, 'hairskin'],
+  ['conditioner', 'ครีมนวดผม 250 มล.', 'ขวด 250 มล.', 1, 109, 'hairskin'],
+  ['sunscreen', 'ครีมกันแดด SPF50 50 มล.', 'หลอด 50 มล.', 1, 259, 'hairskin'],
+  ['moisturizer', 'โลชั่นบำรุงผิว 250 มล.', 'ขวด 250 มล.', 1, 179, 'hairskin'],
+  ['lipBalm', 'ลิปบาล์มบำรุงริมฝีปาก', 'แท่ง 4 ก.', 1, 59, 'hairskin'],
+  ['toothpaste', 'ยาสีฟันฟลูออไรด์ 160 ก.', 'หลอด 160 ก.', 1, 69, 'oral'],
+  ['handGel', 'เจลล้างมือแอลกอฮอล์ 100 มล.', 'ขวด 100 มล.', 1, 49, 'gear'],
+  ['multivit', 'วิตามินรวม 60 เม็ด', 'ขวด 60 เม็ด', 60, 350, 'vitamin'],
+  ['calciumD', 'แคลเซียมพลัสวิตามินดี 30 เม็ด', 'ขวด 30 เม็ด', 30, 280, 'vitamin'],
+  ['fishOil', 'น้ำมันปลา 30 แคปซูล', 'ขวด 30 แคปซูล', 30, 320, 'supplement'],
+  ['probiotic', 'โพรไบโอติก 10 ซอง', 'กล่อง 10 ซอง', 10, 399, 'supplement'],
+  ['collagen', 'คอลลาเจนผง 14 ซอง', 'กล่อง 14 ซอง', 14, 590, 'supplement'],
+  ['faceMask', 'หน้ากากอนามัย 50 ชิ้น', 'กล่อง 50 ชิ้น', 50, 79, 'gear'],
+  ['thermometer', 'ปรอทวัดไข้ดิจิทัล', 'เครื่อง', 1, 199, 'gear'],
+  ['bandage', 'พลาสเตอร์ปิดแผล 100 ชิ้น', 'กล่อง 100 ชิ้น', 100, 59, 'gear'],
 ];
 
 export async function seedCatalogAndPharmacies(db) {
@@ -94,10 +127,11 @@ export async function seedCatalogAndPharmacies(db) {
       ...ph, verificationStatus: 'approved', ownerUid: null, ratingAvg: null, ratingCount: 0,
       sample: true, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
     });
-    for (const [catalogId, name, packSize, unitsPerPack, price] of PRODUCTS) {
+    for (const [catalogId, name, packSize, unitsPerPack, price, category] of PRODUCTS) {
       const drug = CATALOG[catalogId];
       batch.set(db.doc(`pharmacies/${id}/products/${catalogId}`), {
         catalogId, name, packSize, unitsPerPack, price, currency: 'THB',
+        ...(category ? { category } : {}),
         stockStatus: 'in_stock', stockQty: 50, stockSource: 'manual', active: true,
         stockUpdatedAt: FieldValue.serverTimestamp(),
         drugClass: drug.drugClass,

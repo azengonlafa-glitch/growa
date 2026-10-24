@@ -50,6 +50,14 @@ describe('tree structure', () => {
     }
   });
 
+  test('product suggestions exist only on self-care outcomes and are catalog ids', () => {
+    for (const [id, o] of Object.entries(OUTCOMES)) {
+      if (!o.suggest) continue;
+      assert.equal(o.route, 'self_care', `${id} suggests medicines but is not self_care`);
+      assert.ok(o.suggest.every((c) => /^[a-z0-9]+$/.test(c)), `${id} suggest ids`);
+    }
+  });
+
   test('every possible answer path ends in an outcome', () => {
     let paths = 0;
     const reached = new Set();
@@ -105,9 +113,11 @@ describe('scenarios', () => {
   test('self-care outcomes are raised to pharmacist for at-risk people', () => {
     const adult = walk([[NONE], '18 – 64', 'ชาย', 'ไม่มี', 'ไข้ หวัด', 'น้ำมูก', 'ไม่เกิน 10 วัน', 'น้ำมูก คัดจมูก เจ็บคอเล็กน้อย']);
     assert.equal(result(adult).route, 'self_care');
+    assert.deepEqual(result(adult).suggestedCatalogIds, ['para500']);
     const elder = walk([[NONE], '65 ปีขึ้นไป', 'หญิง', 'ไม่มี', 'ไข้ หวัด', 'น้ำมูก', 'ไม่เกิน 10 วัน', 'น้ำมูก คัดจมูก เจ็บคอเล็กน้อย']);
     assert.equal(result(elder).route, 'pharmacist');
     assert.equal(result(elder).notes.length, 1);
+    assert.deepEqual(result(elder).suggestedCatalogIds, []); // no self-serve suggestions once raised
   });
 
   test('men with urinary symptoms are sent to a doctor', () => {

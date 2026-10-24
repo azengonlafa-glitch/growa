@@ -17,7 +17,7 @@ writeFileSync('docs/flowcharts.html', `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MediLink Flowcharts</title>
+<title>growa Flowcharts</title>
 <style>
   body { font-family: system-ui, "Noto Sans Thai", sans-serif; margin: 0 auto; max-width: 1200px; padding: 16px; background: #fff; color: #1a1a1a; }
   section { margin-bottom: 48px; }
@@ -26,7 +26,7 @@ writeFileSync('docs/flowcharts.html', `<!doctype html>
 </style>
 </head>
 <body>
-<h1>MediLink — Flowcharts</h1>
+<h1>growa — Flowcharts</h1>
 <p id="status">กำลังตรวจแผนภาพ...</p>
 ${body}
 <script type="module">

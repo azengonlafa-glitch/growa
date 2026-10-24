@@ -1,4 +1,4 @@
-# MediLink — ขึ้นเว็บจริงบน Vercel
+# growa — ขึ้นเว็บจริงบน Vercel
 
 ไม่ต้องใช้บัตร: Firebase แผน **Spark** (Auth + Firestore) และ Vercel แผน **Hobby** ฟรีทั้งคู่
 

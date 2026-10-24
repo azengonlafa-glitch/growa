@@ -8,7 +8,7 @@ import { licenseKey } from './license-key.js';
 
 const MAX_RESULTS = 30;
 
-// directoryId -> partner pharmacyId for stores that joined MediLink.
+// directoryId -> partner pharmacyId for stores that joined growa.
 async function partnersByDirectoryId(ids) {
   const map = {};
   for (let i = 0; i < ids.length; i += 30) {

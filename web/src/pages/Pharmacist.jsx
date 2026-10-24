@@ -4,7 +4,7 @@ import { call, db } from '../firebase.js';
 import { useAction, useDocData, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { ORDER_STATUS, ROUTE_INFO, baht, timeAgo } from '../lib/format.js';
-import { Badge, Button, Card, Empty, ErrorText, Field, PageHeader, Segmented } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, PageHeader, Segmented } from '../components/ui.jsx';
 
 function Items({ items }) {
   return (
@@ -95,18 +95,30 @@ function ReviewCard({ review }) {
         <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </Field>
       {review.triageId ? (
-        <Field label="ยาที่อนุมัติให้สั่งได้ (ภายใน 24 ชม.)">
-          <select multiple value={approved} onChange={(e) => setApproved([...e.target.selectedOptions].map((o) => o.value))} style={{ minHeight: 120 }}>
-            {catalog.filter((c) => c.deliverable).map((c) => <option key={c.id} value={c.id}>{c.genericName} {c.strength}</option>)}
-          </select>
-        </Field>
+        <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="field-label">ยาที่อนุมัติให้สั่งได้ (ภายใน 24 ชม.)</legend>
+          <div className="checklist">
+            {catalog.filter((c) => c.deliverable).map((c) => (
+              <label key={c.id} className="check">
+                <input
+                  type="checkbox"
+                  checked={approved.includes(c.id)}
+                  onChange={(e) => setApproved(e.target.checked ? [...approved, c.id] : approved.filter((x) => x !== c.id))}
+                />
+                {c.genericName} {c.strength}
+              </label>
+            ))}
+          </div>
+        </fieldset>
       ) : null}
       <div className="row">
-        <Button size="sm" busy={busy} disabled={review.triageId && !approved.length} onClick={() => decide('approved')}>อนุมัติ</Button>
+        <ConfirmButton variant="primary" size="sm" busy={busy} disabled={review.triageId && !approved.length} question="อนุมัติการจ่ายยานี้?" yes="อนุมัติ" onConfirm={() => decide('approved')}>อนุมัติ</ConfirmButton>
         <Button size="sm" variant="secondary" busy={busy} disabled={!notes} onClick={() => decide('need_more_info')}>ถามข้อมูลเพิ่ม</Button>
         <Button size="sm" variant="secondary" busy={busy} disabled={!notes} onClick={() => decide('refer_doctor')}>แนะนำพบแพทย์</Button>
-        <Button size="sm" variant="danger" busy={busy} disabled={!notes} onClick={() => decide('rejected')}>ไม่อนุมัติ</Button>
+        <ConfirmButton variant="danger" size="sm" busy={busy} disabled={!notes} question="ไม่อนุมัติคำขอนี้?" yes="ไม่อนุมัติ" onConfirm={() => decide('rejected')}>ไม่อนุมัติ</ConfirmButton>
       </div>
+      {!notes ? <p className="hint">กรอกบันทึกก่อน จึงจะถามข้อมูลเพิ่ม แนะนำพบแพทย์ หรือไม่อนุมัติได้</p> : null}
+      {review.triageId && !approved.length ? <p className="hint">เลือกยาอย่างน้อย 1 รายการก่อนอนุมัติ</p> : null}
       <ErrorText>{error}</ErrorText>
     </Card>
   );
@@ -162,6 +174,7 @@ export default function Pharmacist() {
         subtitle={`${isPharmacist ? 'เภสัชกร (ยืนยันใบอนุญาตแล้ว)' : staff.role} · ข้อมูลอัปเดตแบบเรียลไทม์`}
       />
       <Segmented
+        label="หมวดงานของร้าน"
         value={tab}
         onChange={setTab}
         options={[
@@ -170,8 +183,8 @@ export default function Pharmacist() {
           ['running', `กำลังดำเนินการ (${running.length})`],
         ]}
       />
-      {tab === 'new' ? (fresh.length ? <div className="stack">{fresh.map((o) => <NewOrder key={o.id} order={o} />)}</div> : <Empty icon="▤" title="ไม่มีคำสั่งซื้อใหม่" />) : null}
-      {tab === 'review' ? (reviews.length ? <div className="stack">{reviews.map((r) => <ReviewCard key={r.id} review={r} />)}</div> : <Empty icon="⚕" title="ไม่มีคำขอที่รอประเมิน" />) : null}
+      {tab === 'new' ? (fresh.length ? <div className="stack">{fresh.map((o) => <NewOrder key={o.id} order={o} />)}</div> : <Empty icon="list" title="ไม่มีคำสั่งซื้อใหม่" />) : null}
+      {tab === 'review' ? (reviews.length ? <div className="stack">{reviews.map((r) => <ReviewCard key={r.id} review={r} />)}</div> : <Empty icon="shield" title="ไม่มีคำขอที่รอประเมิน" />) : null}
       {tab === 'running' ? (running.length ? <Card><div className="list">{running.map((o) => <InProgress key={o.id} order={o} />)}</div></Card> : <Empty title="ไม่มีงานจัดส่งค้าง" />) : null}
     </div>
   );

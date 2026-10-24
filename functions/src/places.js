@@ -56,7 +56,7 @@ function toSummary(p) {
   };
 }
 
-// placeId -> partner pharmacyId for stores that joined MediLink and are approved.
+// placeId -> partner pharmacyId for stores that joined growa and are approved.
 async function partnerIndex(placeIds) {
   const map = {};
   for (let i = 0; i < placeIds.length; i += 30) {

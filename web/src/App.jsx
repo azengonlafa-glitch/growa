@@ -1,100 +1,90 @@
-import { signOut } from 'firebase/auth';
-import { collection, query, where } from 'firebase/firestore';
-import { auth, db } from './firebase.js';
-import { useAuthUser, useHashRoute, useQueryData } from './lib/hooks.js';
+import { useEffect, useRef } from 'react';
+import { useAuthUser, useHashRoute } from './lib/hooks.js';
 import { SessionContext, useSessionData } from './lib/session.js';
-import { Icon, Loading, Mascot } from './components/ui.jsx';
+import { Loading } from './components/ui.jsx';
+import { Backdrop } from './components/Flair.jsx';
+import { FlowProvider } from './flow/state.jsx';
+import MapStep from './flow/MapStep.jsx';
+import ChooseStep from './flow/ChooseStep.jsx';
+import ShopStep from './flow/ShopStep.jsx';
+import TriageStep from './flow/TriageStep.jsx';
+import ResultStep from './flow/ResultStep.jsx';
+import ConsultStep from './flow/ConsultStep.jsx';
+import CheckoutStep from './flow/CheckoutStep.jsx';
+import OrderStep from './flow/OrderStep.jsx';
+import CareHub from './flow/CareHub.jsx';
 import Login from './pages/Login.jsx';
-import Home from './pages/Home.jsx';
-import Pharmacies from './pages/Pharmacies.jsx';
-import Store from './pages/Store.jsx';
 import Orders, { OrderDetail } from './pages/Orders.jsx';
 import Meds from './pages/Meds.jsx';
 import Family from './pages/Family.jsx';
-import Symptom from './pages/Symptom.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Health from './pages/Health.jsx';
 
-// The centre tab (symptom checker) is drawn as a raised round button on phones.
-const NAV = [
-  ['', 'หน้าแรก', 'home'],
-  ['meds', 'ยา', 'pill'],
-  ['symptom', 'เช็กอาการ', 'heart'],
-  ['pharmacies', 'ร้านยา', 'store'],
-  ['family', 'ครอบครัว', 'people'],
-];
+// Ordering flow, one decision per screen: map → choose → questions → result → (consult) → checkout → track (stock, pay, courier map).
+const FLOW = {
+  '': ['เลือกร้านยา', MapStep],
+  pharmacies: ['เลือกร้านยา', MapStep],
+  choose: ['เลือกประเภท', ChooseStep],
+  shop: ['ของทั่วไปในร้านยา', ShopStep],
+  triage: ['ตอบคำถามอาการ', TriageStep],
+  result: ['ผลการประเมิน', ResultStep],
+  consult: ['คุยกับเภสัชกร', ConsultStep],
+  checkout: ['ตรวจรายการสั่งซื้อ', CheckoutStep],
+  track: ['ติดตามคำสั่งซื้อ', OrderStep],
+  care: ['โฮมแคร์และเมนู', CareHub],
+};
 
-function Page({ route }) {
+// Existing pages that are not part of the flow yet; they open from the care hub.
+const CARE_TITLES = {
+  orders: 'คำสั่งซื้อ', meds: 'ยาของฉัน', family: 'ครอบครัว', health: 'โปรไฟล์สุขภาพ',
+  notifications: 'แจ้งเตือน', pharmacist: 'ร้านของฉัน',
+};
+
+function CarePage({ route }) {
   const [page, a] = route;
-  switch (page ?? '') {
-    case '': return <Home />;
-    case 'pharmacies': return <Pharmacies />;
-    case 'store': return <Store pharmacyId={a} />;
+  switch (page) {
     case 'orders': return a ? <OrderDetail orderId={a} /> : <Orders />;
     case 'meds': return <Meds />;
     case 'family': return <Family />;
-    case 'symptom': return <Symptom />;
-    case 'pharmacist': return <Pharmacist />;
-    case 'notifications': return <Notifications />;
     case 'health': return <Health />;
-    default: return <Home />;
+    case 'notifications': return <Notifications />;
+    case 'pharmacist': return <Pharmacist />;
+    default: return null;
   }
 }
 
-function Shell({ session, route }) {
-  const current = route[0] ?? '';
-  const [unread] = useQueryData(
-    query(collection(db, 'users', session.user.uid, 'notifications'), where('readAt', '==', null)),
-    [session.user.uid],
-  );
-  const side = [
-    ...NAV,
-    ['orders', 'คำสั่งซื้อ', 'truck'],
-    ['health', 'โปรไฟล์สุขภาพ', 'shield'],
-    ['notifications', `แจ้งเตือน${unread.length ? ` (${unread.length})` : ''}`, 'bell'],
-    ...(session.staffOf.length ? [['pharmacist', 'ร้านของฉัน', 'list']] : []),
-  ];
-  const isActive = (p, wide) => {
-    if (p === '') return current === '';
-    if (p === 'pharmacies') return current === 'pharmacies' || current === 'store' || (!wide && current === 'orders');
-    if (p === 'family') return current === 'family' || (!wide && (current === 'health' || current === 'notifications'));
-    return current === p;
-  };
+function Shell({ route }) {
+  const page = route[0] ?? '';
+  const mainRef = useRef(null);
+  const firstRender = useRef(true);
+  const routeKey = route.join('/');
+  const flow = FLOW[page] ?? (CARE_TITLES[page] ? null : FLOW['']);
+  const Step = flow?.[1];
+  const title = flow?.[0] ?? CARE_TITLES[page] ?? '';
+
+  // Hash navigation does not reload the page, so announce the new page ourselves.
+  useEffect(() => {
+    document.title = `${title} · growa`;
+    if (firstRender.current) { firstRender.current = false; return; }
+    mainRef.current?.focus({ preventScroll: true });
+  }, [routeKey, title]);
 
   return (
     <div className="shell">
-      <nav className="sidebar" aria-label="เมนูหลัก">
-        <a className="brand" href="#/"><Mascot size={40} />MediLink</a>
-        {side.map(([p, label, icon]) => (
-          <a key={p} href={`#/${p}`} className={isActive(p, true) ? 'active' : ''} aria-current={isActive(p, true) ? 'page' : undefined}>
-            <Icon name={icon} size={24} />{label}
-          </a>
-        ))}
-        <div className="sidebar-foot stack">
-          <span className="muted small truncate">{session.profile?.displayName ?? session.user.email}</span>
-          <button className="btn btn-secondary btn-sm" onClick={() => signOut(auth)}>ออกจากระบบ</button>
-        </div>
-      </nav>
-
-      <main className="main">
-        <Page route={route} />
-      </main>
-
-      <nav className="bottom-nav" aria-label="เมนูหลัก">
-        {NAV.map(([p, label, icon]) => (
-          p === 'symptom' ? (
-            <a key={p} href={`#/${p}`} className="nav-center" aria-current={current === p ? 'page' : undefined}>
-              <span className="nav-center-btn"><Icon name={icon} size={30} stroke={2.2} /></span>{label}
-            </a>
-          ) : (
-            <a key={p} href={`#/${p}`} className={isActive(p) ? 'active' : ''} aria-current={isActive(p) ? 'page' : undefined} style={{ position: 'relative' }}>
-              <Icon name={icon} stroke={isActive(p) ? 2.2 : 2} />{label}
-              {p === 'family' && unread.length ? <span className="nav-badge" aria-label={`แจ้งเตือนใหม่ ${unread.length}`}>{unread.length}</span> : null}
-            </a>
-          )
-        ))}
-      </nav>
+      <Backdrop />
+      <button type="button" className="skip-link" onClick={() => mainRef.current?.focus()}>ข้ามไปยังเนื้อหาหลัก</button>
+      {Step ? (
+        <main className="flow-main" id="main" ref={mainRef} tabIndex={-1}><Step /></main>
+      ) : (
+        <main className="main care-main" id="main" ref={mainRef} tabIndex={-1}>
+          <nav className="care-bar" aria-label="กลับ">
+            <a className="btn btn-secondary btn-sm" href="#/care">‹ โฮมแคร์และเมนู</a>
+            <a className="btn btn-ghost btn-sm" href="#/">สั่งซื้อยา</a>
+          </nav>
+          <CarePage route={route} />
+        </main>
+      )}
     </div>
   );
 }
@@ -105,11 +95,13 @@ export default function App() {
   const session = useSessionData(user);
 
   if (user === undefined) return <div className="login-wrap"><Loading /></div>;
-  if (!user) return <Login />;
+  if (!user) return <><Backdrop /><Login /></>;
   if (session.loading) return <div className="login-wrap"><Loading /></div>;
   return (
     <SessionContext.Provider value={session}>
-      <Shell session={session} route={route} />
+      <FlowProvider>
+        <Shell route={route} />
+      </FlowProvider>
     </SessionContext.Provider>
   );
 }
