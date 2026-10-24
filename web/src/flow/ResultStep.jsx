@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { go, useQueryData } from '../lib/hooks.js';
+import { useMeds, daysLeft } from '../lib/meds.js';
 import { baht, DRUG_CLASS, timeAgo } from '../lib/format.js';
 import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
@@ -35,7 +36,8 @@ export const toLine = (p, qty) => ({
   requiresPharmacistReview: p.requiresPharmacistReview === true, drugClass: p.drugClass ?? 'unknown',
 });
 
-function SuggestedDrugs({ result, pharmacyId, onOrder }) {
+function SuggestedDrugs({ result, pharmacyId, patientId, cart, onOrder }) {
+  const [homeMeds] = useMeds(patientId);
   const [products, loading] = useQueryData(
     query(collection(db, 'pharmacies', pharmacyId, 'products'), where('active', '==', true)), [pharmacyId],
   );
@@ -44,7 +46,9 @@ function SuggestedDrugs({ result, pharmacyId, onOrder }) {
     () => products.filter((p) => wanted.includes(p.catalogId) && p.deliverable !== false && p.stockStatus !== 'out_of_stock'),
     [products, wanted],
   );
-  const [qty, setQty] = useState({});
+  const inCart = (p) => cart.find((l) => l.productId === p.id);
+  const atHome = (p) => homeMeds.find((m) => m.catalogId && m.catalogId === p.catalogId);
+  const [qty, setQty] = useState(() => Object.fromEntries(cart.map((l) => [l.productId, l.qty])));
   const lines = items.filter((p) => qty[p.id]).map((p) => toLine(p, qty[p.id]));
   const total = lines.reduce((s, l) => s + l.price * l.qty, 0);
 
@@ -63,6 +67,8 @@ function SuggestedDrugs({ result, pharmacyId, onOrder }) {
                   <span className="muted small">{p.packSize} · {baht(p.price)}</span>
                   <Badge tone="neutral">{DRUG_CLASS[p.drugClass] ?? DRUG_CLASS.unknown}</Badge>
                   <StockLine product={p} />
+                  {inCart(p) ? <Badge tone="warn">มีในตะกร้า {inCart(p).qty} ชิ้นแล้ว</Badge> : null}
+                  {atHome(p) ? <Badge tone="warn">มียานี้ใน Home Care แล้ว เหลือประมาณ {atHome(p).estimatedRemaining ?? atHome(p).stockOnHand} {atHome(p).unit ?? 'หน่วย'}{daysLeft(atHome(p)) !== null ? ` (ราว ${daysLeft(atHome(p))} วัน)` : ''}</Badge> : null}
                 </div>
                 {qty[p.id] ? (
                   <div className="qty" role="group" aria-label={`จำนวน ${p.name}`}>
@@ -90,6 +96,16 @@ function SuggestedDrugs({ result, pharmacyId, onOrder }) {
         </Button>
       ) : null}
     </>
+  );
+}
+
+// Direct line to the shop's pharmacist, shown whenever the result sends the customer to them or to a doctor.
+function CallPharmacist({ pharmacy }) {
+  if (!pharmacy.phone) return null;
+  return (
+    <a className="btn btn-secondary btn-block" href={`tel:${pharmacy.phone.replace(/[^d+]/g, '')}`}>
+      <Icon name="phone" size={20} />โทรหาเภสัชกรโดยตรง · {pharmacy.phone}
+    </a>
   );
 }
 
@@ -141,13 +157,14 @@ export default function ResultStep() {
             <Notice tone="warn" title="ไปพบแพทย์ทันทีถ้ามีอาการเหล่านี้">{result.warn.map((w) => <p key={w}>{w}</p>)}</Notice>
           ) : null}
 
-          {outcome === 1 ? <SuggestedDrugs result={result} pharmacyId={pharmacy.id} onOrder={order} /> : null}
+          {outcome === 1 ? <SuggestedDrugs result={result} pharmacyId={pharmacy.id} patientId={triage.patientId} cart={flow.cart ?? []} onOrder={order} /> : null}
           {outcome === 2 ? (
             <Notice tone="info" title="ขั้นต่อไป">
               ผลนี้ต้องให้เภสัชกรของ {pharmacy.name} ช่วยเลือกยา คุณจะแชตหรือโทรคุยกับร้านได้ในหน้าถัดไป
               และสั่งยาที่เภสัชกรอนุมัติได้จากที่นั่น ระบบประเมินอาการไม่ได้อนุมัติการจ่ายยา
             </Notice>
           ) : null}
+          {outcome !== 1 ? <CallPharmacist pharmacy={pharmacy} /> : null}
           {outcome === 3 ? (
             <Notice tone="warn" title="ยังไม่ควรสั่งยาเอง">
               อาการนี้ควรได้รับการตรวจจากแพทย์ ระหว่างนี้ปรึกษาเภสัชกรเรื่องการบรรเทาอาการเบื้องต้นได้

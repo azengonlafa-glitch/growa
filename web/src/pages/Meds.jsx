@@ -108,15 +108,34 @@ function RefillForm({ patient, med, onDone }) {
 
 const TIME_OPTIONS = ['morning', 'noon', 'evening', 'bedtime'];
 
-function AddMedForm({ patient, onDone }) {
+function AddMedForm({ patient, med = null, onDone }) {
   const { user } = useSession();
   const [catalog] = useQueryData(collection(db, 'catalog'), []);
-  const [f, setF] = useState({ name: '', catalogId: '', dosePerIntake: 1, unit: 'เม็ด', times: ['morning'], mealRelation: 'after', stockOnHand: 30, refillThresholdDays: 7 });
+  const [f, setF] = useState(med ? {
+    name: med.name, catalogId: med.catalogId ?? '', dosePerIntake: med.dosePerIntake, unit: med.unit ?? '', times: med.times ?? [],
+    mealRelation: med.mealRelation ?? 'none', stockOnHand: med.stockOnHand ?? 0, refillThresholdDays: med.refillThresholdDays ?? 7,
+  } : { name: '', catalogId: '', dosePerIntake: 1, unit: 'เม็ด', times: ['morning'], mealRelation: 'after', stockOnHand: 30, refillThresholdDays: 7 });
   const { busy, error, run } = useAction();
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
   const save = () => run(async () => {
     const { catalogId, ...rest } = f;
+    if (med) {
+      // Editing keeps the stock-count date unless the count itself changed.
+      await updateDoc(med.ref, {
+        ...rest,
+        catalogId: catalogId || null,
+        dosePerIntake: Number(f.dosePerIntake),
+        stockOnHand: Number(f.stockOnHand),
+        refillThresholdDays: Number(f.refillThresholdDays),
+        ...(Number(f.stockOnHand) !== med.stockOnHand ? { stockCountedAt: serverTimestamp() } : {}),
+        updatedAt: serverTimestamp(),
+        updatedBy: user.uid,
+      });
+      await call('afterMedicationWrite', { patientId: patient.id, medicationId: med.id });
+      onDone();
+      return;
+    }
     const medRef = doc(collection(db, 'patients', patient.id, 'medications'));
     await setDoc(medRef, {
       ...rest,
@@ -136,7 +155,7 @@ function AddMedForm({ patient, onDone }) {
 
   return (
     <Card className="stack">
-      <h3>เพิ่มยา</h3>
+      <h3>{med ? `แก้ไขยา: ${med.name}` : 'เพิ่มยา'}</h3>
       <p className="muted small">กรอกตามฉลากยาหรือที่แพทย์/เภสัชกรสั่ง</p>
       <Field label="ชื่อยา"><input required value={f.name} onChange={set('name')} placeholder="เช่น แอมโลดิปีน 5 มก." /></Field>
       <Field label="เชื่อมกับฐานข้อมูลยา (เพื่อสั่งเติมยาได้)">
@@ -178,7 +197,7 @@ function AddMedForm({ patient, onDone }) {
   );
 }
 
-function MedCard({ med, patient, onRefill }) {
+function MedCard({ med, patient, onRefill, onEdit }) {
   const { user } = useSession();
   const [count, setCount] = useState('');
   const [saved, flash] = useFlash();
@@ -213,7 +232,17 @@ function MedCard({ med, patient, onRefill }) {
         </form>
       ) : null}
       <Flash>{saved}</Flash>
-      {can(patient, 'requestRefill') ? <Button size="sm" variant={isLow(med) ? 'primary' : 'secondary'} onClick={onRefill}>ขอเติมยา</Button> : null}
+      <div className="row">
+        {can(patient, 'requestRefill') ? <Button size="sm" variant={isLow(med) ? 'primary' : 'secondary'} onClick={onRefill}>ขอเติมยา</Button> : null}
+        {can(patient, 'editMeds') ? <Button size="sm" variant="secondary" onClick={onEdit} aria-label={`แก้ไข ${med.name}`}>แก้ไข</Button> : null}
+        {can(patient, 'editMeds') ? (
+          <ConfirmButton size="sm" variant="ghost" busy={busy} question={`หยุดใช้ ${med.name}?`} yes="หยุดใช้ยานี้" no="ไม่หยุด" ariaLabel={`หยุดใช้ ${med.name}`}
+            onConfirm={() => run(async () => {
+              await updateDoc(med.ref, { active: false, updatedAt: serverTimestamp(), updatedBy: user.uid });
+              await call('afterMedicationWrite', { patientId: patient.id, medicationId: med.id });
+            })}>หยุดใช้ยา</ConfirmButton>
+        ) : null}
+      </div>
       <ErrorText>{error}</ErrorText>
     </Card>
   );
@@ -226,7 +255,7 @@ export default function Meds() {
   const patient = visible.find((p) => p.id === patientId) ?? visible.find((p) => p.viaCaregiver) ?? visible[0];
   const [meds, loading] = useMeds(patient?.id);
   const [slots] = useTodaySchedule(patient?.id, meds);
-  const [panel, setPanel] = useState(null); // 'add' | med
+  const [panel, setPanel] = useState(null); // 'add' | { edit: med } | { refill: med }
   const panelRef = useRef(null);
 
   // The add/refill forms open above the list; bring them into view so the tap visibly does something.
@@ -253,7 +282,7 @@ export default function Meds() {
 
       {panel ? (
         <div ref={panelRef} style={{ scrollMarginTop: 16 }}>
-          {panel === 'add' ? <AddMedForm patient={patient} onDone={() => setPanel(null)} /> : <RefillForm patient={patient} med={panel} onDone={() => setPanel(null)} />}
+          {panel === 'add' ? <AddMedForm patient={patient} onDone={() => setPanel(null)} /> : panel.edit ? <AddMedForm key={panel.edit.id} patient={patient} med={panel.edit} onDone={() => setPanel(null)} /> : <RefillForm patient={patient} med={panel.refill} onDone={() => setPanel(null)} />}
         </div>
       ) : null}
 
@@ -268,7 +297,7 @@ export default function Meds() {
       <section className="stack">
         <h2>รายการยา</h2>
         <div className="grid-cards">
-          {meds.map((m) => <MedCard key={m.id} med={m} patient={patient} onRefill={() => setPanel(m)} />)}
+          {meds.map((m) => <MedCard key={m.id} med={m} patient={patient} onRefill={() => setPanel({ refill: m })} onEdit={() => setPanel({ edit: m })} />)}
         </div>
         {!loading && !meds.length ? <Empty icon="pill" title="ยังไม่มียาในรายการ" /> : null}
       </section>

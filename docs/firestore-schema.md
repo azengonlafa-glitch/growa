@@ -254,6 +254,7 @@ owner แก้ได้แค่ `documents` และ `submittedAt` และ�
 | reviewId | string? (มาจาก triage หรือการประเมินในคำสั่งซื้อนี้) |
 | status | ดู state machine ด้านล่าง |
 | paymentStatus | `none` \| `pending` \| `paid` \| `failed` \| `refunded` |
+| paymentMethod | `promptpay` \| `card` \| `banking` ช่องทางที่ผู้ซื้อเลือกตอนชำระ (function เขียนตอน `payOrder`) |
 | cancelReason, rejectReason | string? |
 | createdAt, updatedAt | timestamp |
 

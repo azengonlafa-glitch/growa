@@ -6,7 +6,7 @@ import { doc } from 'firebase/firestore';
 import { call, db, isProduction } from '../firebase.js';
 import { go, useAction, useDocData, useHashRoute } from '../lib/hooks.js';
 import { baht } from '../lib/format.js';
-import { Badge, Button, Card, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
+import { Badge, Button, Card, ConfirmButton, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import { Confetti } from '../components/Flair.jsx';
 import FlowPage from './FlowPage.jsx';
 import TrackMap from './TrackMap.jsx';
@@ -25,6 +25,9 @@ const STAGE_OF = {
   shipping: 3, delivery_issue: 3,
   delivered: 5,
 };
+// Same list the server allows the buyer to cancel from (USER_CANCELLABLE in functions/src/orders.js).
+const CANCELLABLE = ['pharmacy_checking', 'out_of_stock', 'awaiting_pharmacist', 'need_more_info', 'awaiting_payment', 'payment_failed'];
+
 const ENDED = {
   out_of_stock: ['ร้านแจ้งว่าสินค้าไม่พร้อม', 'ยังไม่มีการเก็บเงิน ลองเลือกร้านอื่นหรือสินค้าอื่น'],
   rejected: ['เภสัชกรไม่อนุมัติการจ่ายยา', 'ยังไม่มีการเก็บเงิน ปรึกษาเภสัชกรหรือพบแพทย์'],
@@ -63,7 +66,7 @@ function useNow(active) {
 function Payment({ order, flow }) {
   const { busy, error, run } = useAction();
   const method = PAYMENT_METHODS.find(([id]) => id === flow.payment) ?? PAYMENT_METHODS[0];
-  const pay = (simulateFailure = false) => run(() => call('payOrder', { orderId: order.id, ...(simulateFailure ? { simulateFailure: true } : {}) }));
+  const pay = (simulateFailure = false) => run(() => call('payOrder', { orderId: order.id, method: method[0], ...(simulateFailure ? { simulateFailure: true } : {}) }));
   return (
     <section className="stack" aria-label="ชำระเงิน">
       <Notice tone="good" title={order.status === 'payment_failed' ? 'ชำระเงินไม่สำเร็จ ลองอีกครั้งได้' : 'ร้านยืนยันสต็อกแล้ว ชำระเงินได้เลย'}>
@@ -143,6 +146,7 @@ export default function OrderStep() {
   const trip = useTrip(order ?? {});
   const sim = useAction();
   const recv = useAction();
+  const cancel = useAction();
   const again = () => { flow.restart(); go('choose'); };
 
   if (loading) return <FlowPage title="ติดตามคำสั่งซื้อ"><Loading /></FlowPage>;
@@ -188,7 +192,7 @@ export default function OrderStep() {
             {['awaiting_payment', 'payment_failed'].includes(order.status) ? <Payment order={order} flow={flow} /> : null}
             {['paid', 'preparing'].includes(order.status) ? (
               <Notice tone="good" title={order.status === 'paid' ? 'ชำระเงินแล้ว รอร้านจัดยา' : 'ร้านกำลังจัดยา'}>
-                รหัสชำระเงิน (จำลอง) <span className="num">{order.paymentRef}</span>
+                {PAYMENT_METHODS.find(([id]) => id === order.paymentMethod)?.[1] ? `ช่องทาง ${PAYMENT_METHODS.find(([id]) => id === order.paymentMethod)[1]} · ` : ''}รหัสชำระเงิน (จำลอง) <span className="num">{order.paymentRef}</span>
               </Notice>
             ) : null}
             {order.status === 'delivery_issue' ? <Notice tone="warn" title="การจัดส่งมีปัญหา">ร้านจะติดต่อคุณ หรือโทรหาร้านได้</Notice> : null}
@@ -224,7 +228,18 @@ export default function OrderStep() {
                 <ErrorText>{recv.error}</ErrorText>
               </>
             ) : null}
-            {order.status === 'delivered' ? <Button size="lg" block onClick={again}>สั่งซื้อใหม่</Button> : null}
+            {order.status === 'delivered' ? (
+              <>
+                <a className="btn btn-secondary btn-block" href={`#/orders/${order.id}`}>รีวิวร้านนี้</a>
+                <Button size="lg" block onClick={again}>สั่งซื้อใหม่</Button>
+              </>
+            ) : null}
+            {CANCELLABLE.includes(order.status) ? (
+              <>
+                <ConfirmButton variant="secondary" busy={cancel.busy} question="ยกเลิกคำสั่งซื้อนี้?" yes="ยกเลิกคำสั่งซื้อ" no="ไม่ยกเลิก" onConfirm={() => cancel.run(() => call('cancelOrder', { orderId: order.id, reason: 'ผู้ใช้ยกเลิก' }))}>ยกเลิกคำสั่งซื้อ</ConfirmButton>
+                <ErrorText>{cancel.error}</ErrorText>
+              </>
+            ) : null}
             <a className="btn btn-ghost btn-sm" href="#/orders">ดูคำสั่งซื้อทั้งหมด</a>
           </aside>
 

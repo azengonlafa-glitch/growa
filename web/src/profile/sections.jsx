@@ -219,6 +219,27 @@ export function FamilySection({ f, set }) {
   );
 }
 
+// Moves the home pin to where the phone is now (asks for permission; nothing is stored except the saved coordinates).
+function PinButton({ f, set }) {
+  const [msg, setMsg] = useState('');
+  const here = () => {
+    if (!navigator.geolocation) return setMsg('อุปกรณ์นี้ไม่รองรับการระบุตำแหน่ง');
+    setMsg('กำลังหาตำแหน่ง…');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { set({ addressGeo: { lat: Number(pos.coords.latitude.toFixed(5)), lng: Number(pos.coords.longitude.toFixed(5)) } }); setMsg('ปักหมุดแล้ว กด "บันทึก" เพื่อใช้ตำแหน่งนี้'); },
+      () => setMsg('ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง อนุญาตในเบราว์เซอร์แล้วลองใหม่'),
+    );
+  };
+  return (
+    <div className="stack" style={{ gap: 6 }}>
+      <Button size="sm" variant="secondary" onClick={here}><Icon name="locate" size={18} />ปักหมุดบ้านที่ตำแหน่งปัจจุบัน</Button>
+      <span className="muted small" role="status">
+        {msg || (f.addressGeo ? `พิกัดที่ใช้อยู่: ${f.addressGeo.lat.toFixed(4)}, ${f.addressGeo.lng.toFixed(4)}` : 'ยังไม่มีพิกัดบ้าน')}
+      </span>
+    </div>
+  );
+}
+
 export function ContactSection({ f, set }) {
   const setEmergency = (patch) => set({ emergency: { ...f.emergency, ...patch } });
   return (
@@ -232,9 +253,10 @@ export function ContactSection({ f, set }) {
         <input aria-label="ความสัมพันธ์" value={f.emergency.relation} onChange={(e) => setEmergency({ relation: e.target.value })} placeholder="ความสัมพันธ์ เช่น ลูกสาว คู่สมรส" maxLength={60} />
         <span className="field-hint">ใช้เมื่อเกิดเหตุฉุกเฉินเท่านั้น</span>
       </div>
-      <Field label="ที่อยู่จัดส่ง" hint="ตำแหน่งบนแผนที่ยังเป็นค่าเริ่มต้น แผนที่เลือกร้านใช้ตำแหน่งนี้เป็นจุดเริ่ม">
+      <Field label="ที่อยู่จัดส่ง" hint="แผนที่เลือกร้านใช้พิกัดบ้านเป็นจุดเริ่ม และคำนวณค่าส่งกับเวลาเดินทางจากพิกัดนี้">
         <textarea rows={2} value={f.addressLine} onChange={(e) => set({ addressLine: e.target.value })} maxLength={300} placeholder="บ้านเลขที่ ซอย ถนน แขวง เขต จังหวัด รหัสไปรษณีย์" aria-label="ที่อยู่จัดส่ง" />
       </Field>
+      <PinButton f={f} set={set} />
     </div>
   );
 }

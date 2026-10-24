@@ -6,10 +6,13 @@ import { useSession, can } from '../lib/session.js';
 import { ORDER_STATUS, baht, dateTime, timeAgo } from '../lib/format.js';
 import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, Loading, MockBadge, Notice, PageHeader } from '../components/ui.jsx';
 
+// Orders still moving open the live tracking screen; finished ones open the detail page (receipt, rating).
+const ACTIVE = ['pharmacy_checking', 'awaiting_pharmacist', 'need_more_info', 'awaiting_payment', 'payment_failed', 'paid', 'preparing', 'shipping', 'delivery_issue'];
+
 function OrderRow({ o }) {
   const [label, tone] = ORDER_STATUS[o.status] ?? [o.status, 'neutral'];
   return (
-    <a className="list-item" href={`#/orders/${o.id}`} style={{ color: 'inherit' }}>
+    <a className="list-item" href={ACTIVE.includes(o.status) ? `#/track/${o.id}` : `#/orders/${o.id}`} style={{ color: 'inherit' }}>
       <div className="list-item-main">
         <div className="truncate">{o.items?.map((i) => `${i.name} ×${i.qty}`).join(', ')}</div>
         <div className="muted small">

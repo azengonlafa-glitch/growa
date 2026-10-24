@@ -47,6 +47,7 @@ export const emptyForm = () => ({
   familyHistory: [],
   emergency: { name: '', phone: '', relation: '' },
   addressLine: '',
+  addressGeo: null,
   shareWithPharmacist: true,
 });
 
@@ -82,6 +83,7 @@ export function fromDocs(user, patient, health) {
   f.familyHistory = history.familyHistory ?? [];
   f.emergency = { name: user?.emergencyContact?.name ?? '', phone: user?.emergencyContact?.phone ?? '', relation: user?.emergencyContact?.relation ?? '' };
   f.addressLine = user?.addresses?.[0]?.line1 ?? '';
+  f.addressGeo = user?.addresses?.[0]?.geo ?? null;
   f.shareWithPharmacist = health?.consent?.shareWithPharmacist !== false;
   return f;
 }
@@ -189,8 +191,10 @@ export async function saveProfile({ uid, user, patient, form, finish = false, le
       : null,
   };
   const address = user?.addresses?.[0];
-  if (address && txt(f.addressLine) && txt(f.addressLine) !== address.line1) {
-    userPatch.addresses = [{ ...address, line1: txt(f.addressLine) }, ...(user.addresses ?? []).slice(1)];
+  const geoMoved = f.addressGeo && (f.addressGeo.lat !== address?.geo?.lat || f.addressGeo.lng !== address?.geo?.lng);
+  if (txt(f.addressLine) && (!address || txt(f.addressLine) !== address.line1 || geoMoved)) {
+    // The map, delivery fee and travel time all use the pin, so a changed pin is saved together with the text.
+    userPatch.addresses = [{ label: 'บ้าน', ...address, line1: txt(f.addressLine), ...(f.addressGeo ? { geo: f.addressGeo } : {}) }, ...(user?.addresses ?? []).slice(1)];
   }
   if (finish) userPatch.onboardedAt = serverTimestamp();
   batch.update(doc(db, 'users', uid), userPatch);

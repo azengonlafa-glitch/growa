@@ -560,5 +560,12 @@ hr.sep { border: 0; border-top: 1.5px solid var(--border); margin: 4px 0; }
   * { transition: none !important; animation-duration: .01ms !important; }
 }
 
-.chat-input { display: flex; gap: 8px; align-items: flex-end; }
-.chat-input textarea { flex: 1; min-height: 56px; resize: none; }
+
+.chat-input { display: flex; flex-direction: column; gap: 8px; }
+.chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input-row textarea { flex: 1; min-height: 56px; resize: none; min-width: 0; }
+.chat-photo { display: flex; align-items: center; gap: 10px; }
+.chat-photo img { width: 64px; height: 64px; object-fit: cover; border-radius: 14px; }
+.bubble-photo { display: block; max-width: 180px; border-radius: 14px; margin: 4px 0; }
+.round-btn.is-listening { background: var(--bad-solid, #b93a3a); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .6; } }

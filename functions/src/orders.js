@@ -379,14 +379,15 @@ export const payOrder = onCall(async (req) => {
       transition(tx, ref, order, 'payment_failed', { actorUid: uid, extra: { paymentStatus: 'failed' } });
       return { status: 'payment_failed' };
     }
+    const paymentMethod = d.method === undefined ? 'promptpay' : oneOf(d.method, 'ช่องทางชำระเงิน', ['promptpay', 'card', 'banking']);
     const paymentRef = `MOCK-${ref.id.slice(0, 8)}-${Date.now()}`;
     const staff = await activeStaffUids(order.pharmacyId);
     transition(tx, ref, order, 'paid', {
       actorUid: uid,
-      extra: { paymentStatus: 'paid', paymentRef },
+      extra: { paymentStatus: 'paid', paymentRef, paymentMethod },
       notifyUids: [order.placedBy, ...staff],
     });
-    return { status: 'paid', paymentRef };
+    return { status: 'paid', paymentRef, paymentMethod };
   });
 });
 

@@ -28,7 +28,7 @@ function NewOrder({ order }) {
       {declining ? (
         <form className="row" onSubmit={(e) => { e.preventDefault(); run(() => call('pharmacyRespondOrder', { orderId: order.id, available: false, reason })); }}>
           <input style={{ flex: 1 }} required placeholder="เหตุผล เช่น สินค้าหมด" value={reason} onChange={(e) => setReason(e.target.value)} aria-label="เหตุผล" />
-          <Button size="sm" variant="danger" busy={busy}>แจ้งลูกค้า</Button>
+          <Button type="submit" size="sm" variant="danger" busy={busy}>แจ้งลูกค้า</Button>
         </form>
       ) : (
         <div className="row">

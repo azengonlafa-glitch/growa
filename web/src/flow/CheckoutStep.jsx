@@ -109,6 +109,7 @@ export default function CheckoutStep() {
         <Card>
           <strong>{address?.label ?? 'ที่อยู่หลัก'}</strong>
           <p className="muted small">{address?.line1 ?? 'ยังไม่มีที่อยู่'}</p>
+          <a className="small" href="#/profile">เปลี่ยนที่อยู่หรือปักหมุดใหม่ (ที่อยู่ในโปรไฟล์)</a>
         </Card>
       </section>
 

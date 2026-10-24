@@ -152,8 +152,11 @@ describe('orders', () => {
     assert.equal((await getDoc(`pharmacies/demoRx1/products/shampooGentle`)).drugClass, 'general');
     await rejectsWith(shopper.call('payOrder', { orderId }), 'failed-precondition'); // stock not confirmed yet
     assert.equal((await clerk.call('pharmacyRespondOrder', { orderId, available: true })).status, 'awaiting_payment');
-    await shopper.call('payOrder', { orderId });
-    assert.equal((await getDoc(`orders/${orderId}`)).status, 'paid');
+    await rejectsWith(shopper.call('payOrder', { orderId, method: 'bitcoin' }), 'invalid-argument');
+    await shopper.call('payOrder', { orderId, method: 'card' });
+    const paid = await getDoc(`orders/${orderId}`);
+    assert.equal(paid.status, 'paid');
+    assert.equal(paid.paymentMethod, 'card'); // the chosen channel is kept on the order
   });
 
   test('pharmacist gate: no payment before approval, then full delivery flow', async () => {
@@ -615,6 +618,19 @@ describe('AI triage safety', () => {
     const out = await user.call('triageSendMessage', { sessionId, text: 'เจ็บคอ มีน้ำมูก 2 วัน' });
     assert.equal(out.aiUnavailable, true);
     assert.equal(out.route, 'pharmacist');
+  });
+
+  test('chat photos are validated and never stored', async () => {
+    const user = await buyer('triageUser6');
+    const { sessionId } = await user.call('triageStart', { patientId: user.patientId, consent: true });
+    const send = (image) => user.call('triageSendMessage', { sessionId, text: 'แผลที่แขน', image });
+    await rejectsWith(send({ mimeType: 'application/pdf', data: 'AAAA' }), 'invalid-argument');
+    await rejectsWith(send({ mimeType: 'image/jpeg', data: 'not base64!!' }), 'invalid-argument');
+    await rejectsWith(send({ mimeType: 'image/jpeg', data: 'A'.repeat(1_500_001) }), 'invalid-argument');
+    const out = await send({ mimeType: 'image/jpeg', data: 'AAAA' });
+    assert.equal(typeof out.reply, 'string');
+    const stored = await adminDb.collection(`triageSessions/${sessionId}/messages`).get();
+    for (const m of stored.docs) assert.ok(!JSON.stringify(m.data()).includes('AAAA'));
   });
 
   test('red flags never reach the AI and are not marked unavailable', async () => {

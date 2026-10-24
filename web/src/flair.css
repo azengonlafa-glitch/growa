@@ -481,3 +481,9 @@ html:has(.launch) { overflow: hidden; }
 .stars svg { fill: #d3dadd; }
 .map-actions { display: flex; gap: 10px; }
 .product .thumb { padding: 12px 16px 26px; } .product .thumb .product-photo { max-height: 100%; }
+
+/* small links and buttons: keep a comfortable tap target on phones */
+.store-more { min-height: 36px; }
+@media (pointer: coarse) {
+  .store-more, .flow a.small, .care-bar a, .empty a, .info-list a { min-height: 40px; display: inline-flex; align-items: center; }
+}

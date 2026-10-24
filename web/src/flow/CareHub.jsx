@@ -31,7 +31,7 @@ export default function CareHub() {
           <a className="tile tile-sage" href="#/pharmacist"><span className="tile-icon"><Icon name="list" /></span><span className="tile-label">งานของร้านยา</span></a>
         ) : null}
       </div>
-      <p className="muted small">ฟีเจอร์ในหน้านี้ยังเป็นระบบเดิม จะนำมารวมเข้ากับขั้นตอนหลักในภายหลัง</p>
+      <p className="muted small">เมนูเพิ่มเติมของ growa: ดูคำสั่งซื้อ จัดการยา ครอบครัว โปรไฟล์ และตั้งค่า</p>
       <hr className="sep" />
       <div className="between">
         <span className="muted small truncate">{user.email}</span>

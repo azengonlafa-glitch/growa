@@ -185,9 +185,9 @@ function Password() {
   }
   return (
     <form className="stack" onSubmit={submit}>
-      <Field label="รหัสผ่านปัจจุบัน"><input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} required /></Field>
-      <Field label="รหัสผ่านใหม่" hint="อย่างน้อย 6 ตัวอักษร"><input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} required minLength={6} /></Field>
-      <Field label="พิมพ์รหัสผ่านใหม่อีกครั้ง"><input type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} required /></Field>
+      <Field label="รหัสผ่านปัจจุบัน"><input type="password" autoComplete="current-password" value={current} onChange={(e) => { setCurrent(e.target.value); setError(null); }} required /></Field>
+      <Field label="รหัสผ่านใหม่" hint="อย่างน้อย 6 ตัวอักษร"><input type="password" autoComplete="new-password" value={next} onChange={(e) => { setNext(e.target.value); setError(null); }} required minLength={6} /></Field>
+      <Field label="พิมพ์รหัสผ่านใหม่อีกครั้ง"><input type="password" autoComplete="new-password" value={again} onChange={(e) => { setAgain(e.target.value); setError(null); }} required /></Field>
       <ErrorText>{error}</ErrorText>
       <div className="row">
         <Button type="submit" busy={busy}>บันทึกรหัสผ่านใหม่</Button>

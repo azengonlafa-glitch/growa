@@ -77,15 +77,23 @@ Routes:
 - "pharmacist": a medicine is likely needed, or the user is a child under 12, pregnant or breastfeeding, 65 or older, has chronic disease or several regular medicines or a relevant allergy, symptoms last longer than a few days, or you are unsure. When unsure between "info" and "pharmacist", choose "pharmacist".
 - "emergency": any sign of a medical emergency or risk of self-harm. Set redFlag to true and tell them to call 1669 (or the 1323 mental health hotline for self-harm) now.
 
+Set "symptomGroup" to the question set that fits the main symptom (fever, pain, diarrhea, rash, cough_throat, stomach_other, wound, medicine_problem or other).
+If the user attaches a photo (a wound, a rash or a medicine box): describe only what is visible, never diagnose from a photo; for a medicine box read the name and strength if legible and ask the user to confirm; if the photo is unclear, ask for a clearer one. Do not ask the user for a photo unless it would help.
 Keep "reply" under 120 Thai words. Fill "summary" with what is known so far (empty string when unknown); write it in Thai for the pharmacist.`;
+
+// Which question set the conversation followed. Used only to pick household-medicine suggestions from the
+// database when the final route is self-care; the AI itself never names a medicine.
+const SYMPTOM_GROUPS = ['fever', 'pain', 'diarrhea', 'rash', 'cough_throat', 'stomach_other', 'wound', 'medicine_problem', 'other'];
+const GROUP_SUGGEST = { fever: ['para500'], pain: ['para500'], diarrhea: ['ors'], rash: ['calamine'] };
 
 const OUTPUT_SCHEMA = {
   type: 'object',
-  required: ['reply', 'route', 'redFlag', 'summary'],
+  required: ['reply', 'route', 'redFlag', 'symptomGroup', 'summary'],
   properties: {
     reply: { type: 'string' },
     route: { type: 'string', enum: ['continue', 'info', 'pharmacist', 'emergency'] },
     redFlag: { type: 'boolean' },
+    symptomGroup: { type: 'string', enum: SYMPTOM_GROUPS },
     summary: {
       type: 'object',
           required: ['symptoms', 'duration', 'severity', 'allergies', 'currentMeds', 'questionsForPharmacist'],
@@ -119,7 +127,7 @@ async function patientContext(patientId) {
 
 // Returns the parsed model answer, or null on any problem (no key, quota, block,
 // bad JSON) so the caller sends the user to a pharmacist instead of failing.
-async function askGemini(context, history) {
+async function askGemini(context, history, image = null) {
   const key = GEMINI_API_KEY.value();
   if (!key) {
     console.error('gemini key missing');
@@ -146,6 +154,7 @@ ${m.text}` : m.text }],
     signal: AbortSignal.timeout(20000),
   });
   // One retry when the free tier is busy (503/429) or slow.
+  if (image) contents[contents.length - 1].parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
   let res = null;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
@@ -174,6 +183,18 @@ ${m.text}` : m.text }],
     console.error('gemini parse failed', err?.message);
     return null;
   }
+}
+
+// An optional photo (wound, rash, medicine box). Kept only for this one AI call: never stored.
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_CHARS = 1_500_000;
+function parseImage(raw) {
+  if (raw == null) return null;
+  if (typeof raw !== 'object' || !IMAGE_TYPES.includes(raw.mimeType) || typeof raw.data !== 'string'
+    || raw.data.length === 0 || raw.data.length > MAX_IMAGE_CHARS || !/^[A-Za-z0-9+/=]+$/.test(raw.data)) {
+    throw new HttpsError('invalid-argument', 'รูปภาพไม่ถูกต้องหรือมีขนาดใหญ่เกินไป');
+  }
+  return { mimeType: raw.mimeType, data: raw.data };
 }
 
 // ───────────── callables ─────────────
@@ -208,6 +229,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   const uid = requireAuth(req);
   const d = req.data ?? {};
   const text = str(d.text, 'ข้อความ', { max: 2000 });
+  const image = parseImage(d.image);
   const ref = db.doc(`triageSessions/${str(d.sessionId, 'sessionId', { max: 128 })}`);
   const snap = await ref.get();
   if (!snap.exists || snap.data().userUid !== uid || snap.data().mode === 'guided') {
@@ -220,13 +242,14 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
 
   // seq orders messages written in the same batch (identical server timestamps).
   const seq = session.userTurns * 2 + 1;
-  const userMsg = { role: 'user', text, seq, createdAt: FieldValue.serverTimestamp() };
+  const userMsg = { role: 'user', text: image ? `${text} [แนบรูป]` : text, seq, createdAt: FieldValue.serverTimestamp() };
   const flag = detectRedFlag(text);
   let reply;
   let route;
   let summary = session.summary;
   let redFlag = false;
   let aiUnavailable = false;
+  let suggestedCatalogIds = [];
 
   if (flag) {
     reply = EMERGENCY_REPLY[flag];
@@ -240,7 +263,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
       .map((m) => ({ role: m.role, text: m.text }));
     history.push({ role: 'user', text });
 
-    const out = await askGemini(await patientContext(session.patientId), history);
+    const out = await askGemini(await patientContext(session.patientId), history, image);
     if (!out) {
       reply = 'ขออภัย ระบบไม่สามารถประเมินต่อได้ แนะนำให้ปรึกษาเภสัชกรโดยตรง';
       route = 'pharmacist';
@@ -250,6 +273,8 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
       summary = out.summary;
       redFlag = out.redFlag === true || out.route === 'emergency';
       route = redFlag ? 'emergency' : out.route;
+      // Household suggestions only for a self-care outcome; pharmacist and doctor routes show none.
+      if (route === 'info') suggestedCatalogIds = GROUP_SUGGEST[out.symptomGroup] ?? [];
       if (route === 'emergency' && !out.reply.includes('1669')) reply = `${out.reply}\n\n${EMERGENCY_REPLY.emergency}`;
     }
     // Server-side guard: long conversations go to a human.
@@ -274,7 +299,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   });
   if (redFlag) audit(batch, { actorUid: uid, action: 'triage.redFlag', targetPath: ref.path, reason: flag ?? 'model' });
   await batch.commit();
-  return { reply, route, aiUnavailable };
+  return { reply, route, aiUnavailable, suggestedCatalogIds };
 });
 
 export const triageShareWithPharmacy = onCall(async (req) => {

@@ -92,3 +92,4 @@
 .danger-zone summary { cursor: pointer; font-weight: 600; color: var(--bad); padding: 12px 0; }
 .danger-zone[open] { padding-bottom: 16px; }
 [data-motion='reduce'] *, [data-motion='reduce'] *::before, [data-motion='reduce'] *::after { animation: none !important; transition: none !important; }
+.arrow-fwd { display: inline-block; transform: rotate(180deg); vertical-align: -2px; }

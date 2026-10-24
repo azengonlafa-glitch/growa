@@ -18,20 +18,29 @@ export function useSessionData(user) {
     uid ? query(collectionGroup(db, 'caregivers'), where('caregiverUid', '==', uid)) : null, [uid],
   );
 
-  // Profiles shared with me as an active caregiver.
-  const [cared, setCared] = useState([]);
-  const activeKey = links.filter((l) => l.status === 'active').map((l) => l.ref.parent.parent.id).join(',');
+  // Profiles shared with me as an active caregiver. The patient documents are fetched once per profile (retrying while the
+  // server is still applying an accepted invitation), but the permissions come straight from the live link so a change
+  // by the owner shows up at once.
+  const [caredDocs, setCaredDocs] = useState({});
+  const activeKey = links.filter((l) => l.status === 'active').map((l) => l.ref.parent.parent.id).sort().join(',');
   useEffect(() => {
     let cancelled = false;
     const ids = activeKey ? activeKey.split(',') : [];
-    Promise.all(ids.map(async (pid) => {
-      const snap = await getDoc(doc(db, 'patients', pid));
-      const link = links.find((l) => l.ref.parent.parent.id === pid);
-      return snap.exists() ? { id: pid, ...snap.data(), permissions: link?.permissions ?? {}, viaCaregiver: true } : null;
-    })).then((rows) => !cancelled && setCared(rows.filter(Boolean)));
+    const load = async (pid, attempt = 0) => {
+      try {
+        const snap = await getDoc(doc(db, 'patients', pid));
+        if (!cancelled && snap.exists()) setCaredDocs((prev) => ({ ...prev, [pid]: snap.data() }));
+      } catch (err) {
+        // Right after "accept" the local write is visible before the server has it, so the first read can be refused.
+        if (!cancelled && attempt < 5) setTimeout(() => load(pid, attempt + 1), 600 * (attempt + 1));
+      }
+    };
+    ids.forEach((pid) => load(pid));
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeKey]);
+  const cared = links
+    .filter((l) => l.status === 'active' && caredDocs[l.ref.parent.parent.id])
+    .map((l) => ({ id: l.ref.parent.parent.id, ...caredDocs[l.ref.parent.parent.id], permissions: l.permissions ?? {}, viaCaregiver: true }));
 
   // Pharmacies where I am active staff (approved partner stores only).
   const [staffOf, setStaffOf] = useState([]);

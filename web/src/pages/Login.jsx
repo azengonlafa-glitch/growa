@@ -12,7 +12,7 @@ const DEMO_PASSWORD = 'demo-medilink';
 const DEMO = [
   ['mom@demo.test', 'คุณแม่', 'ผู้ป่วย มียาความดันใกล้หมด', 'heart'],
   ['daughter@demo.test', 'ลูกสาว', 'ผู้ดูแลของคุณแม่', 'people'],
-  ['pharmacist@demo.test', 'เภสัชกร', 'ร้านพาร์ทเนอร์ demoRx1', 'pill'],
+  ['pharmacist@demo.test', 'เภสัชกร', 'ร้านพาร์ทเนอร์ตัวอย่าง รับออเดอร์และประเมินยา', 'pill'],
 ];
 
 // Default delivery address for new demo users, a few km from the sample pharmacies so the delivery map shows a route.

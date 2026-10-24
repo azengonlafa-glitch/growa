@@ -80,7 +80,7 @@ export default function Profile() {
       </Card>
 
       <p className="muted small">
-        ข้อมูลสุขภาพของสมาชิกในครอบครัวที่คุณดูแล ดูและแก้ที่ <a href="#/health">โปรไฟล์สุขภาพรายคน <Icon name="back" size={14} /></a>
+        ข้อมูลสุขภาพของสมาชิกในครอบครัวที่คุณดูแล ดูและแก้ที่ <a href="#/health">โปรไฟล์สุขภาพรายคน <span className="arrow-fwd" aria-hidden><Icon name="back" size={14} /></span></a>
       </p>
 
       <div className={`save-bar${dirty ? ' dirty' : ''}`} role="region" aria-label="บันทึกโปรไฟล์">

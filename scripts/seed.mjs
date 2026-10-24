@@ -36,7 +36,7 @@ const directoryCount = await seedDirectory(db);
 
 const now = FieldValue.serverTimestamp();
 const batch = db.batch();
-for (const a of ACCOUNTS.slice(0, 2)) {
+for (const a of ACCOUNTS.slice(0, 3)) {
   const pid = `${a.uid}-self`;
   batch.set(db.doc(`users/${a.uid}`), {
     displayName: a.displayName, email: a.email, selfPatientId: pid, onboardedAt: now, createdAt: now,
