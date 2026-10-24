@@ -6,6 +6,7 @@
 //      and long conversations are handed to a pharmacist).
 // The AI never approves dispensing; only submitPharmacistReview can.
 import { onCall } from 'firebase-functions/v2/https';
+import { loadHealthInsight, topicOfGroup } from './health-insight.js';
 import { defineSecret } from 'firebase-functions/params';
 import {
   db, FieldValue, HttpsError,
@@ -52,6 +53,8 @@ Your job is to collect the information a pharmacist needs, give careful general 
 - Never say a medicine is safe for the user. Never approve or promise dispensing.
 - Ask only what is needed, following the interview protocol below. Also ask about pregnancy or breastfeeding when relevant. Do not ask for ID numbers, full names or addresses.
 - The patient context below may already answer some of these; do not ask again.
+
+Use the patient context actively: when the symptoms may be connected to a recorded condition, a regular medicine or an allergy, say so in one short sentence in "reply" (for example high blood pressure and headache, a statin and muscle pain, metformin and diarrhoea) and say what to watch or measure. Say "may be connected", never name a diagnosis. Never suggest anything that conflicts with a recorded allergy.
 
 Interview protocol (follow this order; ask ONE short question per turn, never repeat a question the user already answered, and never ask for what the patient context already gives):
 1. First find out whether the symptoms are the user's own or they are helping someone else, and the age range of the person with symptoms.
@@ -119,9 +122,9 @@ async function patientContext(patientId) {
   const age = patient.data()?.birthYear ? new Date().getFullYear() - patient.data().birthYear : null;
   return [
     `อายุ: ${age ?? 'ไม่ทราบ'}`,
-    `ประวัติแพ้ยา: ${(h.allergies ?? []).map((a) => a.substance).join(', ') || 'ไม่ได้บันทึก'}`,
+    `ประวัติแพ้ยา: ${[...(h.allergies ?? []).map((a) => a.substance), ...(h.history?.otherAllergies ?? [])].join(', ') || 'ไม่ได้บันทึก'}`,
     `โรคประจำตัว: ${(h.conditions ?? []).join(', ') || 'ไม่ได้บันทึก'}`,
-    `ยาที่ใช้อยู่: ${meds.docs.map((m) => m.data().name).join(', ') || 'ไม่ได้บันทึก'}`,
+    `ยาที่ใช้อยู่: ${[...meds.docs.map((m) => m.data().name), ...(h.history?.currentMeds ?? [])].join(', ') || 'ไม่ได้บันทึก'}`,
   ].join('\n');
 }
 
@@ -250,6 +253,8 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   let redFlag = false;
   let aiUnavailable = false;
   let suggestedCatalogIds = [];
+  let healthNotes = [];
+  let healthMissing = false;
 
   if (flag) {
     reply = EMERGENCY_REPLY[flag];
@@ -275,6 +280,12 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
       route = redFlag ? 'emergency' : out.route;
       // Household suggestions only for a self-care outcome; pharmacist and doctor routes show none.
       if (route === 'info') suggestedCatalogIds = GROUP_SUGGEST[out.symptomGroup] ?? [];
+      if (route !== 'continue' && route !== 'emergency') {
+        const insight = await loadHealthInsight(db, session.patientId, { topic: topicOfGroup(out.symptomGroup), suggestedCatalogIds });
+        suggestedCatalogIds = suggestedCatalogIds.filter((id) => !insight.blocked.some((b) => b.catalogId === id));
+        healthNotes = [...insight.blocked.map((b) => b.reason), ...insight.notes];
+        healthMissing = insight.missing;
+      }
       if (route === 'emergency' && !out.reply.includes('1669')) reply = `${out.reply}\n\n${EMERGENCY_REPLY.emergency}`;
     }
     // Server-side guard: long conversations go to a human.
@@ -299,7 +310,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   });
   if (redFlag) audit(batch, { actorUid: uid, action: 'triage.redFlag', targetPath: ref.path, reason: flag ?? 'model' });
   await batch.commit();
-  return { reply, route, aiUnavailable, suggestedCatalogIds };
+  return { reply, route, aiUnavailable, suggestedCatalogIds, healthNotes, healthMissing };
 });
 
 export const triageShareWithPharmacy = onCall(async (req) => {

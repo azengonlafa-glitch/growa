@@ -153,6 +153,16 @@ export default function ResultStep() {
           </div>
           <ul className="advice">{result.advice.map((a) => <li key={a}>{a}</li>)}</ul>
           {result.notes.map((n) => <Notice key={n} tone="info">{n}</Notice>)}
+          {result.healthNotes?.length ? (
+            <Notice tone="warn" title="เชื่อมกับข้อมูลสุขภาพที่คุณกรอกไว้">
+              <ul className="advice">{result.healthNotes.map((n) => <li key={n}>{n}</li>)}</ul>
+            </Notice>
+          ) : null}
+          {result.healthMissing ? (
+            <Notice tone="info" title="ยังไม่มีข้อมูลแพ้ยาและโรคประจำตัว">
+              กรอกไว้เพื่อให้ระบบช่วยเตือนเรื่องยาและอาการที่เกี่ยวข้องได้ <a href="#/health">กรอกข้อมูลสุขภาพ</a>
+            </Notice>
+          ) : null}
           {result.warn.length ? (
             <Notice tone="warn" title="ไปพบแพทย์ทันทีถ้ามีอาการเหล่านี้">{result.warn.map((w) => <p key={w}>{w}</p>)}</Notice>
           ) : null}

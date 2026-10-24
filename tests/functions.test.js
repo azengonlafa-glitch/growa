@@ -12,6 +12,7 @@ import { initializeApp as initAdmin } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminDb, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { readFileSync } from 'node:fs';
+import { newState, answer as engineAnswer, question as engineQuestion, result as engineResult } from '../functions/src/symptom-engine.js';
 import { seedCatalogAndPharmacies, seedDirectory } from '../scripts/seed-data.mjs';
 
 const PROJECT = 'demo-medilink';
@@ -586,6 +587,52 @@ describe('guided symptom checker', () => {
     const out = await user.call('guidedTriageAnswer', { sessionId: res.sessionId, nodeId: 'red_flags', choices: [i] });
     assert.equal(out.result.route, 'emergency');
     await rejectsWith(user.call('triageShareWithPharmacy', { sessionId: res.sessionId, pharmacyId: 'demoRx1', consent: true }), 'failed-precondition');
+  });
+});
+
+// Walks the guided checker for an adult with no chronic disease until it reaches the given outcome.
+function guidedPathTo(outcomeId) {
+  const only = { age: '18 – 64', sex: 'ชาย', chronic: 'ไม่มี' };
+  const queue = [{ s: newState(), steps: [] }];
+  while (queue.length) {
+    const { s, steps } = queue.shift();
+    const q = engineQuestion(s);
+    if (!q) { if (engineResult(s).outcomeId === outcomeId) return steps; continue; }
+    q.options.forEach((o, i) => {
+      if (only[q.nodeId] && !o.label.includes(only[q.nodeId])) return;
+      const choices = q.type === 'multi' ? [i] : i;
+      queue.push({ s: engineAnswer(s, q.nodeId, choices), steps: [...steps, { nodeId: q.nodeId, choices }] });
+    });
+  }
+  throw new Error(`no path to ${outcomeId}`);
+}
+
+describe('health profile in the guided result', () => {
+  async function run(name, health) {
+    const user = await buyer(name);
+    if (health) await adminDb.doc(`patients/${user.patientId}/health/profile`).set(health);
+    let res = await user.call('guidedTriageStart', { patientId: user.patientId, consent: true });
+    const { sessionId } = res;
+    for (const step of guidedPathTo('headache_tension')) {
+      res = await user.call('guidedTriageAnswer', { sessionId, nodeId: step.nodeId, choices: step.choices });
+    }
+    return res.result;
+  }
+
+  test('without a profile the suggestion stays and the person is asked to fill it in', async () => {
+    const r = await run('healthNone', null);
+    assert.deepEqual(r.suggestedCatalogIds, ['para500']);
+    assert.equal(r.healthMissing, true);
+  });
+
+  test('a recorded allergy withholds the suggestion; blood pressure is linked to the headache', async () => {
+    const r = await run('healthAllergy', {
+      allergies: [{ substance: 'พาราเซตามอล' }], conditions: ['ความดันโลหิตสูง'], notes: '', shareWithPharmacist: true,
+    });
+    assert.deepEqual(r.suggestedCatalogIds, []);
+    assert.ok(r.healthNotes.some((n) => /พาราเซตามอล/.test(n)), 'says why it was withheld');
+    assert.ok(r.healthNotes.some((n) => /ความดัน/.test(n)), 'links the headache to blood pressure');
+    assert.equal(r.healthMissing, false);
   });
 });
 

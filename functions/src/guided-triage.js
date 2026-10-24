@@ -4,15 +4,25 @@
 import { onCall } from 'firebase-functions/v2/https';
 import { db, FieldValue, HttpsError, requireAuth, requirePatientAccess, str, audit } from './common.js';
 import { newState, answer, back, question, result, transcript } from './symptom-engine.js';
+import { applyInsight, loadHealthInsight, topicOfOutcome } from './health-insight.js';
 
-function view(state) {
-  const r = result(state);
+function view(state, r = result(state)) {
   return r ? { done: true, result: r } : { done: false, question: question(state) };
 }
 
-// Fields written to the session for a given engine state.
-function sessionFields(state) {
+// Adds the notes that link the symptoms to the saved health profile (see health-insight.js).
+// Emergencies are left as they are: nothing should compete with "call 1669".
+async function withHealth(patientId, state) {
   const r = result(state);
+  if (!r || r.route === 'emergency') return r;
+  const insight = await loadHealthInsight(db, patientId, {
+    topic: topicOfOutcome(r.outcomeId), suggestedCatalogIds: r.suggestedCatalogIds, pregnancy: state.facts.pregnancy,
+  });
+  return applyInsight(r, insight);
+}
+
+// Fields written to the session for a given engine state.
+function sessionFields(state, r = result(state)) {
   const emergency = r?.route === 'emergency';
   return {
     guided: state,
@@ -75,13 +85,14 @@ export const guidedTriageAnswer = onCall(async (req) => {
   } catch {
     throw new HttpsError('invalid-argument', 'คำตอบไม่ตรงกับคำถามปัจจุบัน');
   }
+  const r = await withHealth(session.patientId, state);
   const batch = db.batch();
-  batch.update(ref, { ...sessionFields(state), userTurns: FieldValue.increment(1) });
+  batch.update(ref, { ...sessionFields(state, r), userTurns: FieldValue.increment(1) });
   if (result(state)?.route === 'emergency') {
     audit(batch, { actorUid: uid, action: 'triage.redFlag', targetPath: ref.path, reason: result(state).outcomeId });
   }
   await batch.commit();
-  return view(state);
+  return view(state, r);
 });
 
 export const guidedTriageBack = onCall(async (req) => {
@@ -90,6 +101,7 @@ export const guidedTriageBack = onCall(async (req) => {
   if (session.sharedWithPharmacyId) throw new HttpsError('failed-precondition', 'ส่งต่อเภสัชกรแล้ว');
   if (session.guided.path.length === 0) throw new HttpsError('failed-precondition', 'อยู่ที่คำถามแรกแล้ว');
   const state = back(session.guided);
-  await ref.update(sessionFields(state));
-  return view(state);
+  const r = await withHealth(session.patientId, state);
+  await ref.update(sessionFields(state, r));
+  return view(state, r);
 });
