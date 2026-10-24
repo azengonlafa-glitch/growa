@@ -1,8 +1,8 @@
 import { go } from '../lib/hooks.js';
 import { Icon, MockBadge } from '../components/ui.jsx';
-import { Splash } from '../components/Flair.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
+import './choose.css';
 
 export default function ChooseStep() {
   const flow = useFlow();
@@ -15,29 +15,41 @@ export default function ChooseStep() {
   };
 
   return (
-    <FlowPage wide step={2} title="วันนี้ต้องการอะไร" onBack={() => go('')} hero={<Splash title="ให้ growa ช่วยอะไรดี" sub="เลือกทางที่ตรงกับวันนี้ เราพาไปทีละขั้น" />}>
-      <div className="card stack" style={{ gap: 4 }}>
-        <div className="between">
-          <span className="muted small">ร้านที่เลือก</span>
-          <a href="#/" className="small">เปลี่ยนร้าน</a>
+    <FlowPage step={2} title="วันนี้ต้องการอะไร" onBack={() => go('')}>
+      <div className="pick-store">
+        <span className="pick-store-icon" aria-hidden><Icon name="store" size={22} /></span>
+        <div className="pick-store-text">
+          <strong>{pharmacy.name}</strong>
+          <span>{pharmacy.address}</span>
+          {pharmacy.sample ? <span><MockBadge /></span> : null}
         </div>
-        <strong>{pharmacy.name}</strong>
-        <span className="muted small">{pharmacy.address}</span>
-        {pharmacy.sample ? <div><MockBadge /></div> : null}
+        <a href="#/">เปลี่ยนร้าน</a>
       </div>
 
-      <div className="choice-grid">
-        <button type="button" className="choice choice-drug" onClick={() => choose('drug')}>
-          <span className="tile-icon"><Icon name="pill" size={32} /></span>
-          <span className="choice-title">สั่งสินค้าประเภทยา</span>
-          <span className="muted">ตอบคำถามอาการสั้น ๆ แล้วระบบจะแนะนำทางที่เหมาะสม ยาบางชนิดเภสัชกรของร้านต้องตรวจก่อน</span>
-        </button>
-        <button type="button" className="choice choice-goods" onClick={() => choose('goods')}>
-          <span className="tile-icon"><Icon name="store" size={32} /></span>
-          <span className="choice-title">ของทั่วไปในร้านยา</span>
-          <span className="muted">แชมพู วิตามิน อาหารเสริม และของใช้เพื่อสุขภาพ เลือกใส่ตะกร้าได้เลย</span>
-        </button>
-      </div>
+      <ul className="pick-list">
+        <li>
+          <button type="button" className="pick-row" onClick={() => choose('drug')}>
+            <span className="pick-row-icon" aria-hidden><Icon name="pill" size={26} /></span>
+            <span className="pick-row-body">
+              <span className="pick-row-title">ซื้อยา</span>
+              <span className="pick-row-desc">ตอบคำถามอาการสั้น ๆ ก่อน ยาบางชนิดต้องให้เภสัชกรตรวจ</span>
+            </span>
+            <span className="pick-row-go" aria-hidden><Icon name="chevron" size={20} /></span>
+          </button>
+        </li>
+        <li>
+          <button type="button" className="pick-row" onClick={() => choose('goods')}>
+            <span className="pick-row-icon" aria-hidden><Icon name="bag" size={26} /></span>
+            <span className="pick-row-body">
+              <span className="pick-row-title">ซื้อของใช้ทั่วไป</span>
+              <span className="pick-row-desc">แชมพู วิตามิน อาหารเสริม ใส่ตะกร้าได้เลย</span>
+            </span>
+            <span className="pick-row-go" aria-hidden><Icon name="chevron" size={20} /></span>
+          </button>
+        </li>
+      </ul>
+
+      <p className="pick-note">ไม่แน่ใจว่าควรใช้ยาอะไร เลือก "ซื้อยา" แล้วคุยกับผู้ช่วยได้ หากมีอาการฉุกเฉินโทร <a href="tel:1669">1669</a></p>
     </FlowPage>
   );
 }
