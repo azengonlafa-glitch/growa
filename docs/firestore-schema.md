@@ -48,6 +48,7 @@
 | emergencyContact | {name, phone, relation}? | กรอกหรือไม่ก็ได้ |
 | notificationPrefs | {doseReminders, refillAlerts, orderUpdates, quietHours} | |
 | selfPatientId | string | id ของโปรไฟล์ผู้ป่วยของตัวเอง |
+| onboardedAt | timestamp? | ตั้งค่าเมื่อกรอกข้อมูลครั้งแรกเสร็จหรือกดข้าม ถ้ายังไม่มีค่า แอปจะเปิดหน้ากรอกข้อมูลครั้งแรกก่อนเข้าใช้งาน |
 | createdAt | timestamp | |
 
 สิทธิ์: อ่านและเขียนได้เฉพาะเจ้าของ ลบบัญชีผ่าน function `deleteAccount` (ลบข้อมูลที่เกี่ยวข้องแบบ cascade)
@@ -85,6 +86,8 @@
 | allergies | array<{substance, reaction, severity}> |
 | conditions | array<string> |
 | notes | string |
+| about | map (≤20 คีย์): birthDate (`YYYY-MM-DD`, ค.ศ.), sex, occupation, heightCm, weightKg, bloodType, pregnancy, smoking, alcohol, exercise |
+| history | map (≤20 คีย์): otherAllergies[], noAllergies, noConditions, currentMeds[] (ข้อความ), supplements, surgeries, familyHistory[] |
 | consent | {healthDataAt: timestamp, shareWithPharmacist: bool} |
 | updatedAt, updatedBy | timestamp, string |
 

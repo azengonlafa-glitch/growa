@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#d6f1ff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f3040" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply the saved day/night mode and text size before the first paint so the page does not flash.
+      try {
+        var p = JSON.parse(localStorage.getItem('growaPrefs') || '{}'), r = document.documentElement, t = p.theme;
+        if (t === 'schedule') { var h = new Date(Date.now() + 252e5).getUTCHours(); t = h < 6 || h >= 18 ? 'dark' : 'light'; }
+        if (t === 'light' || t === 'dark') r.dataset.theme = t;
+        if (p.textSize === 'large') r.style.fontSize = '112.5%';
+        if (p.textSize === 'xlarge') r.style.fontSize = '125%';
+        if (p.motion === 'reduce') r.dataset.motion = 'reduce';
+      } catch (e) {}
+    </script>
     <title>growa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

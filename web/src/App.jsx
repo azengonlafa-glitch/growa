@@ -20,6 +20,9 @@ import Family from './pages/Family.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Health from './pages/Health.jsx';
+import Profile from './pages/Profile.jsx';
+import Settings from './pages/Settings.jsx';
+import Onboarding from './profile/Onboarding.jsx';
 
 // How long the green launch screen stays up once the app is ready, before the circle opens.
 const LAUNCH_HOLD_MS = 4000;
@@ -40,7 +43,7 @@ const FLOW = {
 
 // Existing pages that are not part of the flow yet; they open from the care hub.
 const CARE_TITLES = {
-  orders: 'คำสั่งซื้อ', meds: 'ยาของฉัน', family: 'ครอบครัว', health: 'โปรไฟล์สุขภาพ',
+  profile: 'โปรไฟล์ของฉัน', settings: 'ตั้งค่า', orders: 'คำสั่งซื้อ', meds: 'ยาของฉัน', family: 'ครอบครัว', health: 'โปรไฟล์สุขภาพ',
   notifications: 'แจ้งเตือน', pharmacist: 'ร้านของฉัน',
 };
 
@@ -51,6 +54,8 @@ function CarePage({ route }) {
     case 'meds': return <Meds />;
     case 'family': return <Family />;
     case 'health': return <Health />;
+    case 'profile': return <Profile />;
+    case 'settings': return <Settings />;
     case 'notifications': return <Notifications />;
     case 'pharmacist': return <Pharmacist />;
     default: return null;
@@ -97,6 +102,8 @@ export default function App() {
   const route = useHashRoute();
   const session = useSessionData(user);
   const ready = Boolean(user) && !session.loading;
+  // First sign-in: collect the profile before showing the app (skippable; the user doc gets onboardedAt either way).
+  const needsSetup = ready && Boolean(session.profile) && !session.profile.onboardedAt && session.patients.some((p) => p.isSelf && p.isOwner);
   // loading → (app ready, brand shown long enough) reveal → done; signing out starts it over.
   const [phase, setPhase] = useState('loading');
 
@@ -116,9 +123,11 @@ export default function App() {
     <>
       {ready ? (
         <SessionContext.Provider value={session}>
-          <FlowProvider>
-            <Shell route={route} />
-          </FlowProvider>
+          {needsSetup ? <Onboarding /> : (
+            <FlowProvider>
+              <Shell route={route} />
+            </FlowProvider>
+          )}
         </SessionContext.Provider>
       ) : null}
       {phase !== 'done' ? <Launch phase={ready ? phase : 'loading'} /> : null}

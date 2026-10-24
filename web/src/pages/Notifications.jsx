@@ -5,6 +5,10 @@ import { useSession } from '../lib/session.js';
 import { timeAgo } from '../lib/format.js';
 import { Badge, Button, Card, ConfirmButton, Empty, Icon, PageHeader } from '../components/ui.jsx';
 
+// Which notification setting controls each type (all on unless the user turned it off in Settings).
+const PREF_OF = (type = '') => (type.startsWith('dose') ? 'doseReminders' : type === 'refill_due' ? 'refillAlerts'
+  : type === 'order_status' || type === 'review_pending' ? 'orderUpdates' : type === 'caregiver_change' ? 'familyUpdates' : null);
+
 const TYPE = {
   dose_unlogged: ['ยังไม่ได้บันทึก', 'warn'],
   dose_missed: ['พลาดมื้อยา', 'bad'],
@@ -15,10 +19,13 @@ const TYPE = {
 };
 
 export default function Notifications() {
-  const { user } = useSession();
-  const [rows] = useQueryData(
+  const { user, profile } = useSession();
+  const prefs = profile?.notificationPrefs ?? {};
+  const [all] = useQueryData(
     query(collection(db, 'users', user.uid, 'notifications'), orderBy('createdAt', 'desc'), limit(50)), [user.uid],
   );
+  const rows = all.filter((n) => prefs[PREF_OF(n.type)] !== false);
+  const hidden = all.length - rows.length;
   const markRead = (n) => !n.readAt && updateDoc(n.ref, { readAt: serverTimestamp() });
   const unread = rows.filter((n) => !n.readAt);
 
@@ -56,6 +63,7 @@ export default function Notifications() {
           </div>
         </Card>
       ) : <Empty icon="bell" title="ยังไม่มีการแจ้งเตือน" />}
+      {hidden ? <p className="muted small">ซ่อนแจ้งเตือน {hidden} รายการตามที่ตั้งไว้ · <a href="#/settings">เปลี่ยนในตั้งค่า</a></p> : null}
     </div>
   );
 }

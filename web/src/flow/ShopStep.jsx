@@ -6,6 +6,7 @@ import { db } from '../firebase.js';
 import { go, useQueryData } from '../lib/hooks.js';
 import { baht } from '../lib/format.js';
 import { Badge, Button, Empty, Icon, Loading, MockBadge } from '../components/ui.jsx';
+import ProductArt from '../components/ProductArt.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { StockLine, toLine } from './ResultStep.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
@@ -22,32 +23,35 @@ const category = (id) => CATEGORIES.find(([c]) => c === id) ?? CATEGORIES[0];
 
 const SORTS = [['recommended', 'แนะนำ'], ['low', 'ราคาต่ำ → สูง'], ['high', 'ราคาสูง → ต่ำ']];
 
-// No product photos in the sample data, so each card gets a tinted tile with its category icon.
+// No product photos in the sample data, so each product gets a drawn, unbranded pack picture.
 function Thumb({ product }) {
-  const [, , icon, tone] = category(product.category);
-  return <div className={`thumb tile-${tone}`} aria-hidden><Icon name={icon} size={40} stroke={1.8} /></div>;
+  const [, , , tone] = category(product.category);
+  return <div className={`thumb tile-${tone}`} aria-hidden><ProductArt catalogId={product.catalogId} label="" /></div>;
 }
 
+// Shopping-app card: picture on top with a round add button on its corner (it turns into − n + once in the
+// cart), then the name and a big price.
 function ProductCard({ product, qty, onQty }) {
   const out = product.stockStatus === 'out_of_stock' || product.deliverable === false;
   return (
-    <article className="product">
-      <Thumb product={product} />
+    <article className={`product${out ? ' product-out' : ''}`}>
+      <div className="product-pic">
+        <Thumb product={product} />
+        {out ? <Badge tone="bad">สินค้าหมด</Badge> : qty ? (
+          <div className="qty-pill" role="group" aria-label={`จำนวน ${product.name}`}>
+            <button type="button" onClick={() => onQty(qty - 1)} aria-label={`ลด ${product.name}`}><Icon name="minus" size={20} stroke={2.8} /></button>
+            <span className="num" aria-live="polite">{qty}</span>
+            <button type="button" onClick={() => onQty(qty + 1)} aria-label={`เพิ่ม ${product.name}`}><Icon name="plus" size={20} stroke={2.8} /></button>
+          </div>
+        ) : (
+          <button type="button" className="add-fab" onClick={() => onQty(1)} aria-label={`ใส่ ${product.name} ลงตะกร้า`}>
+            <Icon name="plus" size={26} stroke={2.6} />
+          </button>
+        )}
+      </div>
       <h3 className="product-name">{product.name}</h3>
-      <span className="muted small">{product.packSize}</span>
-      <div className="product-price num">{baht(product.price)}</div>
+      <div className="product-price"><strong className="num">{Number(product.price).toLocaleString('th-TH')}</strong> บาท</div>
       <StockLine product={product} compact />
-      {out ? <Badge tone="bad">สินค้าหมด</Badge> : qty ? (
-        <div className="qty" role="group" aria-label={`จำนวน ${product.name}`}>
-          <button type="button" onClick={() => onQty(qty - 1)} aria-label={`ลด ${product.name}`}>−</button>
-          <span aria-live="polite">{qty}</span>
-          <button type="button" onClick={() => onQty(qty + 1)} aria-label={`เพิ่ม ${product.name}`}>+</button>
-        </div>
-      ) : (
-        <Button size="sm" variant="secondary" onClick={() => onQty(1)} aria-label={`ใส่ ${product.name} ลงตะกร้า`}>
-          <Icon name="plus" size={18} stroke={2.6} />ใส่ตะกร้า
-        </Button>
-      )}
     </article>
   );
 }
@@ -100,7 +104,10 @@ export default function ShopStep() {
       ) : null}
     >
       <div className="between"><span className="muted small">{pharmacy.name}</span><MockBadge /></div>
-      <input type="search" name="shop-search" autoComplete="off" placeholder="ค้นหาสินค้า เช่น แชมพู วิตามิน…" aria-label="ค้นหาสินค้า" value={text} onChange={(e) => setText(e.target.value)} />
+      <label className="shop-search">
+        <Icon name="search" size={24} />
+        <input type="search" name="shop-search" autoComplete="off" placeholder="ค้นหาสินค้า เช่น แชมพู วิตามิน…" aria-label="ค้นหาสินค้า" value={text} onChange={(e) => setText(e.target.value)} />
+      </label>
       <div className="chips" role="group" aria-label="หมวดสินค้า">
         {CATEGORIES.map(([id, label, icon]) => (
           <button key={id} type="button" className={`chip${cat === id ? ' on' : ''}`} aria-pressed={cat === id} onClick={() => setCat(id)}>

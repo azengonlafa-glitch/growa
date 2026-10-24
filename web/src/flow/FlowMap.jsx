@@ -8,15 +8,27 @@ const GREEN = [124, 224, 168];
 const BLUE = [110, 190, 255];
 const mixColor = (t) => `rgb(${GREEN.map((g, i) => Math.round(g + (BLUE[i] - g) * t)).join(',')})`;
 
+const DRAW_MS = 800;
+const ANIM_MS = 1600; // longest entrance (route draw, then the time label pops)
+
 // Splits the route into short pieces, each with its own colour, because a Leaflet line can only have one.
-function drawRoute(group, coords) {
+// While the route is younger than ANIM_MS, the pieces fade in one after another so the line draws itself from
+// you to the store. `age` keeps that timing when the layers are redrawn halfway through.
+function drawRoute(group, coords, age) {
   const pieces = Math.min(60, Math.max(8, Math.floor(coords.length / 2)));
   const step = (coords.length - 1) / pieces;
-  L.polyline(coords, { color: '#ffffff', weight: 12, opacity: 0.95, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(group);
+  const anim = (line, delay) => {
+    const path = line.getElement();
+    if (age >= ANIM_MS || !path) return;
+    path.classList.add('route-in');
+    path.style.animationDelay = `${delay - age}ms`;
+  };
+  anim(L.polyline(coords, { color: '#ffffff', weight: 12, opacity: 0.95, lineCap: 'round', lineJoin: 'round', interactive: false }).addTo(group), 0);
   for (let i = 0; i < pieces; i++) {
     const a = Math.floor(i * step);
     const b = Math.min(coords.length - 1, Math.ceil((i + 1) * step));
-    L.polyline(coords.slice(a, b + 1), { color: mixColor(i / (pieces - 1)), weight: 7, opacity: 1, lineCap: i === 0 ? 'round' : 'butt', lineJoin: 'round', interactive: false }).addTo(group);
+    const line = L.polyline(coords.slice(a, b + 1), { color: mixColor(i / (pieces - 1)), weight: 7, opacity: 1, lineCap: i === 0 ? 'round' : 'butt', lineJoin: 'round', interactive: false }).addTo(group);
+    anim(line, (i / pieces) * DRAW_MS);
   }
 }
 
@@ -49,10 +61,19 @@ export default function FlowMap({ center, partners, others, routes = {}, selecte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Layers are rebuilt on every change, so entrance animations are timed from when the selection (or its route)
+  // first appeared and resumed with a negative delay instead of restarting on each rebuild.
+  const routeSeen = useRef({ id: null, at: 0 });
+  const pinSeen = useRef({ id: null, at: 0 });
   useEffect(() => {
     layer.current.clearLayers();
+    const now = performance.now();
     const route = routes[selectedId];
-    if (route) drawRoute(layer.current, route.coords);
+    if (route && routeSeen.current.id !== selectedId) routeSeen.current = { id: selectedId, at: now };
+    if (pinSeen.current.id !== selectedId) pinSeen.current = { id: selectedId, at: now };
+    const routeAge = route ? now - routeSeen.current.at : Infinity;
+    const pinAge = now - pinSeen.current.at;
+    if (route) drawRoute(layer.current, route.coords, routeAge);
 
     L.marker([center.lat, center.lng], {
       icon: L.divIcon({ className: 'pin-wrap', html: '<span class="you"><i></i></span>', iconSize: [44, 44], iconAnchor: [22, 22] }),
@@ -67,11 +88,13 @@ export default function FlowMap({ center, partners, others, routes = {}, selecte
       const active = s.id === selectedId;
       const minutes = routes[s.id]?.minutes;
       const marker = L.marker([s.geo.lat, s.geo.lng], {
-        icon: L.divIcon({ className: 'pin-wrap', html: `<span class="pin${active ? ' pin-on' : ''}"><i></i></span>`, iconSize: [36, 36], iconAnchor: [18, 18] }),
+        icon: L.divIcon({ className: 'pin-wrap', html: `<span class="pin${active ? ' pin-on' : ''}${active && pinAge < ANIM_MS ? ` pin-drop" style="animation-delay:${-pinAge}ms` : ''}"><i></i></span>`, iconSize: [36, 36], iconAnchor: [18, 18] }),
         keyboard: false, zIndexOffset: active ? 500 : 0,
       }).on('click', () => onSelect(s.id)).addTo(layer.current);
       if (active && minutes) {
-        marker.bindTooltip(`${minutes} นาที`, { permanent: true, direction: 'top', offset: [0, -14], className: 'eta-tip' });
+        marker.bindTooltip(`${minutes} นาที`, { permanent: true, direction: 'top', offset: [0, -14], className: `eta-tip${routeAge < ANIM_MS ? ' eta-pop' : ''}` });
+        const tip = marker.getTooltip()?.getElement();
+        if (tip && routeAge < ANIM_MS) tip.style.animationDelay = `${700 - routeAge}ms`;
       } else {
         marker.bindTooltip(minutes ? `${s.name} · ${minutes} นาที` : s.name, { direction: 'top', offset: [0, -12] });
       }

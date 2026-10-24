@@ -6,14 +6,17 @@ import { collection, query, where } from 'firebase/firestore';
 import { call, db } from '../firebase.js';
 import { go, useAction, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
+import { loadPrefs } from '../lib/prefs.js';
 import { fetchRoute } from '../lib/route.js';
 import { Button, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import FlowMap from './FlowMap.jsx';
+import StoreInfo from './StoreInfo.jsx';
 import { useFlow } from './state.jsx';
 
 const RADIUS_KM = 50;
 const VICTORY_MONUMENT = { lat: 13.765, lng: 100.5381 };
 const DESKTOP = '(min-width: 900px)';
+const NONE = []; // stable empty list so the map does not redraw on every render
 
 function km(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
@@ -50,6 +53,7 @@ export default function MapStep() {
   const [selectedId, setSelectedId] = useState(flow.pharmacy?.id ?? null);
   const [others, setOthers] = useState([]);
   const [showOthers, setShowOthers] = useState(false);
+  const [infoId, setInfoId] = useState(null);
   const { busy, error, run, setError } = useAction();
   const sheet = useRef(null);
   const inset = useInset(sheet);
@@ -95,6 +99,13 @@ export default function MapStep() {
       () => setError('ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง ใช้ที่อยู่ในโปรไฟล์แทน'),
     );
   };
+  const closeInfo = useCallback(() => setInfoId(null), []);
+  // Opt-in (Settings): start on the current position instead of the saved address.
+  useEffect(() => {
+    if (flow.center || !loadPrefs().autoLocate || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition((pos) => setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude }), () => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const onSelect = useCallback((id) => setSelectedId(id), []);
 
   const next = () => run(async () => {
@@ -109,7 +120,7 @@ export default function MapStep() {
 
   return (
     <div className="mapfull">
-      <FlowMap center={center} partners={partners} routes={routes} others={showOthers ? others : []} selectedId={selectedId} onSelect={onSelect} inset={inset} />
+      <FlowMap center={center} partners={partners} routes={routes} others={showOthers ? others : NONE} selectedId={selectedId} onSelect={onSelect} inset={inset} />
 
       <header className="map-top">
         <div className="map-title">
@@ -142,8 +153,8 @@ export default function MapStep() {
               {partners.map((p) => {
                 const route = routes[p.id];
                 return (
+                  <div key={p.id} className={`store-item${p.id === selectedId ? ' on' : ''}`}>
                   <button
-                    key={p.id}
                     type="button"
                     className={`store-row${p.id === selectedId ? ' on' : ''}`}
                     aria-pressed={p.id === selectedId}
@@ -163,6 +174,10 @@ export default function MapStep() {
                       <span className="num">{(route?.km ?? p.km).toFixed(1)} กม.</span>
                     </span>
                   </button>
+                  <button type="button" className="store-more" onClick={() => setInfoId(p.id)} aria-label={`ดูรีวิวและข้อมูลของ ${p.name}`}>
+                    <Icon name="info" size={16} stroke={2.2} />รีวิว · ข้อมูลร้าน
+                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -197,6 +212,16 @@ export default function MapStep() {
           </Button>
         </div>
       </section>
+
+      {infoId && partners.some((p) => p.id === infoId) ? (
+        <StoreInfo
+          pharmacy={partners.find((p) => p.id === infoId)}
+          route={routes[infoId]}
+          chosen={selectedId === infoId}
+          onClose={closeInfo}
+          onChoose={() => { setSelectedId(infoId); closeInfo(); }}
+        />
+      ) : null}
     </div>
   );
 }

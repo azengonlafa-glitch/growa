@@ -8,11 +8,13 @@ import FlowPage from './FlowPage.jsx';
 import { go } from '../lib/hooks.js';
 
 const ITEMS = [
+  ['profile', 'โปรไฟล์ของฉัน', 'user', 'peach'],
   ['orders', 'คำสั่งซื้อของฉัน', 'truck', 'sage'],
   ['meds', 'ยาของฉัน', 'pill', 'honey'],
   ['family', 'ครอบครัวและผู้ดูแล', 'people', 'peach'],
-  ['health', 'โปรไฟล์สุขภาพ', 'shield', 'rose'],
+  ['health', 'สุขภาพรายคน', 'shield', 'rose'],
   ['notifications', 'แจ้งเตือน', 'bell', 'honey'],
+  ['settings', 'ตั้งค่า', 'settings', 'sage'],
 ];
 
 export default function CareHub() {

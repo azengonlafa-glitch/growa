@@ -104,6 +104,56 @@ describe('users', () => {
   });
 });
 
+describe('profile setup', () => {
+  const about = { birthDate: '1990-05-17', sex: 'female', occupation: 'ครู / อาจารย์', heightCm: 160, weightKg: 54 };
+  const profile = (extra = {}) => ({
+    allergies: [], conditions: [], notes: '', consent: { shareWithPharmacist: true }, about, history: { currentMeds: ['Folic acid'] },
+    updatedAt: serverTimestamp(), updatedBy: 'mom', ...extra,
+  });
+
+  test('owner saves detailed health profile; others and bad shapes are refused', async () => {
+    await assertSucceeds(setDoc(doc(db('mom'), 'patients/mom/health/profile'), profile()));
+    await assertFails(setDoc(doc(db('son'), 'patients/mom/health/profile'), profile({ updatedBy: 'son' })));
+    await assertFails(setDoc(doc(db('mom'), 'patients/mom/health/profile'), profile({ about: 'female' })));
+    await assertFails(setDoc(doc(db('mom'), 'patients/mom/health/profile'), profile({ history: [] })));
+    await assertFails(setDoc(doc(db('mom'), 'patients/mom/health/profile'), profile({ occupation: 'x' }))); // unknown top-level field
+  });
+
+  test('details are as private as the rest of the health profile', async () => {
+    await seed((s) => setDoc(doc(s, 'patients/mom/health/profile'), { ...profile(), updatedAt: Timestamp.now() }));
+    await assertSucceeds(getDoc(doc(db('mom'), 'patients/mom/health/profile')));
+    await assertFails(getDoc(doc(db('son'), 'patients/mom/health/profile'))); // caregiver without viewHealth
+    await assertFails(getDoc(doc(db('stranger'), 'patients/mom/health/profile')));
+    await assertFails(getDoc(doc(db('admin', { admin: true }), 'patients/mom/health/profile')));
+  });
+
+  test('finishing setup marks the account; the marker must be a timestamp and only the owner sets it', async () => {
+    await seed((s) => setDoc(doc(s, 'users/mom'), { displayName: 'Mom', createdAt: Timestamp.now() }));
+    await assertFails(updateDoc(doc(db('mom'), 'users/mom'), { onboardedAt: 'yes' }));
+    await assertFails(updateDoc(doc(db('son'), 'users/mom'), { onboardedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(db('mom'), 'users/mom'), {
+      onboardedAt: serverTimestamp(), phone: '0812345678', emergencyContact: { name: 'ลูกสาว', phone: '0899999999', relation: 'ลูก' },
+    }));
+  });
+});
+
+describe('settings', () => {
+  test('owner changes notification choices; nobody else can', async () => {
+    await seed((s0) => setDoc(doc(s0, 'users/mom'), { displayName: 'Mom', createdAt: Timestamp.now() }));
+    const prefs = { doseReminders: true, refillAlerts: false, orderUpdates: true, familyUpdates: true };
+    await assertSucceeds(updateDoc(doc(db('mom'), 'users/mom'), { notificationPrefs: prefs }));
+    await assertFails(updateDoc(doc(db('son'), 'users/mom'), { notificationPrefs: prefs }));
+  });
+
+  test('owner turns pharmacist sharing off with a partial update, caregivers cannot', async () => {
+    const change = (uid) => updateDoc(doc(db(uid), 'patients/mom/health/profile'), {
+      consent: { shareWithPharmacist: false, updatedAt: serverTimestamp() }, updatedAt: serverTimestamp(), updatedBy: uid,
+    });
+    await assertFails(change('son'));
+    await assertSucceeds(change('mom'));
+  });
+});
+
 describe('patients and caregivers', () => {
   test('stranger and platform admin cannot read health data', async () => {
     await assertFails(getDoc(doc(db('stranger'), 'patients/mom/medications/amlo')));

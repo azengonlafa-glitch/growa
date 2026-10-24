@@ -57,6 +57,8 @@ export const CATALOG = {
   diazepam5: { genericName: 'Diazepam', form: 'tablet', strength: '5 mg', drugClass: 'controlled', requiresPharmacistReview: true, deliverable: false },
 };
 
+const week = (open, close, days) => Object.fromEntries(days.map((d) => [d, [{ open, close }]]));
+
 // Fictional partner stores near Victory Monument, Bangkok.
 export const PHARMACIES = {
   demoRx1: {
@@ -67,7 +69,7 @@ export const PHARMACIES = {
     geo: { lat: 13.7650, lng: 100.5381 },
     googlePlaceId: null,
     deliveryZones: [{ radiusKm: 3, fee: 30 }, { radiusKm: 8, fee: 60 }],
-    openingHours: { mon: [{ open: '08:00', close: '21:00' }], tue: [{ open: '08:00', close: '21:00' }] },
+    openingHours: { ...week('08:00', '21:00', ['mon', 'tue', 'wed', 'thu', 'fri']), sat: [{ open: '09:00', close: '18:00' }] },
     services: ['delivery', 'telepharmacy', 'refill'],
   },
   demoRx2: {
@@ -78,7 +80,7 @@ export const PHARMACIES = {
     geo: { lat: 13.7796, lng: 100.5446 },
     googlePlaceId: null,
     deliveryZones: [{ radiusKm: 5, fee: 40 }],
-    openingHours: { mon: [{ open: '09:00', close: '20:00' }] },
+    openingHours: { ...week('09:00', '20:00', ['mon', 'tue', 'wed', 'thu', 'fri', 'sat']), sun: [{ open: '10:00', close: '16:00' }] },
     services: ['delivery', 'telepharmacy'],
   },
 };

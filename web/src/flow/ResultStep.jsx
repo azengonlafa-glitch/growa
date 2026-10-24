@@ -3,6 +3,7 @@ import { collection, query, where } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { go, useQueryData } from '../lib/hooks.js';
 import { baht, DRUG_CLASS, timeAgo } from '../lib/format.js';
+import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
@@ -56,6 +57,7 @@ function SuggestedDrugs({ result, pharmacyId, onOrder }) {
           <div className="list">
             {items.map((p) => (
               <div key={p.id} className="list-item">
+                <span className="mini-art"><ProductArt catalogId={p.catalogId} label="" /></span>
                 <div className="list-item-main stack" style={{ gap: 2 }}>
                   <strong>{p.name}</strong>
                   <span className="muted small">{p.packSize} · {baht(p.price)}</span>

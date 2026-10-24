@@ -552,6 +552,7 @@ describe('guided symptom checker', () => {
     const health = (shareWithPharmacist) => ({
       allergies: [{ substance: 'sulfa', reaction: 'ผื่น', severity: 'moderate' }], conditions: ['หอบหืด'],
       notes: '', consent: { shareWithPharmacist }, updatedAt: serverTimestamp(),
+      about: { sex: 'female', weightKg: 54, pregnancy: 'pregnant', occupation: 'ครู / อาจารย์' }, history: { currentMeds: ['Folic acid'] },
     });
 
     const open = await buyer('healthOpen');
@@ -559,6 +560,10 @@ describe('guided symptom checker', () => {
     const shown = await share(open);
     assert.deepEqual(shown.conditions, ['หอบหืด']);
     assert.match(shown.allergies[0], /sulfa/);
+    assert.equal(shown.sex, 'female');
+    assert.equal(shown.weightKg, 54);
+    assert.equal(shown.pregnancy, 'pregnant');
+    assert.equal(JSON.stringify(shown).includes('ครู'), false); // occupation stays private
 
     const closed = await buyer('healthClosed');
     await setDoc(doc(closed.db, `patients/${closed.patientId}/health/profile`), { ...health(false), updatedBy: closed.uid });
@@ -566,6 +571,9 @@ describe('guided symptom checker', () => {
     assert.equal(hidden.healthShared, false);
     assert.deepEqual(hidden.allergies, []);
     assert.deepEqual(hidden.conditions, []);
+    assert.equal(hidden.sex, null);
+    assert.equal(hidden.weightKg, null);
+    assert.equal(hidden.pregnancy, null);
   });
 
   test('a red flag in the guided checker blocks sharing for purchase', async () => {

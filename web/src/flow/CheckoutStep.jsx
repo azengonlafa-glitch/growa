@@ -3,6 +3,7 @@ import { call, db } from '../firebase.js';
 import { go, useAction, useDocData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { baht, DRUG_CLASS } from '../lib/format.js';
+import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, ErrorText, MockBadge, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
@@ -76,6 +77,7 @@ export default function CheckoutStep() {
           <div className="list">
             {cart.map((l) => (
               <div key={l.productId} className="list-item">
+                <span className="mini-art"><ProductArt catalogId={l.catalogId} label="" /></span>
                 <div className="list-item-main stack" style={{ gap: 2 }}>
                   <strong>{l.name}</strong>
                   <span className="muted small">{l.packSize} · <span className="num">{baht(l.price * l.qty)}</span></span>

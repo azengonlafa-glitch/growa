@@ -65,6 +65,8 @@ function ReviewCard({ review }) {
             <Badge tone="warn">ผู้ป่วยไม่อนุญาตให้แสดงข้อมูลสุขภาพ · ควรถามก่อนจ่ายยา</Badge>
           ) : (
             <>
+              {p.sex || p.weightKg ? <span className="small"><strong>เพศ/น้ำหนัก:</strong> {[{ female: 'หญิง', male: 'ชาย', other: 'อื่น ๆ' }[p.sex], p.weightKg ? `${p.weightKg} กก.` : null].filter(Boolean).join(' · ') || 'ไม่ได้บันทึก'}</span> : null}
+              {p.pregnancy === 'pregnant' || p.pregnancy === 'breastfeeding' || p.pregnancy === 'planning' ? <Badge tone="warn">{{ pregnant: 'ตั้งครรภ์', breastfeeding: 'ให้นมบุตร', planning: 'วางแผนตั้งครรภ์' }[p.pregnancy]} · ตรวจยาที่ไม่เหมาะ</Badge> : null}
               <span className="small"><strong>แพ้ยา:</strong> {p.allergies?.join(', ') || 'ไม่ได้บันทึก'}</span>
               <span className="small"><strong>โรคประจำตัว:</strong> {p.conditions?.join(', ') || 'ไม่ได้บันทึก'}</span>
               <span className="small"><strong>ยาที่ใช้อยู่:</strong> {p.currentMeds?.join(', ') || 'ไม่ได้บันทึก'}</span>

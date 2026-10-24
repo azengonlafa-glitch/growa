@@ -24,7 +24,7 @@ function fromDoc(d) {
   };
 }
 
-function AllergyEditor({ value, onChange }) {
+export function AllergyEditor({ value, onChange }) {
   const [substance, setSubstance] = useState('');
   const [reaction, setReaction] = useState('');
   const [severity, setSeverity] = useState('moderate');

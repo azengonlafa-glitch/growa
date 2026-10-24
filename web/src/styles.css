@@ -42,8 +42,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0c1f1c;
+:root:not([data-theme='light']) {
+  --bg: #0c1f1c;
     --bg-2: #0a1a2b;
     --surface: #132a27;
     --surface-2: #1b3732;
@@ -77,7 +77,43 @@
     --hero-deco: #14485a;
     --shadow: 0 8px 0 -2px #07130f, 0 12px 26px rgb(0 0 0 / 30%);
     color-scheme: dark;
-  }
+}
+}
+:root[data-theme='dark'] {
+  --bg: #0c1f1c;
+    --bg-2: #0a1a2b;
+    --surface: #132a27;
+    --surface-2: #1b3732;
+    --text: #e3f6ee;
+    --muted: #a3c4b9;
+    --border: #28483f;
+    --border-strong: #6fa391;
+    --primary: #3ddc84;
+    --primary-dark: #1c9a55;
+    --primary-ink: #04210f;
+    --primary-soft: #14392b;
+    --primary-text: #7cf0b0;
+    --accent: #5ab4ff;
+    --accent-soft: #112f4a;
+    --accent-text: #9bd2ff;
+    --mascot: #3ddc84;
+    --info: #9bd2ff;
+    --info-soft: #112f4a;
+    --warn: #f2c875;
+    --warn-soft: #3d2d10;
+    --good: #7cf0b0;
+    --good-soft: #14392b;
+    --good-solid: #3aa971;
+    --bad: #ff9d94;
+    --bad-soft: #451a17;
+    --bad-solid: #e0675f;
+    --badge-bg: #b8332d;
+    --mock: #a3c4b9;
+    --mock-soft: #1b3732;
+    --hero: #0f3040;
+    --hero-deco: #14485a;
+    --shadow: 0 8px 0 -2px #07130f, 0 12px 26px rgb(0 0 0 / 30%);
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -87,7 +123,7 @@ body {
   background: var(--bg) linear-gradient(160deg, var(--bg) 40%, var(--bg-2)) fixed;
   color: var(--text);
   font-family: var(--font);
-  font-size: 18px;
+  font-size: 1.125rem; /* 18px; follows the text-size setting on <html> */
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -512,7 +548,12 @@ hr.sep { border: 0; border-top: 1.5px solid var(--border); margin: 4px 0; }
 .steps-label { font-weight: 700; }
 
 @media (prefers-color-scheme: dark) {
-  .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9); }
+:root:not([data-theme='light']) .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+}
+:root[data-theme='dark'] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 }
 
 @media (prefers-reduced-motion: reduce) {

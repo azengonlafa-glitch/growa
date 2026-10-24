@@ -94,12 +94,13 @@ service cloud.firestore {
 
     function userKeys() {
       return ['displayName', 'email', 'phone', 'addresses', 'emergencyContact',
-              'notificationPrefs', 'selfPatientId', 'createdAt'];
+              'notificationPrefs', 'selfPatientId', 'onboardedAt', 'createdAt'];
     }
 
     function validUser(d) {
       return isNonEmptyString(d.displayName, 100)
-        && (!('addresses' in d) || (d.addresses is list && d.addresses.size() <= 10));
+        && (!('addresses' in d) || (d.addresses is list && d.addresses.size() <= 10))
+        && (!('onboardedAt' in d) || d.onboardedAt is timestamp);
     }
 
     match /users/{userId} {
@@ -157,9 +158,11 @@ service cloud.firestore {
         allow create, update: if isPatientOwner(pid)
           && docId == 'profile'
           && request.resource.data.keys().hasOnly(
-               ['allergies', 'conditions', 'notes', 'consent', 'updatedAt', 'updatedBy'])
+               ['allergies', 'conditions', 'notes', 'consent', 'about', 'history', 'updatedAt', 'updatedBy'])
           && request.resource.data.allergies is list
           && request.resource.data.conditions is list
+          && (!('about' in request.resource.data) || (request.resource.data.about is map && request.resource.data.about.size() <= 20))
+          && (!('history' in request.resource.data) || (request.resource.data.history is map && request.resource.data.history.size() <= 20))
           && request.resource.data.updatedAt == request.time
           && request.resource.data.updatedBy == uid();
         allow delete: if isPatientOwner(pid);
