@@ -480,3 +480,4 @@ html:has(.launch) { overflow: hidden; }
 .info-scroll > * { flex-shrink: 0; }
 .stars svg { fill: #d3dadd; }
 .map-actions { display: flex; gap: 10px; }
+.product .thumb { padding: 12px 16px 26px; } .product .thumb .product-photo { max-height: 100%; }
