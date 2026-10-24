@@ -11,7 +11,8 @@
 //   single: { text, help?, options: [{ label, to, set? }] }
 //   multi:  { text, help?, to, options: [{ label, to?, exclusive? }] }
 //           chosen options with `to` win (most severe first), else node.to
-//   route:  { rules: [{ when: { fact: [values] }, to }], to }   (auto, no question)
+//   route:  { rules: [{ when: { fact: [values] }, to }], via?, to }   (auto, no question; `via: fact` jumps to the node id stored in that fact)
+//   options may carry `group` (heading in the list) and, on multi nodes, `set` (facts kept when it is the only unflagged pick)
 // `to` is a node id or "outcome:<id>".
 //
 // Outcomes may carry `suggest: [catalogId]` (self_care only): household
@@ -494,39 +495,64 @@ const DURATION_DAYS = (prefix, longOutcome = 'outcome:long_duration_doctor') => 
 export const START = 'red_flags';
 
 export const NODES = {
-  // Step 1: universal red flags before anything else. One symptom per option. Symptoms that need a closer
+  // Step 1: what is wrong now, from ordinary symptoms to severe ones, with the red flags checked first. One symptom per option. Symptoms that need a closer
   // look open a short follow-up page (rf_*); the follow-ups only ever go to emergency or "see a doctor today",
   // never to self-care, and "not sure" always means emergency. Several follow-up symptoms together are
   // treated as an emergency (see answer() in symptom-engine.js).
   red_flags: {
     type: 'multi',
-    text: 'ตอนนี้ผู้ป่วยมีอาการต่อไปนี้ข้อใดบ้าง',
-    help: 'เลือกได้หลายข้อ ถ้าไม่มีให้เลือก "ไม่มีอาการเหล่านี้"',
+    text: 'ตอนนี้ผู้ป่วยมีอาการอะไรบ้าง',
+    help: 'เลือกได้หลายข้อ มีทั้งอาการทั่วไปและอาการรุนแรง ถ้าไม่มีข้อไหนตรงให้เลือก "ไม่มีอาการเหล่านี้"',
     to: 'age',
     options: [
-      { label: 'หายใจลำบาก หรือหอบเหนื่อย', to: 'rf_breath' },
-      { label: 'ริมฝีปากหรือปลายนิ้วเขียวคล้ำ', to: 'outcome:emergency' },
-      { label: 'เจ็บแน่นหน้าอก', to: 'rf_chest' },
-      { label: 'หมดสติ ไม่รู้สึกตัว', to: 'outcome:emergency' },
-      { label: 'ชัก', to: 'outcome:emergency' },
-      { label: 'สับสน พูดจาไม่รู้เรื่อง', to: 'outcome:emergency' },
-      { label: 'ซึมมาก ปลุกไม่ค่อยตื่น', to: 'outcome:emergency' },
-      { label: 'แขนหรือขาอ่อนแรงครึ่งซีก', to: 'outcome:emergency' },
-      { label: 'ปากเบี้ยวขึ้นมาทันที', to: 'outcome:emergency' },
-      { label: 'พูดไม่ชัดขึ้นมาทันที', to: 'outcome:emergency' },
-      { label: 'อาเจียนเป็นเลือด', to: 'outcome:emergency' },
-      { label: 'ไอเป็นเลือด', to: 'rf_cough_blood' },
-      { label: 'ถ่ายเป็นเลือด หรืออุจจาระสีดำ', to: 'rf_stool_blood' },
-      { label: 'เลือดออกไม่หยุด', to: 'outcome:emergency' },
-      { label: 'ลิ้นหรือคอบวม', to: 'outcome:emergency' },
-      { label: 'หน้าหรือปากบวม', to: 'outcome:emergency' },
-      { label: 'ผื่นขึ้นทั้งตัวร่วมกับหน้ามืด', to: 'outcome:emergency' },
-      { label: 'ศีรษะถูกกระแทกแรง', to: 'rf_head_injury' },
-      { label: 'ได้รับอุบัติเหตุรุนแรง', to: 'outcome:emergency' },
-      { label: 'กินยาเกินขนาด', to: 'outcome:emergency' },
-      { label: 'ได้รับสารพิษ', to: 'outcome:emergency' },
-      { label: 'คิดอยากทำร้ายตัวเองหรืออยากตาย', to: 'outcome:mental_health' },
-      { label: 'ไม่มีอาการเหล่านี้', exclusive: true },
+      { label: 'มีไข้', set: { complaint: 'fever_infant_route' }, group: 'อาการทั่วไป' },
+      { label: 'น้ำมูก คัดจมูก จาม', set: { complaint: 'cold_duration' }, group: 'อาการทั่วไป' },
+      { label: 'เจ็บคอ', set: { complaint: 'throat_severity' }, group: 'อาการทั่วไป' },
+      { label: 'ไอ', set: { complaint: 'cough_duration' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดศีรษะ', set: { complaint: 'headache_danger' }, group: 'อาการทั่วไป' },
+      { label: 'เวียนศีรษะ บ้านหมุน หรือหน้ามืด', set: { complaint: 'dizzy_type' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดท้อง แสบท้อง จุกเสียด', set: { complaint: 'abd_location' }, group: 'อาการทั่วไป' },
+      { label: 'ท้องเสีย', set: { complaint: 'diarrhea_blood' }, group: 'อาการทั่วไป' },
+      { label: 'ท้องผูก', set: { complaint: 'constipation_flags' }, group: 'อาการทั่วไป' },
+      { label: 'คลื่นไส้ อาเจียน', set: { complaint: 'vomit_severity' }, group: 'อาการทั่วไป' },
+      { label: 'ผื่นหรือตุ่มคัน', set: { complaint: 'rash_drug' }, group: 'อาการทั่วไป' },
+      { label: 'แผล รอยถลอก หรือถูกสัตว์กัด', set: { complaint: 'wound_type' }, group: 'อาการทั่วไป' },
+      { label: 'แผลไฟไหม้ น้ำร้อนลวก', set: { complaint: 'burn_size' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดหลัง หรือเอว', set: { complaint: 'back_flags' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดข้อ (เข่า ข้อเท้า นิ้ว ฯลฯ)', set: { complaint: 'joint_type' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดกล้ามเนื้อ', set: { complaint: 'injury_severity' }, group: 'อาการทั่วไป' },
+      { label: 'ตาแดง ปวดตา หรือระคายตา', set: { complaint: 'eye_flags' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดหรือคันหู', set: { complaint: 'ear_type' }, group: 'อาการทั่วไป' },
+      { label: 'แผลในปาก', set: { complaint: 'outcome:mouth_ulcer' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดฟัน', set: { complaint: 'outcome:toothache' }, group: 'อาการทั่วไป' },
+      { label: 'ปัสสาวะแสบขัด ปัสสาวะบ่อย', set: { complaint: 'uti_flags' }, group: 'อาการทั่วไป' },
+      { label: 'ปวดประจำเดือน', set: { complaint: 'lower_abd_female' }, group: 'อาการทั่วไป' },
+      { label: 'ตกขาวผิดปกติ หรือคันช่องคลอด', set: { complaint: 'vaginal_type' }, group: 'อาการทั่วไป' },
+      { label: 'สิว', set: { complaint: 'outcome:acne' }, group: 'อาการทั่วไป' },
+      { label: 'นอนไม่หลับ', set: { complaint: 'outcome:insomnia' }, group: 'อาการทั่วไป' },
+      { label: 'หายใจลำบาก หรือหอบเหนื่อย', to: 'rf_breath', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ริมฝีปากหรือปลายนิ้วเขียวคล้ำ', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'เจ็บแน่นหน้าอก', to: 'rf_chest', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'หมดสติ ไม่รู้สึกตัว', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ชัก', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'สับสน พูดจาไม่รู้เรื่อง', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ซึมมาก ปลุกไม่ค่อยตื่น', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'แขนหรือขาอ่อนแรงครึ่งซีก', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ปากเบี้ยวขึ้นมาทันที', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'พูดไม่ชัดขึ้นมาทันที', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'อาเจียนเป็นเลือด', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ไอเป็นเลือด', to: 'rf_cough_blood', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ถ่ายเป็นเลือด หรืออุจจาระสีดำ', to: 'rf_stool_blood', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'เลือดออกไม่หยุด', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ลิ้นหรือคอบวม', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'หน้าหรือปากบวม', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ผื่นขึ้นทั้งตัวร่วมกับหน้ามืด', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ศีรษะถูกกระแทกแรง', to: 'rf_head_injury', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ได้รับอุบัติเหตุรุนแรง', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'กินยาเกินขนาด', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ได้รับสารพิษ', to: 'outcome:emergency', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'คิดอยากทำร้ายตัวเองหรืออยากตาย', to: 'outcome:mental_health', group: 'อาการรุนแรง หรือต้องรีบดูแล' },
+      { label: 'ไม่มีอาการเหล่านี้ หรือไม่อยู่ในรายการ', exclusive: true },
     ],
   },
 
@@ -631,7 +657,13 @@ export const NODES = {
   },
 
   // Step 3: narrow to the main complaint.
+  // If exactly one ordinary symptom was ticked on the first page, go straight to its questions.
   body_area: {
+    type: 'route',
+    via: 'complaint',
+    to: 'body_area_q',
+  },
+  body_area_q: {
     type: 'single',
     text: 'อาการหลักที่ไม่สบายอยู่ที่ส่วนไหน',
     options: [

@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { call } from '../firebase.js';
 import { go, useAction } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
+import './choose.css';
 import ChatTriage from './ChatTriage.jsx';
 
 function Question({ q, busy, onAnswer, picked, setPicked }) {
@@ -24,9 +25,10 @@ function Question({ q, busy, onAnswer, picked, setPicked }) {
         {q.help ? <p className="muted">{q.help}</p> : null}
       </div>
       <div className="option-list" role="group" aria-label={q.type === 'multi' ? 'เลือกได้หลายข้อ' : 'เลือก 1 ข้อ'}>
-        {q.options.map((o) => (
+        {q.options.map((o, i) => (
+          <Fragment key={o.index}>
+          {o.group && o.group !== q.options[i - 1]?.group ? <h3 className="option-group">{o.group}</h3> : null}
           <button
-            key={o.index}
             type="button"
             className={`option${picked.includes(o.index) ? ' selected' : ''}`}
             disabled={busy}
@@ -36,6 +38,7 @@ function Question({ q, busy, onAnswer, picked, setPicked }) {
             {q.type === 'multi' ? <span className="option-box" aria-hidden>{picked.includes(o.index) ? '✓' : ''}</span> : null}
             {o.label}
           </button>
+          </Fragment>
         ))}
       </div>
     </>

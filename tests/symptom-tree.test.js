@@ -100,6 +100,27 @@ describe('scenarios', () => {
     }
   });
 
+  test('the first page lists ordinary symptoms and severe ones, grouped', () => {
+    const q = question(newState());
+    const groups = new Set(q.options.map((o) => o.group).filter(Boolean));
+    assert.deepEqual([...groups], ['อาการทั่วไป', 'อาการรุนแรง หรือต้องรีบดูแล']);
+    assert.ok(q.options.length >= 40, 'many choices');
+  });
+
+  test('one ordinary symptom skips the "which part" question; several ask it', () => {
+    let s = walk([['เจ็บคอ'], '18 – 64', 'ชาย', 'ไม่มี']);
+    assert.equal(s.current, 'throat_severity');
+    s = walk([['เจ็บคอ', 'ไอ'], '18 – 64', 'ชาย', 'ไม่มี']);
+    assert.equal(s.current, 'body_area_q');
+    s = walk([[NONE], '18 – 64', 'ชาย', 'ไม่มี']);
+    assert.equal(s.current, 'body_area_q');
+  });
+
+  test('a severe symptom beats ordinary ones on the same page', () => {
+    assert.equal(result(walk([['เจ็บคอ', 'หมดสติ']])).route, 'emergency');
+    assert.equal(walk([['เจ็บคอ', 'เจ็บแน่นหน้าอก']]).current, 'rf_chest');
+  });
+
   test('chest pain opens a follow-up page; the typical pattern is an emergency', () => {
     assert.equal(walk([['เจ็บแน่นหน้าอก']]).current, 'rf_chest');
     assert.equal(result(walk([['เจ็บแน่นหน้าอก'], 'เหมือนมีของหนักทับ'])).route, 'emergency');

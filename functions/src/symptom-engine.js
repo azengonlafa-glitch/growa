@@ -26,7 +26,7 @@ function settle(target, facts) {
     const node = NODES[to];
     if (!node) throw new Error(`unknown node ${to}`);
     if (node.type !== 'route') return to;
-    to = node.rules.find((r) => matches(r.when, facts))?.to ?? node.to;
+    to = (node.via && facts[node.via]) || (node.rules ?? []).find((r) => matches(r.when, facts))?.to || node.to;
   }
   throw new Error('route loop');
 }
@@ -81,7 +81,7 @@ export function question(state) {
     type: node.type,
     text: node.text,
     help: node.help ?? null,
-    options: node.options.map((o, index) => ({ index, label: o.label, exclusive: o.exclusive === true })),
+    options: node.options.map((o, index) => ({ index, label: o.label, exclusive: o.exclusive === true, group: o.group ?? null })),
     step: state.path.length + 1,
   };
 }
@@ -104,6 +104,9 @@ export function answer(state, nodeId, choices) {
     to = opt.to;
   } else {
     const opts = picked.map((i) => node.options[i]);
+    // Exactly one ordinary symptom ticked: remember it so its own questions come next. Several: ask which matters most.
+    const plain = opts.filter((o) => o.set && !o.to);
+    if (plain.length === 1) Object.assign(facts, plain[0].set);
     if (opts.some((o) => o.exclusive) && opts.length > 1) throw new Error('invalid answer');
     // The most severe flagged choice wins.
     const flagged = opts.filter((o) => o.to)

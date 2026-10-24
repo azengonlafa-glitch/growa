@@ -21,3 +21,7 @@
 .pick-row-desc { font-size: .95rem; color: var(--muted); line-height: 1.35; }
 .pick-row-go { color: var(--muted); }
 .pick-note { margin: 18px 2px 0; font-size: .9rem; color: var(--muted); }
+
+/* Group headings inside a long question (for example ordinary vs severe symptoms). */
+.option-group { margin: 14px 2px 0; font-size: 1rem; font-family: var(--font-head); color: var(--muted); font-weight: 500; }
+.option-group:first-child { margin-top: 0; }
