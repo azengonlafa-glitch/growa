@@ -13,7 +13,7 @@ import {
 } from './common.js';
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
 const MAX_USER_TURNS = 12;
 
 // ───────────── deterministic red flags ─────────────
