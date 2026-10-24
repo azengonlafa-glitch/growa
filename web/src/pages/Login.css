@@ -1,0 +1,248 @@
+/* ─────────────────────────────────────────────────────────
+   Picnic login: a sunlit meadow seen from above, a gingham-lined basket,
+   two slices of toast, and the sign-in card tucked inside as a picnic note.
+   Everything is drawn in CSS/SVG so it scales to any screen.
+   The basket and the light stay still; only small things in the grass move.
+   ───────────────────────────────────────────────────────── */
+
+.meadow {
+  --red: 232 24 32;
+  --check: clamp(13px, 2.1vmin, 24px);
+  --rim: clamp(16px, 4.4vmin, 54px);
+  --wall: clamp(24px, 9vmin, 120px);
+  --scoop: clamp(18px, 3.4vmin, 40px);
+  position: relative; z-index: 1; isolation: isolate; overflow: hidden;
+  min-height: 100vh; min-height: 100dvh;
+  display: grid; place-items: center;
+  padding: clamp(18px, 4vmin, 48px) clamp(10px, 3vw, 48px);
+  color-scheme: light;
+  background: #2b7420;
+}
+.meadow-art { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+
+/* fine painterly grain so large areas of green are not flat */
+.grain {
+  position: absolute; inset: 0; opacity: .18; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .2  0 0 0 0 .5  0 0 0 0 .1  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.lawn { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* daisies scattered on the grass */
+.daisy {
+  position: absolute; width: calc(46px * var(--s)); aspect-ratio: 1; margin: calc(-23px * var(--s));
+  filter: drop-shadow(0 3px 2px rgb(20 60 10 / 40%));
+  animation: daisy-pop .7s cubic-bezier(.2, 1.6, .4, 1) var(--d) both;
+}
+.daisy svg { width: 100%; height: 100%; animation: daisy-nod 8s ease-in-out var(--d) infinite alternate; }
+@keyframes daisy-pop { from { opacity: 0; scale: 0; } }
+@keyframes daisy-nod { from { rotate: -8deg; } to { rotate: 10deg; } }
+
+/* butterflies wander across the meadow */
+.butterfly { position: absolute; width: 34px; height: 26px; offset-rotate: 0deg; filter: drop-shadow(0 10px 6px rgb(10 40 5 / 30%)); }
+.wing { position: absolute; top: 0; width: 17px; height: 24px; border-radius: 60% 40% 50% 50%; background: radial-gradient(circle at 50% 35%, #fff9d6 0 25%, #ffd84a 26% 70%, #f39b1d 71%); animation: flap .28s ease-in-out infinite alternate; }
+.wing-l { left: 0; transform-origin: 100% 50%; }
+.wing-r { right: 0; transform-origin: 0 50%; border-radius: 40% 60% 50% 50%; }
+.butterfly::after { content: ''; position: absolute; left: 15px; top: 3px; width: 4px; height: 20px; border-radius: 3px; background: #4a2a12; }
+.bf-a { offset-path: path('M -60 300 C 200 120, 420 520, 760 240 S 1300 80, 1700 360'); animation: fly 26s linear infinite; }
+.bf-b { offset-path: path('M 1700 700 C 1300 500, 1100 860, 700 640 S 200 760, -80 520'); animation: fly 32s linear -9s infinite; }
+.bf-b .wing { background: radial-gradient(circle at 50% 35%, #ffffff 0 25%, #a9dcff 26% 70%, #3f8ee0 71%); }
+@keyframes flap { to { transform: scaleX(.25); } }
+@keyframes fly { from { offset-distance: 0%; } to { offset-distance: 100%; } }
+
+/* ───────── the basket (still; it only fades in once) ───────── */
+.basket {
+  position: relative; width: min(100%, 1060px); min-height: min(88dvh, 860px);
+  display: grid; place-items: center;
+  filter: drop-shadow(0 34px 34px rgb(8 34 4 / 50%)) drop-shadow(0 8px 10px rgb(8 34 4 / 35%));
+  animation: basket-in .6s ease-out both;
+}
+@keyframes basket-in { from { opacity: 0; } }
+
+/* wicker handles peeking out of the scooped sides */
+.handle {
+  position: absolute; top: 50%; width: calc(var(--scoop) * 1.9); height: clamp(84px, 17%, 160px); translate: 0 -50%;
+  border-radius: 999px; z-index: 0;
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / 34%), transparent 35%, transparent 65%, rgb(0 0 0 / 38%)),
+    repeating-linear-gradient(0deg, #6c3a17 0 2px, #c4843f 2px 6px, #9a5a27 6px 8px);
+  box-shadow: inset 0 0 0 3px #5b2f11;
+}
+.handle-l { left: calc(var(--scoop) * -.35); }
+.handle-r { right: calc(var(--scoop) * -.35); }
+
+/* red gingham: two half-transparent stripe layers make the classic check */
+.cloth, .wall, .floor {
+  background-color: #fffaf6;
+  background-image:
+    linear-gradient(90deg, rgb(var(--red) / 66%) 50%, transparent 50%),
+    linear-gradient(rgb(var(--red) / 66%) 50%, transparent 50%);
+  background-size: calc(var(--check) * 2) calc(var(--check) * 2);
+}
+.cloth { position: absolute; inset: 0; z-index: 1; }
+.cloth::after { /* sunlight on the rim from the top-left, a soft fall-off toward the bottom-right */
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, rgb(255 250 235 / 34%), transparent 34%, transparent 70%, rgb(150 0 10 / 18%));
+}
+
+/* the four inside walls slope down to the floor; checks shrink with depth */
+.wall { position: absolute; inset: var(--rim); }
+.wall-t { clip-path: polygon(0 0, 100% 0, calc(100% - var(--wall)) var(--wall), var(--wall) var(--wall)); background-size: calc(var(--check) * 1.7) calc(var(--check) * 1.2); }
+.wall-b { clip-path: polygon(var(--wall) calc(100% - var(--wall)), calc(100% - var(--wall)) calc(100% - var(--wall)), 100% 100%, 0 100%); background-size: calc(var(--check) * 1.7) calc(var(--check) * 1.2); }
+.wall-l { clip-path: polygon(0 0, var(--wall) var(--wall), var(--wall) calc(100% - var(--wall)), 0 100%); background-size: calc(var(--check) * 1.2) calc(var(--check) * 1.7); }
+.wall-r { clip-path: polygon(100% 0, 100% 100%, calc(100% - var(--wall)) calc(100% - var(--wall)), calc(100% - var(--wall)) var(--wall)); background-size: calc(var(--check) * 1.2) calc(var(--check) * 1.7); }
+.wall::after { content: ''; position: absolute; inset: 0; mix-blend-mode: multiply; }
+/* light comes from the top-left, so the top and left walls face away from it and sit in shade */
+.wall-t::after { background: linear-gradient(to bottom, rgb(200 120 125), rgb(232 175 178)); }
+.wall-l::after { background: linear-gradient(to right, rgb(210 135 140), rgb(238 190 192)); }
+.wall-r::after { background: linear-gradient(to left, rgb(255 246 244), rgb(246 214 214)); }
+.wall-b::after { background: linear-gradient(to top, rgb(255 248 246), rgb(248 222 222)); }
+.floor {
+  position: absolute; inset: calc(var(--rim) + var(--wall));
+  background-size: calc(var(--check) * 1.25) calc(var(--check) * 1.25);
+  box-shadow: 0 0 0 2px rgb(70 0 0 / 22%);
+}
+.floor::after { content: ''; position: absolute; inset: 0; mix-blend-mode: multiply; background: radial-gradient(120% 120% at 70% 70%, rgb(250 232 232), rgb(226 176 178)); }
+/* shadow the rim casts into the basket, deepest under the top-left edge */
+.inner-shade {
+  position: absolute; inset: var(--rim); mix-blend-mode: multiply;
+  box-shadow:
+    inset 0 calc(var(--wall) * .5) calc(var(--wall) * .55) rgb(150 40 45 / 55%),
+    inset calc(var(--wall) * .4) 0 calc(var(--wall) * .5) rgb(150 40 45 / 45%),
+    inset calc(var(--wall) * -.12) calc(var(--wall) * -.12) calc(var(--wall) * .3) rgb(150 40 45 / 18%);
+}
+/* rounded fold where the cloth turns over the basket edge: lit on top, shadow just inside */
+.fold {
+  position: absolute; inset: calc(var(--rim) - 6px); border-radius: 12px;
+  border: 6px solid rgb(255 255 245 / 62%); filter: blur(1.5px);
+  box-shadow: 0 0 0 1.5px rgb(150 10 10 / 22%), inset 0 10px 14px rgb(60 0 0 / 30%), 0 -2px 6px rgb(255 255 255 / 30%);
+}
+
+/* ───────── toast ───────── */
+.toast {
+  position: absolute; z-index: 3; width: clamp(64px, 12vmin, 150px); aspect-ratio: 1 / 1.04;
+  border-radius: 44% 44% 18% 18% / 40% 40% 14% 14%;
+  background: radial-gradient(circle at 50% 40%, #e7aa55 0%, #c47a2a 70%, #8d4914 100%);
+  box-shadow: 6px 12px 14px rgb(60 20 0 / 38%), inset 0 -4px 6px rgb(90 40 0 / 40%), inset 3px 4px 4px rgb(255 220 160 / 40%);
+}
+.toast i {
+  position: absolute; inset: 9%; border-radius: inherit;
+  background:
+    radial-gradient(circle at 30% 30%, rgb(170 100 35 / 22%) 0 1.4px, transparent 2px) 0 0 / 13px 15px,
+    radial-gradient(circle at 70% 60%, rgb(190 120 45 / 20%) 0 1px, transparent 1.6px) 5px 7px / 17px 11px,
+    radial-gradient(ellipse at 40% 35%, #fff1cc 0%, #f6d48f 46%, #eab060 80%, #d48b3a 100%);
+  box-shadow: inset 0 0 10px rgb(200 110 30 / 55%);
+}
+.toast-a { left: 2%; top: 1%; rotate: -24deg; animation: toast-land .7s cubic-bezier(.2, 1.5, .4, 1) .5s both; }
+.toast-b { right: 3%; bottom: 2%; rotate: 22deg; animation: toast-land .7s cubic-bezier(.2, 1.5, .4, 1) .7s both; }
+@keyframes toast-land { from { opacity: 0; transform: translateY(-90px) scale(1.3) rotate(30deg); } }
+
+/* ───────── the note inside the basket ───────── */
+.basket-inside {
+  position: relative; z-index: 2; width: 100%;
+  padding: calc(var(--rim) + var(--wall) + clamp(12px, 3vmin, 34px));
+  display: grid; place-items: center;
+}
+.note {
+  /* local light palette: the scene stays sunny even when the rest of the app is in dark mode */
+  --text: #3a1f14; --muted: #7a5442; --surface: #fffdf7; --surface-2: #f6e9dc;
+  --border: #ecd6c4; --border-strong: #b58d74; --primary: #2f9a45; --primary-dark: #1d6e2f;
+  --primary-ink: #ffffff; --primary-text: #237a37; --primary-soft: #e1f6dd;
+  position: relative; width: min(100%, 420px); color: var(--text);
+  display: flex; flex-direction: column; gap: 14px;
+  padding: clamp(20px, 3.4vmin, 30px) clamp(18px, 3.4vmin, 30px) clamp(18px, 3vmin, 26px);
+  border-radius: 22px;
+  background:
+    repeating-linear-gradient(transparent 0 29px, rgb(214 38 46 / 7%) 29px 30px),
+    linear-gradient(170deg, #fffdf7, #fff4e4);
+  box-shadow: 0 2px 0 #fff inset, 0 22px 36px rgb(90 10 0 / 38%), 0 4px 8px rgb(90 10 0 / 20%);
+  rotate: -1deg;
+  animation: note-in .8s cubic-bezier(.2, 1.3, .4, 1) .45s both;
+}
+.note::after { /* sewn stitch around the edge */
+  content: ''; position: absolute; inset: 8px; border-radius: 16px; pointer-events: none;
+  border: 2px dashed rgb(214 38 46 / 32%);
+}
+@keyframes note-in { from { opacity: 0; translate: 0 40px; scale: .9; rotate: 4deg; } }
+
+.tape {
+  position: absolute; top: -12px; width: 86px; height: 26px; z-index: 1;
+  background: repeating-linear-gradient(45deg, rgb(120 200 110 / 80%) 0 8px, rgb(170 225 150 / 80%) 8px 16px);
+  clip-path: polygon(4% 0, 100% 6%, 96% 100%, 0 94%);
+  box-shadow: 0 2px 4px rgb(0 0 0 / 15%);
+}
+.tape-l { left: 18px; rotate: -8deg; }
+.tape-r { right: 18px; rotate: 7deg; background: repeating-linear-gradient(-45deg, rgb(255 210 80 / 85%) 0 8px, rgb(255 232 150 / 85%) 8px 16px); }
+
+.note-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; }
+.note-brand {
+  font-family: var(--font-head); font-size: clamp(2.2rem, 5vmin, 3rem); line-height: 1; letter-spacing: .5px;
+  background: linear-gradient(180deg, #35b85c, #1d7c35); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgb(255 255 255 / 80%));
+}
+.note-tagline { color: var(--muted); font-size: .92rem; line-height: 1.4; max-width: 30ch; }
+
+/* tabs as a little gingham ribbon */
+.note .segmented { background: #fbe3dc; padding: 5px; border: 1.5px solid #f0c7bb; }
+.note .segmented button { color: #8b3a2c; font-weight: 600; transition: background .25s, color .25s, scale .2s; }
+.note .segmented button:hover { background: rgb(255 255 255 / 60%); }
+.note .segmented button.active {
+  color: #fff; font-weight: 700;
+  background: rgb(var(--red)) linear-gradient(90deg, rgb(255 255 255 / 18%) 50%, transparent 50%) 0 0 / 10px 10px;
+  box-shadow: 0 3px 0 #9c1b22; scale: 1.03;
+}
+
+.note-body { display: flex; flex-direction: column; gap: 10px; animation: body-in .35s ease-out both; }
+@keyframes body-in { from { opacity: 0; translate: 0 8px; } }
+.note-hint { font-size: .92rem; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.note-mock { font-size: .8rem; font-weight: 700; padding: 1px 10px; border-radius: 999px; border: 1.5px dashed #b58d74; color: #7a5442; }
+
+/* demo accounts as luggage-style tags */
+.tags { display: flex; flex-direction: column; gap: 10px; }
+.note .tag {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 14px; text-align: left;
+  border-radius: 18px; background: #fff; border: 2px solid #f0d6c6; color: var(--text);
+  box-shadow: 0 3px 0 #ecd2c1; transform-origin: 0 50%;
+  animation: tag-in .55s cubic-bezier(.2, 1.4, .4, 1) calc(.9s + var(--n) * .12s) both;
+  transition: transform .2s cubic-bezier(.2, 1.4, .4, 1), box-shadow .2s, border-color .2s;
+}
+.note .tag:hover:not(:disabled) { transform: translateY(-3px) rotate(-1deg); border-color: rgb(var(--red)); box-shadow: 0 8px 18px rgb(150 30 20 / 18%); }
+.note .tag:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+@keyframes tag-in { from { opacity: 0; transform: translateX(-24px) rotate(-4deg); } }
+.tag-icon { flex: none; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: rgb(var(--red)); box-shadow: 0 3px 0 #9c1b22; transition: rotate .3s; }
+.tag:nth-child(2) .tag-icon { background: #2f9a45; box-shadow: 0 3px 0 #1d6e2f; }
+.tag:nth-child(3) .tag-icon { background: #e98b1f; box-shadow: 0 3px 0 #b0600c; }
+.note .tag:hover .tag-icon { rotate: -10deg; }
+.tag-text { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.3; }
+.tag-text strong { font-size: 1.08rem; }
+.tag-text span { font-size: .86rem; color: var(--muted); font-weight: 500; }
+.tag-go { font-size: 1.8rem; line-height: 1; color: rgb(var(--red)); transition: translate .2s; }
+.note .tag:hover .tag-go { translate: 4px 0; }
+
+.note-form { display: flex; flex-direction: column; gap: 10px; }
+.note input { background: #fff; border-color: #e3c5b2; }
+.note input:focus-visible { outline-color: rgb(var(--red)); box-shadow: 0 0 0 5px rgb(var(--red) / 15%); }
+.note .note-submit { background: linear-gradient(120deg, #34b157, #1f8a3c); box-shadow: 0 4px 0 #17642b; animation: none; }
+
+.note-sticker {
+  position: relative; display: flex; flex-direction: column; gap: 2px; font-size: .86rem; line-height: 1.4;
+  padding: 10px 14px; border-radius: 4px 14px 4px 14px; color: #5c4300;
+  background: linear-gradient(170deg, #fff3b0, #ffe57a); box-shadow: 0 4px 10px rgb(120 80 0 / 18%);
+  rotate: .8deg;
+}
+.note-sticker strong { font-size: .92rem; }
+
+/* small screens: thinner basket walls, smaller toast in the corners */
+@media (max-width: 560px) {
+  .meadow { padding: 10px 6px; }
+  .basket { min-height: calc(100dvh - 20px); }
+  .note { gap: 12px; rotate: 0deg; }
+  .note-tagline { font-size: .84rem; }
+  .note .segmented button { font-size: .8rem; padding-left: 4px; padding-right: 4px; white-space: nowrap; }
+  .bf-b { display: none; }
+}
+@media (max-height: 640px) and (min-width: 561px) { .basket { min-height: auto; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .meadow *, .meadow *::before, .meadow *::after, .meadow-art::before, .meadow-art::after { animation: none !important; transition: none !important; }
+  .butterfly { display: none; }
+}

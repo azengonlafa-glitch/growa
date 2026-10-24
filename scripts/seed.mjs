@@ -40,7 +40,7 @@ for (const a of ACCOUNTS.slice(0, 2)) {
   const pid = `${a.uid}-self`;
   batch.set(db.doc(`users/${a.uid}`), {
     displayName: a.displayName, email: a.email, selfPatientId: pid, createdAt: now,
-    addresses: [{ label: 'บ้าน', line1: 'ใกล้อนุสาวรีย์ชัยฯ (ข้อมูลจำลอง)', geo: { lat: 13.7639, lng: 100.5375 } }],
+    addresses: [{ label: 'บ้าน', line1: 'ย่านเพชรบุรี–มักกะสัน (ข้อมูลจำลอง)', geo: { lat: 13.7450, lng: 100.5520 } }],
   });
   batch.set(db.doc(`patients/${pid}`), {
     ownerUid: a.uid, isSelf: true, displayName: a.displayName, birthYear: a.uid === 'demo-mom' ? 1958 : 1990,

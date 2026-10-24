@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuthUser, useHashRoute } from './lib/hooks.js';
 import { SessionContext, useSessionData } from './lib/session.js';
-import { Loading } from './components/ui.jsx';
 import { Backdrop } from './components/Flair.jsx';
+import Launch from './components/Launch.jsx';
 import { FlowProvider } from './flow/state.jsx';
 import MapStep from './flow/MapStep.jsx';
 import ChooseStep from './flow/ChooseStep.jsx';
@@ -20,6 +20,9 @@ import Family from './pages/Family.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
 import Health from './pages/Health.jsx';
+
+// How long the green launch screen stays up once the app is ready, before the circle opens.
+const LAUNCH_HOLD_MS = 4000;
 
 // Ordering flow, one decision per screen: map → choose → questions → result → (consult) → checkout → track (stock, pay, courier map).
 const FLOW = {
@@ -93,15 +96,32 @@ export default function App() {
   const user = useAuthUser();
   const route = useHashRoute();
   const session = useSessionData(user);
+  const ready = Boolean(user) && !session.loading;
+  // loading → (app ready, brand shown long enough) reveal → done; signing out starts it over.
+  const [phase, setPhase] = useState('loading');
 
-  if (user === undefined) return <div className="login-wrap"><Loading /></div>;
-  if (!user) return <><Backdrop /><Login /></>;
-  if (session.loading) return <div className="login-wrap"><Loading /></div>;
+  useEffect(() => {
+    if (!user) { setPhase('loading'); return undefined; }
+    if (!ready || phase === 'done') return undefined;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const t = phase === 'loading'
+      ? setTimeout(() => setPhase('reveal'), reduced ? 0 : LAUNCH_HOLD_MS)
+      : setTimeout(() => setPhase('done'), reduced ? 0 : 1100);
+    return () => clearTimeout(t);
+  }, [user, ready, phase]);
+
+  if (user === undefined) return <Launch phase="loading" />;
+  if (!user) return <Login />;
   return (
-    <SessionContext.Provider value={session}>
-      <FlowProvider>
-        <Shell route={route} />
-      </FlowProvider>
-    </SessionContext.Provider>
+    <>
+      {ready ? (
+        <SessionContext.Provider value={session}>
+          <FlowProvider>
+            <Shell route={route} />
+          </FlowProvider>
+        </SessionContext.Provider>
+      ) : null}
+      {phase !== 'done' ? <Launch phase={ready ? phase : 'loading'} /> : null}
+    </>
   );
 }

@@ -1,22 +1,46 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+// Step 1: a full-screen map that opens on where you are, with the nearby partner pharmacies on it.
+// The list and the confirm button live in a sheet that floats over the map (bottom sheet on a phone,
+// side panel on a computer), the way ride-hailing apps do it.
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { collection, query, where } from 'firebase/firestore';
 import { call, db } from '../firebase.js';
 import { go, useAction, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
-import { Badge, Button, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
-import { Splash } from '../components/Flair.jsx';
-import FlowPage from './FlowPage.jsx';
+import { fetchRoute } from '../lib/route.js';
+import { Button, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import FlowMap from './FlowMap.jsx';
 import { useFlow } from './state.jsx';
 
 const RADIUS_KM = 50;
 const VICTORY_MONUMENT = { lat: 13.765, lng: 100.5381 };
+const DESKTOP = '(min-width: 900px)';
 
 function km(a, b) {
   const rad = (d) => (d * Math.PI) / 180;
   const h = Math.sin(rad(b.lat - a.lat) / 2) ** 2
     + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(rad(b.lng - a.lng) / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));
+}
+
+// How much of the map the floating sheet covers, so the map can keep your pin in the visible part.
+function useInset(ref) {
+  const [inset, setInset] = useState({ top: 72, right: 0, bottom: 0, left: 0 });
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = ref.current;
+      if (!el) return;
+      const side = window.matchMedia(DESKTOP).matches;
+      setInset(side
+        ? { top: 72, right: 0, bottom: 0, left: el.offsetWidth + 40 }
+        : { top: 72, right: 0, bottom: el.offsetHeight + 12, left: 0 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(ref.current);
+    window.addEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
+  }, [ref]);
+  return inset;
 }
 
 export default function MapStep() {
@@ -27,6 +51,8 @@ export default function MapStep() {
   const [others, setOthers] = useState([]);
   const [showOthers, setShowOthers] = useState(false);
   const { busy, error, run, setError } = useAction();
+  const sheet = useRef(null);
+  const inset = useInset(sheet);
 
   const [stores, loading] = useQueryData(query(collection(db, 'pharmacies'), where('verificationStatus', '==', 'approved')), []);
   const partners = useMemo(
@@ -38,6 +64,19 @@ export default function MapStep() {
     [stores, center],
   );
   const selected = partners.find((p) => p.id === selectedId) ?? null;
+
+  // Driving route and travel time to the nearest few stores, so each row can say how long it takes to get there.
+  const [routes, setRoutes] = useState({});
+  const nearKey = partners.slice(0, 5).map((p) => p.id).join();
+  useEffect(() => {
+    let cancelled = false;
+    setRoutes({});
+    partners.slice(0, 5).forEach((p) => {
+      fetchRoute(center, p.geo).then((r) => { if (!cancelled) setRoutes((prev) => ({ ...prev, [p.id]: r })); });
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [center, nearKey]);
 
   // Directory stores are shown for context only; the FDA directory search reaches about 10 km.
   useEffect(() => {
@@ -69,80 +108,95 @@ export default function MapStep() {
   });
 
   return (
-    <FlowPage
-      step={1}
-      title="เลือกร้านยาใกล้คุณ"
-      wide
-      hero={<Splash title="สั่งยาง่ายเหมือนเรียกรถ" sub="เลือกร้านยาใกล้คุณ ตอบคำถามสั้น ๆ แล้วรอรับที่บ้าน" chips={[['locate', 'สแกนร้านใกล้คุณ'], ['shield', 'เภสัชกรช่วยดู'], ['truck', 'ติดตามคนส่ง']]} />}
-      footer={(
-        <>
-          <Button size="lg" block disabled={!selected} busy={busy} onClick={next}>
-            {selected ? 'เลือกร้านนี้' : 'แตะร้านบนแผนที่หรือในรายการ'}
-          </Button>
-        </>
-      )}
-    >
-      {staffOf.length ? (
-        <a className="tile tile-peach" href="#/pharmacist" style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <span className="tile-icon"><Icon name="list" /></span>
-          <div><div className="tile-label">งานของร้าน {staffOf[0].pharmacy.name}</div><div className="muted small">คำสั่งซื้อใหม่ คิวประเมิน และการจัดส่ง</div></div>
-        </a>
-      ) : null}
+    <div className="mapfull">
+      <FlowMap center={center} partners={partners} routes={routes} others={showOthers ? others : []} selectedId={selectedId} onSelect={onSelect} inset={inset} />
 
-      <div className="split">
-      <div className="stack split-map">
-      <p className="muted">สแกนร้านยาพาร์ทเนอร์ในรัศมี {RADIUS_KM} กิโลเมตรจากตำแหน่งของคุณ</p>
-      <FlowMap center={center} radiusKm={RADIUS_KM} partners={partners} others={showOthers ? others : []} selectedId={selectedId} onSelect={onSelect} />
-      <div className="row">
-        <Button size="sm" variant="secondary" onClick={locate}><Icon name="locate" size={20} />ใช้ตำแหน่งของฉัน</Button>
-        <Button size="sm" variant="ghost" onClick={() => { setCenter(VICTORY_MONUMENT); setSelectedId(null); }}>ใช้ตำแหน่งตัวอย่าง (อนุสาวรีย์ชัยฯ)</Button>
-      </div>
-      <ErrorText>{error}</ErrorText>
-      </div>
-
-      <div className="stack split-list">
-      <div className="between">
-        <h2>ร้านที่สั่งซื้อได้ ({partners.length})</h2>
-        <MockBadge />
-      </div>
-      {loading ? <Loading /> : partners.length ? (
-        <div className="option-list" role="group" aria-label="ร้านยาพาร์ทเนอร์">
-          {partners.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              className={`option store-option${p.id === selectedId ? ' selected' : ''}`}
-              aria-pressed={p.id === selectedId}
-              onClick={() => setSelectedId(p.id)}
-            >
-              <span className="option-box" aria-hidden>{p.id === selectedId ? '✓' : ''}</span>
-              <span className="store-option-main">
-                <strong>{p.name}</strong>
-                <span className="muted small">{p.address}</span>
-                <span className="row small">
-                  <span className="num">{p.km.toFixed(1)} กม.</span>
-                  {p.ratingCount ? <span>★ {p.ratingAvg} ({p.ratingCount})</span> : null}
-                  {p.services?.includes('telepharmacy') ? <Badge tone="good">ปรึกษาเภสัชกรได้</Badge> : null}
-                </span>
-              </span>
-            </button>
-          ))}
+      <header className="map-top">
+        <div className="map-title">
+          <span className="map-step">ขั้นที่ 1 จาก 5 · เลือกร้าน</span>
+          <h1>เลือกร้านยาใกล้คุณ</h1>
         </div>
-      ) : (
-        <Notice tone="warn" title={`ไม่พบร้านพาร์ทเนอร์ในรัศมี ${RADIUS_KM} กม.`}>
-          ลองใช้ตำแหน่งตัวอย่างด้านบน ร้านพาร์ทเนอร์ตัวอย่างอยู่ในกรุงเทพฯ
-        </Notice>
-      )}
+        <a className="round-btn" href="#/care" aria-label="โฮมแคร์และเมนู"><Icon name="people" /></a>
+      </header>
 
-      <label className="check">
-        <input type="checkbox" checked={showOthers} onChange={(e) => setShowOthers(e.target.checked)} />
-        แสดงร้านยาที่มีใบอนุญาตรอบตัว ({others.length}) บนแผนที่
-      </label>
-      <p className="muted small">
-        ร้านอื่นสั่งซื้อออนไลน์ไม่ได้ ข้อมูล อย. ไม่มีที่อยู่ร้าน ตำแหน่งจึงเป็นจุดกึ่งกลางแขวง/เขต และค้นหาได้ไกลสุดราว 10 กม.
-      </p>
-      </div>
-      </div>
-    </FlowPage>
+      <button type="button" className="map-fab" style={{ bottom: inset.left ? 28 : inset.bottom + 14 }} onClick={locate} aria-label="ไปที่ตำแหน่งของฉัน">
+        <Icon name="locate" size={26} />
+      </button>
+
+      <section className="map-sheet" ref={sheet} aria-label="ร้านยาใกล้คุณ">
+        <span className="sheet-grab" aria-hidden />
+        <div className="sheet-scroll">
+          {staffOf.length ? (
+            <a className="tile tile-peach" href="#/pharmacist" style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <span className="tile-icon"><Icon name="list" /></span>
+              <div><div className="tile-label">งานของร้าน {staffOf[0].pharmacy.name}</div><div className="muted small">คำสั่งซื้อใหม่ คิวประเมิน และการจัดส่ง</div></div>
+            </a>
+          ) : null}
+
+          <div className="between">
+            <h2>ร้านที่สั่งซื้อได้ ({partners.length})</h2>
+            <MockBadge />
+          </div>
+          {loading ? <Loading /> : partners.length ? (
+            <div className="store-list" role="group" aria-label="ร้านยาพาร์ทเนอร์">
+              {partners.map((p) => {
+                const route = routes[p.id];
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={`store-row${p.id === selectedId ? ' on' : ''}`}
+                    aria-pressed={p.id === selectedId}
+                    onClick={() => setSelectedId(p.id)}
+                  >
+                    <span className="store-avatar" aria-hidden><Icon name="store" size={30} stroke={1.8} /></span>
+                    <span className="store-info">
+                      <strong>{p.name}</strong>
+                      <span className="store-sub">
+                        {p.ratingCount ? <span>★ {p.ratingAvg}</span> : null}
+                        {p.services?.includes('telepharmacy') ? <span><Icon name="shield" size={14} /> ปรึกษาเภสัชกรได้</span> : null}
+                      </span>
+                      <span className="store-sub">{p.address}</span>
+                    </span>
+                    <span className="store-eta">
+                      {route ? <strong className="num">{route.minutes} นาที</strong> : <span className="eta-wait" aria-label="กำลังคำนวณเวลา" />}
+                      <span className="num">{(route?.km ?? p.km).toFixed(1)} กม.</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+                    ) : (
+            <Notice tone="warn" title={`ไม่พบร้านพาร์ทเนอร์ในรัศมี ${RADIUS_KM} กม.`}>
+              ลองใช้ตำแหน่งตัวอย่างด้านล่าง ร้านพาร์ทเนอร์ตัวอย่างอยู่ในกรุงเทพฯ
+            </Notice>
+          )}
+
+          <ErrorText>{error}</ErrorText>
+          <p className="muted small">เวลาเดินทางเป็นการขับรถโดยประมาณจากข้อมูลแผนที่ ไม่รวมการจราจร</p>
+          <details className="more">
+            <summary>ตัวเลือกตำแหน่งและแผนที่</summary>
+            <div className="stack">
+          <div className="row">
+            <Button size="sm" variant="secondary" onClick={locate}><Icon name="locate" size={20} />ใช้ตำแหน่งของฉัน</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setCenter(VICTORY_MONUMENT); setSelectedId(null); }}>ใช้ตำแหน่งตัวอย่าง (อนุสาวรีย์ชัยฯ)</Button>
+          </div>
+          <label className="check">
+            <input type="checkbox" checked={showOthers} onChange={(e) => setShowOthers(e.target.checked)} />
+            แสดงร้านยาที่มีใบอนุญาตรอบตัว ({others.length}) บนแผนที่
+          </label>
+          <p className="muted small">
+            ร้านอื่นสั่งซื้อออนไลน์ไม่ได้ ข้อมูล อย. ไม่มีที่อยู่ร้าน ตำแหน่งจึงเป็นจุดกึ่งกลางแขวง/เขต และค้นหาได้ไกลสุดราว 10 กม. ตำแหน่งของคุณเริ่มจากที่อยู่ในโปรไฟล์
+          </p>
+            </div>
+          </details>
+        </div>
+        <div className="sheet-cta">
+          <Button size="lg" block disabled={!selected} busy={busy} onClick={next}>
+            {selected ? `เลือก ${selected.name}` : 'แตะร้านบนแผนที่หรือในรายการ'}
+          </Button>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import L from 'leaflet';
+import { baseLayer } from './tiles.js';
 
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -13,11 +14,10 @@ export default function TrackMap({ from, to, progress, height = 360 }) {
 
   useEffect(() => {
     map.current = L.map(el.current, { scrollWheelZoom: false }).setView([from.lat, from.lng], 13);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map.current);
-    const line = L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: token('--primary'), weight: 5, dashArray: '2 10', lineCap: 'round' }).addTo(map.current);
+    baseLayer().addTo(map.current);
+    const path = [[from.lat, from.lng], [to.lat, to.lng]];
+    L.polyline(path, { color: '#ffffff', weight: 12, opacity: 0.95, lineCap: 'round' }).addTo(map.current);
+    const line = L.polyline(path, { color: '#5fd39a', weight: 7, lineCap: 'round' }).addTo(map.current);
     L.circleMarker([from.lat, from.lng], { radius: 11, weight: 3, color: '#fff', fillColor: token('--primary'), fillOpacity: 1 }).bindTooltip('ร้านยา', { permanent: true, direction: 'top' }).addTo(map.current);
     L.circleMarker([to.lat, to.lng], { radius: 11, weight: 3, color: '#fff', fillColor: token('--text'), fillOpacity: 1 }).bindTooltip('บ้านคุณ', { permanent: true, direction: 'top' }).addTo(map.current);
     courier.current = L.marker([from.lat, from.lng], { icon: L.divIcon({ className: 'pin-wrap', html: '<span class="rider">🛵</span>', iconSize: [44, 44], iconAnchor: [22, 22] }), keyboard: false }).bindTooltip('ผู้ส่ง').addTo(map.current);
