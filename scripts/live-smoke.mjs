@@ -7,7 +7,7 @@ import { emulatorEnv } from './emulator-env.mjs';
 
 if (process.env.LIVE_SMOKE_INNER !== '1') {
   const secrets = existsSync('functions/.secret.local') ? readFileSync('functions/.secret.local', 'utf8') : '';
-  const missing = ['GOOGLE_MAPS_API_KEY', 'ANTHROPIC_API_KEY']
+  const missing = ['GOOGLE_MAPS_API_KEY', 'GEMINI_API_KEY']
     .filter((k) => !new RegExp(`^${k}=\\S+`, 'm').test(secrets));
   if (missing.length) {
     console.error(`Missing in functions/.secret.local: ${missing.join(', ')}`);

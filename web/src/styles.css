@@ -559,3 +559,6 @@ hr.sep { border: 0; border-top: 1.5px solid var(--border); margin: 4px 0; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation-duration: .01ms !important; }
 }
+
+.chat-input { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input textarea { flex: 1; min-height: 56px; resize: none; }

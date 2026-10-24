@@ -609,6 +609,22 @@ describe('AI triage safety', () => {
     assert.match(reply, /1323/);
   });
 
+  test('without an AI key the chat hands over to a pharmacist and flags it unavailable', async () => {
+    const user = await buyer('triageUser5');
+    const { sessionId } = await user.call('triageStart', { patientId: user.patientId, consent: true });
+    const out = await user.call('triageSendMessage', { sessionId, text: 'เจ็บคอ มีน้ำมูก 2 วัน' });
+    assert.equal(out.aiUnavailable, true);
+    assert.equal(out.route, 'pharmacist');
+  });
+
+  test('red flags never reach the AI and are not marked unavailable', async () => {
+    const user = await buyer('triageUser4');
+    const { sessionId } = await user.call('triageStart', { patientId: user.patientId, consent: true });
+    const out = await user.call('triageSendMessage', { sessionId, text: 'หายใจไม่ออก เจ็บหน้าอก' });
+    assert.equal(out.route, 'emergency');
+    assert.equal(out.aiUnavailable, false);
+  });
+
   test('shared triage goes to the chosen pharmacist, approval allows ordering', async () => {
     const user = await buyer('triageUser3');
     const { sessionId } = await user.call('triageStart', { patientId: user.patientId, consent: true });

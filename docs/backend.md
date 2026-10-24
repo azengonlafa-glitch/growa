@@ -85,7 +85,7 @@ cd functions && npm install && cd ..
 | Secret | ใช้ใน |
 |---|---|
 | `GOOGLE_MAPS_API_KEY` | `searchPharmacies` จะเปลี่ยนไปใช้ Google และเปิดใช้ `getPharmacyPlaceDetails` |
-| `ANTHROPIC_API_KEY` | แชต AI (`triageSendMessage`) ซึ่งเป็นทางเลือกเพิ่มจากชุดคำถาม |
+| `GEMINI_API_KEY` | แชต AI ด้วย Gemini ฟรี (`triageSendMessage`) ซึ่งเป็นทางเลือกเพิ่มจากชุดคำถาม |
 
 - **ใช้ใน emulator:** ใส่ใน `functions/.secret.local`
 - **ใช้บน production:** `firebase functions:secrets:set <NAME>`

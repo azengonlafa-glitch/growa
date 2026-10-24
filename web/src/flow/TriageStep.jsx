@@ -5,6 +5,7 @@ import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
+import ChatTriage from './ChatTriage.jsx';
 
 function Question({ q, busy, onAnswer, picked, setPicked }) {
   const headingRef = useRef(null);
@@ -41,7 +42,7 @@ function Question({ q, busy, onAnswer, picked, setPicked }) {
   );
 }
 
-export default function TriageStep() {
+function GuidedTriage() {
   const { patients } = useSession();
   const flow = useFlow();
   const self = patients.find((p) => p.isSelf && p.isOwner);
@@ -106,4 +107,10 @@ export default function TriageStep() {
       {state && busy ? <p className="hint"><Icon name="clock" size={16} /> กำลังโหลดคำถามถัดไป…</p> : null}
     </FlowPage>
   );
+}
+
+// AI chat is the default; the guided questions remain as the no-AI fallback.
+export default function TriageStep() {
+  const [mode, setMode] = useState('chat');
+  return mode === 'chat' ? <ChatTriage onFallback={() => setMode('guided')} /> : <GuidedTriage />;
 }

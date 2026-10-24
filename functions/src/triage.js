@@ -1,12 +1,10 @@
 // AI symptom triage. Safety layering:
 //   1. A deterministic red-flag check runs on every user message before any AI
 //      call; a hit ends the session with emergency advice.
-//   2. Claude collects symptoms and proposes a route via structured output.
+//   2. Gemini (free tier, no card needed) collects symptoms and proposes a route via structured output.
 //   3. The server, not the model, decides the final route (red flags always win,
 //      and long conversations are handed to a pharmacist).
 // The AI never approves dispensing; only submitPharmacistReview can.
-import Anthropic from '@anthropic-ai/sdk';
-import { betaJSONSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/beta/json-schema';
 import { onCall } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 import {
@@ -14,7 +12,8 @@ import {
   requireAuth, requirePatientAccess, str, notify, audit, activeStaffUids, patientSnapshot,
 } from './common.js';
 
-const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
+const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const MAX_USER_TURNS = 12;
 
 // ───────────── deterministic red flags ─────────────
@@ -44,7 +43,7 @@ const EMERGENCY_REPLY = {
     + 'หรือ 1669 หากอยู่ในอันตรายทันที และอยู่กับคนที่ไว้ใจได้',
 };
 
-// ───────────── Claude ─────────────
+// ───────────── Gemini ─────────────
 
 const SYSTEM_PROMPT = `You are the symptom-intake assistant of growa, a Thai platform that connects people with licensed community pharmacies. You talk with the user in Thai.
 
@@ -64,7 +63,6 @@ Keep "reply" under 120 Thai words. Fill "summary" with what is known so far (emp
 
 const OUTPUT_SCHEMA = {
   type: 'object',
-  additionalProperties: false,
   required: ['reply', 'route', 'redFlag', 'summary'],
   properties: {
     reply: { type: 'string' },
@@ -72,8 +70,7 @@ const OUTPUT_SCHEMA = {
     redFlag: { type: 'boolean' },
     summary: {
       type: 'object',
-      additionalProperties: false,
-      required: ['symptoms', 'duration', 'severity', 'allergies', 'currentMeds', 'questionsForPharmacist'],
+          required: ['symptoms', 'duration', 'severity', 'allergies', 'currentMeds', 'questionsForPharmacist'],
       properties: {
         symptoms: { type: 'string' },
         duration: { type: 'string' },
@@ -102,25 +99,44 @@ async function patientContext(patientId) {
   ].join('\n');
 }
 
-async function askClaude(context, history) {
-  // No key configured: behave like a declined request, so the caller routes the
-  // user to a pharmacist instead of failing.
-  if (!ANTHROPIC_API_KEY.value()) return null;
-  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY.value() });
-  const messages = history.map((m) => ({ role: m.role, content: m.text }));
-  messages[0] = { role: 'user', content: `[ข้อมูลผู้ป่วยจากระบบ]\n${context}\n\n[ข้อความผู้ใช้]\n${messages[0].content}` };
+// Returns the parsed model answer, or null on any problem (no key, quota, block,
+// bad JSON) so the caller sends the user to a pharmacist instead of failing.
+async function askGemini(context, history) {
+  const key = GEMINI_API_KEY.value();
+  if (!key) return null;
+  const contents = history.map((m, i) => ({
+    role: m.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: i === 0 ? `[ข้อมูลผู้ป่วยจากระบบ]
+${context}
 
-  const response = await client.beta.messages.parse({
-    model: 'claude-opus-5-5',
-    max_tokens: 16000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'medium', format: betaJSONSchemaOutputFormat(OUTPUT_SCHEMA) },
-    system: SYSTEM_PROMPT,
-    messages,
-  });
-  if (response.stop_reason === 'refusal' || !response.parsed_output) return null;
-  return response.parsed_output;
+[ข้อความผู้ใช้]
+${m.text}` : m.text }],
+  }));
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents,
+        generationConfig: { responseMimeType: 'application/json', responseSchema: OUTPUT_SCHEMA, temperature: 0.3, maxOutputTokens: 1500 },
+      }),
+      signal: AbortSignal.timeout(20000),
+    });
+  } catch {
+    return null;
+  }
+  if (!res.ok) return null;
+  try {
+    const body = await res.json();
+    const out = JSON.parse(body.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
+    const ok = typeof out.reply === 'string' && ['continue', 'info', 'pharmacist', 'emergency'].includes(out.route)
+      && typeof out.redFlag === 'boolean' && out.summary && typeof out.summary === 'object';
+    return ok ? out : null;
+  } catch {
+    return null;
+  }
 }
 
 // ───────────── callables ─────────────
@@ -151,7 +167,7 @@ export const triageStart = onCall(async (req) => {
   return { sessionId: ref.id, greeting: GREETING };
 });
 
-export const triageSendMessage = onCall({ secrets: [ANTHROPIC_API_KEY] }, async (req) => {
+export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (req) => {
   const uid = requireAuth(req);
   const d = req.data ?? {};
   const text = str(d.text, 'ข้อความ', { max: 2000 });
@@ -173,6 +189,7 @@ export const triageSendMessage = onCall({ secrets: [ANTHROPIC_API_KEY] }, async 
   let route;
   let summary = session.summary;
   let redFlag = false;
+  let aiUnavailable = false;
 
   if (flag) {
     reply = EMERGENCY_REPLY[flag];
@@ -186,10 +203,11 @@ export const triageSendMessage = onCall({ secrets: [ANTHROPIC_API_KEY] }, async 
       .map((m) => ({ role: m.role, text: m.text }));
     history.push({ role: 'user', text });
 
-    const out = await askClaude(await patientContext(session.patientId), history);
+    const out = await askGemini(await patientContext(session.patientId), history);
     if (!out) {
       reply = 'ขออภัย ระบบไม่สามารถประเมินต่อได้ แนะนำให้ปรึกษาเภสัชกรโดยตรง';
       route = 'pharmacist';
+      aiUnavailable = true;
     } else {
       reply = out.reply;
       summary = out.summary;
@@ -219,7 +237,7 @@ export const triageSendMessage = onCall({ secrets: [ANTHROPIC_API_KEY] }, async 
   });
   if (redFlag) audit(batch, { actorUid: uid, action: 'triage.redFlag', targetPath: ref.path, reason: flag ?? 'model' });
   await batch.commit();
-  return { reply, route };
+  return { reply, route, aiUnavailable };
 });
 
 export const triageShareWithPharmacy = onCall(async (req) => {

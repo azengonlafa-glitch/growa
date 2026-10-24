@@ -63,7 +63,7 @@ node scripts/seed-production.mjs --yes
 | `VITE_FIREBASE_API_KEY` / `VITE_FIREBASE_AUTH_DOMAIN` / `VITE_FIREBASE_PROJECT_ID` / `VITE_FIREBASE_APP_ID` | จากขั้นที่ 1.4 |
 | `FIREBASE_SERVICE_ACCOUNT` | เนื้อหาไฟล์ JSON ทั้งก้อน (วางบรรทัดเดียว) |
 | `CRON_SECRET` | สตริงสุ่มยาว ๆ |
-| `GOOGLE_MAPS_API_KEY`, `ANTHROPIC_API_KEY` | ไม่บังคับ |
+| `GOOGLE_MAPS_API_KEY`, `GEMINI_API_KEY` | ไม่บังคับ |
 
 4. กด Deploy
 
