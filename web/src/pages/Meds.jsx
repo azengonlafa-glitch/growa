@@ -21,7 +21,8 @@ function DoseRow({ slot, patient }) {
       ...(slot.log ? { correctsLogId: slot.log.id } : {}),
     });
     // Updates the stock estimate and tells caregivers about a confirmed miss.
-    await call('afterDoseLog', { patientId: patient.id, logId: ref.id });
+    // The dose is already saved, so a failure here (e.g. quota) must not look like the log was lost; the hook is idempotent.
+    await call('afterDoseLog', { patientId: patient.id, logId: ref.id }).catch((e) => console.warn('afterDoseLog failed', e?.code));
   });
   const [label, tone] = slot.log ? DOSE_STATUS[slot.log.status] : due ? ['ยังไม่ได้บันทึก', 'warn'] : ['ยังไม่ถึงเวลา', 'neutral'];
 
