@@ -2,33 +2,33 @@
    Motion is decorative only; everything here is switched off under prefers-reduced-motion (end of file). */
 
 :root {
-  --grad: linear-gradient(120deg, #11b87a 0%, #0b8a4a 38%, #0f7fcf 100%);
-  --grad-soft: linear-gradient(120deg, #d6f5e4, #dcefff);
+  --grad: linear-gradient(120deg, #ef3b3b 0%, #c8101a 52%, #8f0a12 100%);
+  --grad-soft: linear-gradient(120deg, #fde3df, #ffefc2);
   --glass: color-mix(in srgb, var(--surface) 78%, transparent);
   --glass-border: color-mix(in srgb, #ffffff 70%, var(--border));
-  --glow: 0 10px 30px rgb(11 138 74 / 28%);
+  --glow: 0 10px 30px rgb(200 16 26 / 26%);
 }
 @media (prefers-color-scheme: dark) {
 :root:not([data-theme='light']) {
-  --grad: linear-gradient(120deg, #3ddc84 0%, #19b27a 40%, #3a9bf0 100%);
-    --grad-soft: linear-gradient(120deg, #14392b, #112f4a);
+  --grad: linear-gradient(120deg, #ff8a7f 0%, #ff5a50 52%, #d63a32 100%);
+    --grad-soft: linear-gradient(120deg, #4d211e, #3d2d10);
     --glass-border: color-mix(in srgb, #ffffff 14%, var(--border));
-    --glow: 0 10px 34px rgb(61 220 132 / 25%);
+    --glow: 0 10px 34px rgb(255 107 99 / 25%);
 }
 }
 :root[data-theme='dark'] {
-  --grad: linear-gradient(120deg, #3ddc84 0%, #19b27a 40%, #3a9bf0 100%);
-    --grad-soft: linear-gradient(120deg, #14392b, #112f4a);
+  --grad: linear-gradient(120deg, #ff8a7f 0%, #ff5a50 52%, #d63a32 100%);
+    --grad-soft: linear-gradient(120deg, #4d211e, #3d2d10);
     --glass-border: color-mix(in srgb, #ffffff 14%, var(--border));
-    --glow: 0 10px 34px rgb(61 220 132 / 25%);
+    --glow: 0 10px 34px rgb(255 107 99 / 25%);
 }
 
 /* ───────── animated backdrop ───────── */
 .backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; will-change: transform; }
-.blob-a { width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax; background: #3ddc84; animation: drift 22s ease-in-out infinite alternate; }
-.blob-b { width: 42vmax; height: 42vmax; right: -14vmax; top: 10vmax; background: #4aa8ff; animation: drift 26s ease-in-out -6s infinite alternate-reverse; }
-.blob-c { width: 34vmax; height: 34vmax; left: 30vmax; bottom: -18vmax; background: #9ff0c9; animation: drift 30s ease-in-out -12s infinite alternate; }
+.blob { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .28; will-change: transform; }
+.blob-a { width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax; background: #ff8a7f; animation: drift 22s ease-in-out infinite alternate; }
+.blob-b { width: 42vmax; height: 42vmax; right: -14vmax; top: 10vmax; background: #f3c94a; animation: drift 26s ease-in-out -6s infinite alternate-reverse; }
+.blob-c { width: 34vmax; height: 34vmax; left: 30vmax; bottom: -18vmax; background: #8fd17a; animation: drift 30s ease-in-out -12s infinite alternate; }
 @media (prefers-color-scheme: dark) {
 :root:not([data-theme='light']) .blob {
   opacity: .22;
@@ -487,3 +487,27 @@ html:has(.launch) { overflow: hidden; }
 @media (pointer: coarse) {
   .store-more, .flow a.small, .care-bar a, .empty a, .info-list a { min-height: 40px; display: inline-flex; align-items: center; }
 }
+
+/* ───────── step bar: a stitched picnic ribbon ─────────
+   Finished steps are solid red with candy stripes, the step you are on pulses softly,
+   and the steps still to come are dashed stitches on the cloth. */
+.flow-dots { gap: 8px; margin: 2px 0 18px; }
+.flow-dots span {
+  height: 10px; border-radius: 999px; transition: background .4s, box-shadow .4s;
+  background: repeating-linear-gradient(90deg, var(--border-strong) 0 5px, transparent 5px 10px);
+  opacity: .55;
+}
+.flow-dots span.on {
+  opacity: 1; animation: none;
+  background:
+    repeating-linear-gradient(135deg, rgb(255 255 255 / 30%) 0 5px, transparent 5px 10px),
+    var(--primary);
+  background-size: auto, auto;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 18%);
+}
+.flow-dots span.on:has(+ span:not(.on)) {
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 18%), 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  animation: stitch-run 1.4s linear infinite;
+  background-size: 14.14px 14.14px, auto;
+}
+@keyframes stitch-run { to { background-position: 14.14px 0, 0 0; } }
