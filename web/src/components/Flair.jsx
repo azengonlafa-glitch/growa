@@ -38,7 +38,7 @@ export function Splash({ title, sub, chips = [] }) {
   );
 }
 
-const CONFETTI = ['#c8101a', '#2b7420', '#f3c94a', '#8fd17a', '#ffd23f', '#ff7a8a'];
+const CONFETTI = ['#0b8a4a', '#1479d4', '#2fc27a', '#5ab4ff', '#ffd23f', '#ff7a8a'];
 
 // One-shot celebration when the order arrives.
 export function Confetti({ count = 46 }) {
