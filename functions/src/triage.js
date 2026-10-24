@@ -123,7 +123,6 @@ ${m.text}` : m.text }],
       contents,
       generationConfig: {
         responseMimeType: 'application/json', responseSchema: OUTPUT_SCHEMA, temperature: 0.3, maxOutputTokens: 1500,
-        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
     signal: AbortSignal.timeout(20000),
