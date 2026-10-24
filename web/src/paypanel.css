@@ -1,0 +1,42 @@
+/* Simulated payment panel (components/PayPanel.jsx). Only transform/opacity animate; off under prefers-reduced-motion. */
+.pp { display: flex; flex-direction: column; gap: 14px; }
+.pp-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 18px 18px 6px 6px; background: linear-gradient(90deg, #14508f, #1e7bd0); color: #fff; font-weight: 700; }
+.pp-head span { margin-left: auto; padding: 2px 10px; border-radius: 999px; background: rgb(255 255 255 / 22%); font-size: .78rem; }
+.pp-body { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 12px 8px; border-radius: 6px 6px 18px 18px; background: var(--surface); border: 1.5px solid var(--border); }
+.pp-qrbox { position: relative; width: min(100%, 250px); aspect-ratio: 1; padding: 10px; border-radius: 18px; background: #fff; box-shadow: 0 14px 28px -16px rgb(14 42 71 / 55%); }
+.pp-qr { display: block; width: 100%; height: 100%; }
+.pp-qrbox.off .pp-qr { filter: blur(6px) grayscale(1); opacity: .5; }
+.pp-c { position: absolute; width: 26px; height: 26px; border: 4px solid #1e7bd0; }
+.pp-tl { left: 2px; top: 2px; border-right: 0; border-bottom: 0; border-radius: 10px 0 0 0; }
+.pp-tr { right: 2px; top: 2px; border-left: 0; border-bottom: 0; border-radius: 0 10px 0 0; }
+.pp-bl { left: 2px; bottom: 2px; border-right: 0; border-top: 0; border-radius: 0 0 0 10px; }
+.pp-br { right: 2px; bottom: 2px; border-left: 0; border-top: 0; border-radius: 0 0 10px 0; }
+.pp-scan { position: absolute; left: 10px; right: 10px; top: 10px; height: 3px; border-radius: 2px; background: linear-gradient(90deg, transparent, #1e7bd0, transparent); box-shadow: 0 0 14px 2px rgb(30 123 208 / 60%); animation: pp-scan 2.6s ease-in-out infinite; }
+.pp-expired { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; color: var(--bad); font-size: 1.2rem; }
+.pp-amount { margin: 10px 0 0; font-family: var(--font); font-weight: 800; font-size: 2.2rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pp-payee { margin: 0; color: var(--muted); font-size: .88rem; }
+.pp-timer { margin: 6px 0 0; font-size: .92rem; color: var(--muted); }
+.pp-timer b { color: var(--text); }
+.pp-wait { margin: 0; color: var(--primary-text); font-weight: 700; font-size: .92rem; }
+.pp-wait span { display: inline-block; animation: pp-dots 1.4s steps(4) infinite; width: 1.1em; overflow: hidden; vertical-align: bottom; }
+.pp-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+.pp-note svg { flex: none; margin-top: 2px; color: var(--primary-text); }
+
+.pp-cardface { display: flex; flex-direction: column; gap: 14px; padding: 22px; min-height: 170px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #14508f, #6a3fa0 70%, #c04b8f); box-shadow: 0 18px 30px -18px rgb(40 20 100 / 60%); animation: pp-tilt 5s ease-in-out infinite; }
+.pp-cardface b { font-family: var(--font); font-size: 1.35rem; letter-spacing: .08em; margin-top: auto; }
+.pp-cardface span:last-child { font-size: .82rem; opacity: .85; }
+.pp-chip { width: 44px; height: 32px; border-radius: 7px; background: linear-gradient(135deg, #ffe08a, #d9a63a); }
+
+.pp-banks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pp-banks button { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px; border-radius: 16px; font: inherit; font-weight: 700; font-size: .9rem; cursor: pointer; color: var(--text); background: var(--surface); border: 2px solid var(--border); transition: transform .2s cubic-bezier(.3, 1.4, .5, 1), border-color .2s; }
+.pp-banks button i { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; font-style: normal; color: #fff; background: var(--c); }
+.pp-banks button.on { border-color: var(--c); transform: translateY(-3px); box-shadow: 0 10px 18px -12px var(--c); }
+
+.pp-ok { display: inline-grid; place-items: center; width: 40px; height: 40px; margin-right: 10px; border-radius: 50%; background: var(--good); color: #fff; vertical-align: middle; animation: pp-ok .6s cubic-bezier(.3, 1.6, .5, 1) both; }
+
+@keyframes pp-scan { 0%, 100% { transform: translateY(0); opacity: .2; } 50% { transform: translateY(215px); opacity: 1; } }
+@keyframes pp-dots { from { width: 0; } to { width: 1.1em; } }
+@keyframes pp-tilt { 0%, 100% { transform: rotate(-1.2deg); } 50% { transform: rotate(1.2deg) translateY(-3px); } }
+@keyframes pp-ok { from { transform: scale(0); opacity: 0; } 60% { transform: scale(1.2); } to { transform: scale(1); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) { .pp-scan, .pp-wait span, .pp-cardface, .pp-ok { animation: none !important; } .pp-banks button { transition: none; } }

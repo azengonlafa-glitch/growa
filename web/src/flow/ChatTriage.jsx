@@ -16,7 +16,7 @@ const TITLE = {
 };
 
 // Same shape the guided checker returns, so the result, consult and checkout steps work unchanged.
-function toResult(route, reply, suggestedCatalogIds = [], healthNotes = [], healthMissing = false) {
+function toResult(route, reply, suggestedCatalogIds = [], healthNotes = [], healthMissing = false, healthBasis = []) {
   const r = ROUTE[route] ?? 'pharmacist';
   return {
     route: r,
@@ -28,6 +28,7 @@ function toResult(route, reply, suggestedCatalogIds = [], healthNotes = [], heal
     disclaimer: 'ผลนี้เป็นข้อมูลเบื้องต้นจากแชต AI ไม่ใช่การวินิจฉัยโรค เภสัชกรเป็นผู้ตัดสินใจเรื่องยา ไม่ใช่ AI',
     healthNotes,
     healthMissing,
+    healthBasis,
     source: 'ai',
   };
 }
@@ -97,7 +98,7 @@ export default function ChatTriage({ onFallback }) {
       setMessages((m) => [...m, { who: 'ai', text: res.reply }]);
       if (res.aiUnavailable) { setUnavailable(true); return; }
       if (res.route !== 'in_progress') {
-        flow.update({ triage: { sessionId, patientId: self.id, result: toResult(res.route, res.reply, res.suggestedCatalogIds, res.healthNotes, res.healthMissing) }, consult: null, cart: [] });
+        flow.update({ triage: { sessionId, patientId: self.id, result: toResult(res.route, res.reply, res.suggestedCatalogIds, res.healthNotes, res.healthMissing, res.healthBasis) }, consult: null, cart: [] });
         go('result');
       }
     });

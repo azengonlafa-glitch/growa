@@ -8,6 +8,17 @@ const GREEN = [124, 224, 168];
 const BLUE = [110, 190, 255];
 const mixColor = (t) => `rgb(${GREEN.map((g, i) => Math.round(g + (BLUE[i] - g) * t)).join(',')})`;
 
+// A push pin (round glossy head, metal needle) whose needle tip sits exactly on the map point.
+const TACK_W = 40;
+const TACK_H = 56;
+const tack = (tone, cls = '', style = '') => `<span class="tack tack-${tone}${cls}"${style}><svg viewBox="0 0 40 56" width="100%" height="100%">`
+  + '<ellipse class="tack-shadow" cx="26" cy="53" rx="7" ry="2.4" />'
+  + '<path d="M20 30v24" stroke="#9aa4ad" stroke-width="2.6" stroke-linecap="round" /><path d="M20.6 30v24" stroke="#e9eef2" stroke-width=".9" />'
+  + '<ellipse class="tack-collar" cx="20" cy="29" rx="7" ry="3" />'
+  + '<circle class="tack-head" cx="20" cy="16" r="14" /><circle cx="15" cy="11" r="4.5" fill="#fff" opacity=".55" /><circle cx="13.5" cy="9.5" r="1.8" fill="#fff" opacity=".9" />'
+  + '</svg></span>';
+const tackIcon = (html, scale = 1) => L.divIcon({ className: 'pin-wrap', html, iconSize: [TACK_W * scale, TACK_H * scale], iconAnchor: [(TACK_W * scale) / 2, TACK_H * scale] });
+
 const DRAW_MS = 800;
 const ANIM_MS = 1600; // longest entrance (route draw, then the time label pops)
 
@@ -76,9 +87,9 @@ export default function FlowMap({ center, partners, others, routes = {}, selecte
     if (route) drawRoute(layer.current, route.coords, routeAge);
 
     L.marker([center.lat, center.lng], {
-      icon: L.divIcon({ className: 'pin-wrap', html: '<span class="you"><i></i></span>', iconSize: [44, 44], iconAnchor: [22, 22] }),
+      icon: tackIcon(tack('you')),
       keyboard: false, interactive: false, zIndexOffset: 800,
-    }).bindTooltip('ตำแหน่งของคุณ', { permanent: true, direction: 'bottom', offset: [0, 16], className: 'you-tip' }).addTo(layer.current);
+    }).bindTooltip('ตำแหน่งของคุณ', { permanent: true, direction: 'bottom', offset: [0, 4], className: 'you-tip' }).addTo(layer.current);
 
     for (const p of others) {
       L.circle([p.location.lat, p.location.lng], { radius: 350, color: '#9aa3a8', weight: 1, fillColor: '#9aa3a8', fillOpacity: 0.14, interactive: false })
@@ -88,15 +99,17 @@ export default function FlowMap({ center, partners, others, routes = {}, selecte
       const active = s.id === selectedId;
       const minutes = routes[s.id]?.minutes;
       const marker = L.marker([s.geo.lat, s.geo.lng], {
-        icon: L.divIcon({ className: 'pin-wrap', html: `<span class="pin${active ? ' pin-on' : ''}${active && pinAge < ANIM_MS ? ` pin-drop" style="animation-delay:${-pinAge}ms` : ''}"><i></i></span>`, iconSize: [36, 36], iconAnchor: [18, 18] }),
+        icon: active
+          ? tackIcon(tack('on', pinAge < ANIM_MS ? ' tack-drop' : '', pinAge < ANIM_MS ? ` style="--d:${-pinAge}ms"` : ''), 1.3)
+          : tackIcon(tack('store')),
         keyboard: false, zIndexOffset: active ? 500 : 0,
       }).on('click', () => onSelect(s.id)).addTo(layer.current);
       if (active && minutes) {
-        marker.bindTooltip(`${minutes} นาที`, { permanent: true, direction: 'top', offset: [0, -14], className: `eta-tip${routeAge < ANIM_MS ? ' eta-pop' : ''}` });
+        marker.bindTooltip(`${minutes} นาที`, { permanent: true, direction: 'top', offset: [0, -70], className: `eta-tip${routeAge < ANIM_MS ? ' eta-pop' : ''}` });
         const tip = marker.getTooltip()?.getElement();
         if (tip && routeAge < ANIM_MS) tip.style.animationDelay = `${700 - routeAge}ms`;
       } else {
-        marker.bindTooltip(minutes ? `${s.name} · ${minutes} นาที` : s.name, { direction: 'top', offset: [0, -12] });
+        marker.bindTooltip(minutes ? `${s.name} · ${minutes} นาที` : s.name, { direction: 'top', offset: [0, -54] });
       }
     }
   }, [center, partners, others, routes, selectedId, onSelect]);

@@ -9,11 +9,13 @@
   "dependencies": {
     "firebase": "^13.1.0",
     "leaflet": "^1.9.4",
+    "qrcode-generator": "^1.4.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
+    "playwright": "^1.64.1",
     "vite": "^8.3.5"
   }
 }

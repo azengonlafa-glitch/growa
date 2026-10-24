@@ -1,0 +1,215 @@
+/* Main menu (#/care): a deck of widgets. The wheel (or a swipe) snaps from one card to the next; the active card is full
+   size, its neighbours peek above and below. A card is one big link (the title link is stretched over it); the round
+   buttons sit on top as separate links. Colours come from the theme tokens, so morning/night mode works.
+   Only transform/opacity and small bars animate; motion is off under prefers-reduced-motion. */
+
+.hub {
+  font-size: clamp(16px, calc(.62vw + 9.5px), 27px); /* everything inside is in em, so the whole menu scales with the screen */
+  --deck-h: clamp(30em, calc(100dvh - 7.2em), 56em);
+  position: relative; display: grid; gap: 0.625em; grid-template-columns: minmax(0, 1fr); align-items: start; justify-items: center;
+}
+.hub-deck { width: min(100%, 46em); }
+
+/* ───────── deck ───────── */
+.hub-deck {
+  height: var(--deck-h); overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none;
+  padding-block: calc(var(--deck-h) * .07); border-radius: 1.875em; outline: none;
+}
+.hub-deck::-webkit-scrollbar { display: none; }
+.hub-deck:focus-visible { box-shadow: 0 0 0 0.1875em var(--primary); }
+
+/* position dots: on the right of the deck on wide screens, hidden on a phone (swiping is enough) */
+.hub-dots { display: none; list-style: none; margin: 0; padding: 0; }
+@media (min-width: 900px) {
+  .hub-dots {
+    display: flex; flex-direction: column; justify-content: center; gap: 0.625em; height: var(--deck-h);
+    position: absolute; right: calc(50% - 23em - 2.5em); top: 0;
+  }
+  .hub-dots button { display: block; width: 0.625em; height: 0.625em; padding: 0; border: 0; border-radius: 50%; cursor: pointer; background: color-mix(in srgb, var(--muted) 45%, transparent); transition: height .3s, background .3s; }
+  .hub-dots button.on { height: 1.875em; border-radius: 0.375em; background: var(--primary); }
+}
+.hub-hint-scroll { display: none; }
+@media (min-width: 900px) and (hover: hover) {
+  .hub-hint-scroll { display: flex; align-items: center; gap: 0.625em; margin: 0; color: var(--muted); font-size: .85em; }
+  .hub-hint-scroll i { width: 1.25em; height: 2em; border: 0.125em solid var(--muted); border-radius: 0.75em; position: relative; flex: none; }
+  .hub-hint-scroll i::after { content: ''; position: absolute; left: 50%; top: 0.375em; width: 0.1875em; height: 0.4375em; margin-left: -1.5px; border-radius: 0.125em; background: var(--muted); animation: wd-wheel 1.6s ease-in-out infinite; }
+}
+
+/* ───────── widget shell ───────── */
+.wd {
+  --t: var(--primary-text); --ts: var(--primary-soft);
+  --bar: linear-gradient(90deg, #ffc08a, #ff9a5c);
+  --wd-bg: color-mix(in srgb, var(--surface) 90%, transparent);
+  position: relative; display: flex; flex-direction: column; gap: 0.875em; min-height: calc(var(--deck-h) * .84); margin: 2.125em 0 0.625em;
+  padding: 1.375em 1.5em 1.125em; color: var(--text);
+  background: var(--wd-bg); border-radius: 1.875em 0 1.875em 1.875em;
+  box-shadow: 0 1.625em 3.125em -1.875em color-mix(in srgb, var(--t) 70%, #0a2a20), inset 0 1px 0 rgb(255 255 255 / 70%);
+  scroll-snap-align: center; scroll-snap-stop: always;
+  backdrop-filter: blur(1em) saturate(1.3); -webkit-backdrop-filter: blur(1em) saturate(1.3);
+  opacity: .5; transform: scale(.94); transition: opacity .4s, transform .5s cubic-bezier(.2, .8, .2, 1), box-shadow .3s;
+}
+.wd.on { opacity: 1; transform: none; }
+.wd.on:hover { box-shadow: 0 2.125em 3.75em -1.75em color-mix(in srgb, var(--t) 85%, #0a2a20), inset 0 1px 0 rgb(255 255 255 / 70%); }
+.wd-green { --t: var(--good); --ts: var(--good-soft); --bar: linear-gradient(90deg, #4ff29a, #16c47a); }
+.wd-honey { --t: var(--warn); --ts: var(--warn-soft); --bar: linear-gradient(90deg, #ffe45e, #ffc233); }
+.wd-rose { --t: var(--bad); --ts: var(--bad-soft); --bar: linear-gradient(90deg, #ffa0a8, #ff6f7d); }
+.wd-blue { --t: var(--accent-text); --ts: var(--accent-soft); --bar: linear-gradient(90deg, #8ccbff, #4a9bff); }
+
+/* the raised tab at the top right, joined to the card with a curved inner corner */
+.wd-tab {
+  position: absolute; right: 0; top: -1.75em; width: 38%; height: 1.875em; display: flex; align-items: center; justify-content: flex-end; gap: 0.3125em; padding: 0 1.25em 0.25em;
+  background: var(--wd-bg); border-radius: 1.375em 1.875em 0 0;
+}
+.wd-tab::before { content: ''; position: absolute; left: -1.25em; bottom: 0; width: 1.25em; height: 1.25em; background: radial-gradient(circle at 0 0, transparent 1.2188em, var(--wd-bg) 1.2813em); }
+.wd-tab i { width: 0.375em; height: 0.375em; border-radius: 50%; background: var(--muted); opacity: .75; }
+
+.wd-head { display: flex; align-items: center; gap: 0.875em; min-width: 0; }
+.wd-ico {
+  flex: none; display: grid; place-items: center; width: 3.375em; height: 3.375em; border-radius: 50%; color: var(--t);
+  background: linear-gradient(160deg, var(--surface), var(--ts)); box-shadow: 0 0.5em 0.875em -0.5em var(--t), inset 0 1px 0 #fff;
+}
+.wd-head h2 { font-size: 1.3em; line-height: 1.2; overflow-wrap: anywhere; }
+.wd-head p { margin: 0.125em 0 0; color: var(--muted); font-size: .88em; overflow-wrap: anywhere; }
+
+/* the whole card is the link: the title link is stretched over it; buttons and controls sit above it */
+.wd-open { color: inherit; text-decoration: none; }
+.wd-open::after { content: ''; position: absolute; inset: 0; border-radius: inherit; z-index: 1; }
+.wd-open:hover { text-decoration: none; }
+.wd-open:focus-visible { outline: none; }
+.wd-open:focus-visible::after { outline: 0.1875em solid var(--t); outline-offset: 0.1875em; }
+.wd-actions, .wd-confirm, .wd-notes, .wd-track { position: relative; z-index: 2; }
+.wd-bottom { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.75em; margin-top: auto; }
+.wd-go {
+  display: inline-flex; align-items: center; gap: 0.125em; min-height: 2.5em; padding: 0 0.875em 0 1.125em; border-radius: 62.4375em; font-weight: 800; font-size: .92em;
+  background: var(--t); color: var(--surface); transition: transform .25s cubic-bezier(.3, 1.4, .5, 1); margin-left: auto;
+}
+.wd:hover .wd-go { transform: translateX(0.25em); }
+.wd-body { display: flex; flex-direction: column; gap: 1em; flex: 1; min-height: 0; justify-content: center; }
+
+/* ───────── numbers & strip (medicines) ───────── */
+.wd-big { display: flex; align-items: baseline; gap: 0.625em; min-width: 0; }
+.wd-big b { font-family: var(--font); font-weight: 700; font-size: 5.2em; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: var(--text); }
+.wd-big small { color: var(--muted); font-size: 1.05em; font-weight: 600; }
+.wd-strip { position: relative; border-radius: 1.5em 0 1.5em 1.5em; padding: 0.75em 1.125em; background: var(--bar); color: #0b2a1a; }
+.wd-strip-tag { position: absolute; right: 0; top: -0.875em; padding: 0.1875em 0.875em 0.375em; border-radius: 0.75em 0.75em 0 0; background: var(--bar); font-size: .78em; font-weight: 800; }
+.wd-strip ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.375em; }
+.wd-strip li { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.1875em; }
+.wd-mark-top { font-size: .95em; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-mark-bottom { font-size: .74em; font-weight: 600; opacity: .75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wd-mark-line { position: relative; height: 0.375em; border-radius: 0.1875em; background: repeating-linear-gradient(90deg, rgb(11 42 26 / 55%) 0 0.125em, transparent 0.125em 0.375em); }
+.wd-mark-line i { position: absolute; inset: 0; border-radius: 0.1875em; background: #0b2a1a; transform-origin: left; transform: scaleX(0); }
+.wd.on .wd-mark-line i { transform: scaleX(.35); transition: transform .8s cubic-bezier(.2, .8, .2, 1) .3s; }
+.wd.on .wd-mark-line i.done { transform: scaleX(1); }
+
+/* ───────── order card ───────── */
+.wd-order { position: relative; display: flex; flex-direction: column; justify-content: center; min-height: 11.875em; }
+.wd-order-art { position: absolute; right: 0; top: 0; width: 46%; height: 100%; pointer-events: none; }
+.o-bubble { position: absolute; display: grid; place-items: center; width: 4em; height: 4em; border-radius: 50%; color: var(--t); background: linear-gradient(160deg, var(--surface), var(--ts)); box-shadow: 0 0.75em 1.25em -0.625em var(--t), inset 0 1px 0 #fff; animation: wd-float 4.5s ease-in-out infinite; }
+.o-b1 { right: 18%; top: 4%; } .o-b2 { right: 0; top: 38%; width: 4.75em; height: 4.75em; animation-delay: -1.5s; } .o-b3 { right: 38%; top: 62%; width: 3.375em; height: 3.375em; animation-delay: -3s; }
+.wd-order-hi { margin: 0; color: var(--muted); font-size: 1em; }
+.wd-order-name { margin: 0; font-family: var(--font-head); font-size: 3em; line-height: 1.15; }
+.wd-order-sub { margin: 0.5em 0 0; max-width: 24ch; color: var(--muted); font-size: .95em; }
+
+/* ───────── notification card: rows sliding in ───────── */
+.wd-notes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.625em; }
+.wd-notes li { display: flex; align-items: center; gap: 0.75em; padding: 0.75em 0.875em; border-radius: 1.125em; background: var(--ts); opacity: 0; transform: translateY(0.875em); }
+.wd-notes li.in { opacity: 1; transform: none; transition: opacity .5s calc(var(--i) * .12s + .1s), transform .6s cubic-bezier(.2, .8, .2, 1) calc(var(--i) * .12s + .1s); }
+.wd-note-ico { display: grid; place-items: center; flex: none; width: 2.5em; height: 2.5em; border-radius: 50%; background: var(--surface); color: var(--t); box-shadow: 0 0.25em 0.5em -0.25em var(--t); }
+.wd-notes li span:nth-child(2) { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.wd-notes b { font-size: .98em; }
+.wd-notes small { color: var(--muted); font-size: .8em; }
+.wd-note-dot { width: 0.625em; height: 0.625em; border-radius: 50%; background: var(--t); animation: wd-blink 2s ease-in-out infinite; }
+.wd-notes li:nth-child(2) .wd-note-dot { animation-delay: -.7s; } .wd-notes li:nth-child(3) .wd-note-dot { animation-delay: -1.4s; }
+
+/* ───────── orders card: a truck driving along the stages ───────── */
+.wd-track { padding-top: 0.625em; }
+.wd-track-line { position: relative; height: 2.75em; margin: 0 0.875em; }
+.wd-track-line::before { content: ''; position: absolute; left: 0; right: 0; bottom: 0.375em; height: 0.375em; border-radius: 0.1875em; background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--t) 50%, transparent) 0 0.375em, transparent 0.375em 0.75em); }
+.wd-track-line i { position: absolute; left: 0; bottom: 0.375em; height: 0.375em; width: 0; border-radius: 0.1875em; background: var(--bar); }
+.wd-truck { position: absolute; left: 0; bottom: 0.5em; display: grid; place-items: center; width: 2.5em; height: 2.25em; color: var(--t); }
+.wd-track.go .wd-track-line i { animation: wd-drive-line 5s ease-in-out infinite; }
+.wd-track.go .wd-truck { animation: wd-drive 5s ease-in-out infinite; }
+.wd-track ol { list-style: none; margin: 0.25em 0 0; padding: 0; display: flex; justify-content: space-between; gap: 0.25em; }
+.wd-track li { display: flex; flex-direction: column; align-items: center; gap: 0.375em; flex: 1; min-width: 0; font-size: .72em; font-weight: 700; text-align: center; line-height: 1.25; }
+.wd-track li i { width: 0.875em; height: 0.875em; border-radius: 50%; background: var(--surface); border: 0.1875em solid var(--t); }
+.wd-track-note { display: flex; align-items: center; gap: 0.5em; margin: 1em 0 0; color: var(--muted); font-size: .84em; font-weight: 600; }
+.wd-track-note svg { color: var(--t); flex: none; }
+
+/* ───────── family card: overlapping avatars ───────── */
+.wd-family { display: flex; flex-direction: column; gap: 0.625em; }
+.wd-avatars { display: flex; padding-left: 0.875em; }
+.wd-avatars span {
+  display: grid; place-items: center; width: 4.625em; height: 4.625em; margin-left: -0.875em; border-radius: 50%; font-family: var(--font-head); font-size: 1.9em; color: #fff;
+  border: 0.25em solid var(--wd-bg); box-shadow: 0 0.625em 1em -0.625em rgb(0 0 0 / 45%);
+  background: linear-gradient(150deg, #ffb069, #ff7a59); animation: wd-pop .5s cubic-bezier(.3, 1.6, .5, 1) calc(var(--i) * .08s) both;
+}
+.wd-avatars span:nth-child(2n) { background: linear-gradient(150deg, #5fe39a, #16a864); } .wd-avatars span:nth-child(3n) { background: linear-gradient(150deg, #7cc2ff, #3d8fe8); }
+.wd-avatars .more { background: var(--ts); color: var(--t); }
+.wd-family-count { margin: 0.375em 0 0; font-size: 1.1em; } .wd-family-count b { font-family: var(--font); font-size: 2.9em; line-height: 1; margin-right: 0.375em; }
+.wd-family-sub { margin: 0; color: var(--muted); font-size: .9em; }
+
+/* ───────── health card: shield with a pulse ───────── */
+.wd-health { display: flex; flex-direction: column; align-items: flex-start; gap: 0.875em; }
+.wd-shield { position: relative; display: grid; place-items: center; width: 6.875em; height: 6.875em; margin-left: 0.375em; border-radius: 50%; color: var(--t); background: linear-gradient(160deg, var(--surface), var(--ts)); box-shadow: 0 0.875em 1.5em -0.75em var(--t), inset 0 1px 0 #fff; }
+.wd-shield span { position: absolute; inset: 0; border-radius: 50%; border: 0.1875em solid var(--t); opacity: 0; animation: wd-ring 2.8s ease-out infinite; }
+.wd-shield span + span { animation-delay: 1.4s; }
+.wd-health ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5em; }
+.wd-health li { display: inline-flex; align-items: center; gap: 0.375em; padding: 0.5em 0.875em; border-radius: 62.4375em; background: var(--ts); color: var(--t); font-weight: 700; font-size: .88em; }
+.wd-health-note { margin: 0; color: var(--muted); font-size: .84em; }
+
+/* ───────── account card ───────── */
+.wd-account { display: flex; flex-direction: column; align-items: flex-start; gap: 0.25em; }
+.wd-me { display: grid; place-items: center; width: 6em; height: 6em; margin-bottom: 0.5em; border-radius: 50%; font-family: var(--font-head); font-size: 2.6em; color: var(--primary-ink); background: var(--primary); box-shadow: 0 0.875em 1.5em -0.75em var(--primary-dark); }
+.wd-account-name { margin: 0; font-family: var(--font-head); font-size: 1.8em; }
+.wd-account-mail { margin: 0 0 0.5em; color: var(--muted); font-size: .9em; overflow-wrap: anywhere; }
+
+/* ───────── round soft buttons ───────── */
+.wd-actions { display: flex; flex-wrap: wrap; gap: 0.875em; }
+.wd-round { display: flex; flex-direction: column; align-items: center; gap: 0.375em; background: none; border: 0; padding: 0; cursor: pointer; font: inherit; color: var(--text); text-decoration: none; touch-action: manipulation; }
+.wd-round:hover { text-decoration: none; }
+.wd-round-btn {
+  display: grid; place-items: center; width: 3.625em; height: 3.625em; border-radius: 50%; color: var(--t);
+  background: linear-gradient(160deg, var(--surface), var(--ts));
+  box-shadow: 0 0.625em 1em -0.625em color-mix(in srgb, var(--t) 80%, #000), inset 0 1px 0 #fff, inset 0 -0.1875em 0 color-mix(in srgb, var(--t) 12%, transparent);
+  transition: transform .25s cubic-bezier(.3, 1.5, .5, 1);
+}
+.wd-round:hover .wd-round-btn { transform: translateY(-0.1875em) scale(1.06); }
+.wd-round:active .wd-round-btn { transform: scale(.94); }
+.wd-round:focus-visible { outline: none; }
+.wd-round:focus-visible .wd-round-btn { outline: 0.1875em solid var(--t); outline-offset: 0.1875em; }
+.wd-round-label { font-size: .78em; font-weight: 700; max-width: 5.25em; text-align: center; line-height: 1.25; }
+
+.wd-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 0.625em; width: 100%; padding: 0.625em 0.875em; border-radius: 1.125em; background: var(--bad-soft); font-weight: 700; }
+.wd-confirm span { flex: 1 1 100%; color: var(--bad); }
+.wd-confirm button { min-height: 2.75em; padding: 0 1.125em; border-radius: 62.4375em; font: inherit; font-weight: 700; cursor: pointer; border: 0; }
+.wd-yes { background: var(--bad); color: #fff; }
+.wd-no { background: var(--surface); color: var(--text); border: 1.5px solid var(--border-strong) !important; }
+
+@keyframes wd-wheel { 0% { transform: translateY(0); opacity: 1; } 70% { transform: translateY(10px); opacity: 0; } 100% { opacity: 0; } }
+@keyframes wd-float { 50% { transform: translateY(-10px); } }
+@keyframes wd-blink { 50% { opacity: .25; } }
+@keyframes wd-pop { from { opacity: 0; transform: scale(.4); } }
+@keyframes wd-ring { 0% { transform: scale(.9); opacity: .6; } 100% { transform: scale(1.7); opacity: 0; } }
+@keyframes wd-drive { 0% { left: 0; } 70%, 100% { left: calc(100% - 40px); } }
+@keyframes wd-drive-line { 0% { width: 0; } 70%, 100% { width: 100%; } }
+
+@media (max-width: 460px) {
+  .wd { padding: 1.125em 1em 0.875em; }
+  .wd-order-art { width: 38%; } .o-bubble { transform: scale(.8); }
+  .wd-avatars span { width: 3.875em; height: 3.875em; font-size: 1.6em; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd, .wd-round-btn, .hub-dots button, .wd-go, .wd .wd-mark-line i, .wd-notes li { transition: none !important; }
+  .o-bubble, .wd-note-dot, .wd-shield span, .wd-track.go .wd-truck, .wd-track.go .wd-track-line i, .wd-avatars span, .hub-hint-scroll i::after { animation: none !important; }
+  .wd-notes li { opacity: 1; transform: none; }
+}
+
+/* icons follow the card scale (the Icon component sets fixed pixel sizes) */
+.wd-ico svg { width: 1.7em; height: 1.7em; }
+.wd-round-btn svg { width: 1.5em; height: 1.5em; }
+.wd-note-ico svg { width: 1.25em; height: 1.25em; }
+.wd-go svg, .wd-track-note svg, .wd-health li svg, .wd-foot svg { width: 1.1em; height: 1.1em; }
+.o-bubble svg { width: 1.9em; height: 1.9em; }
+.wd-shield svg { width: 3.5em; height: 3.5em; }
+.wd-truck svg { width: 1.7em; height: 1.7em; }

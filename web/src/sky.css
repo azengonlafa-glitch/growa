@@ -1,0 +1,192 @@
+/* Sky scene (components/SkyScene.jsx) and how a page restyles itself on top of it (body.sky-page).
+   Only transform/opacity animate. Night mode turns it into a dusk sky. */
+
+.sky {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background: linear-gradient(180deg, #2f7fd6 0%, #5fa6ec 30%, #9fcff7 62%, #d9eeff 85%, #f2f9ff 100%);
+}
+.sky-defs { position: absolute; }
+.sky-sun {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 84% 9%, #fffef6 0 2.2%, rgb(255 249 222 / 95%) 3.6%, rgb(255 238 178 / 45%) 9%, rgb(255 230 160 / 0%) 30%),
+    radial-gradient(ellipse 60% 40% at 84% 6%, rgb(255 244 205 / 35%), transparent 70%);
+}
+.sky-rays { /* soft god-rays turning very slowly around the sun */
+  position: absolute; left: 84%; top: 9%; width: 240vmax; height: 240vmax; margin: -120vmax 0 0 -120vmax;
+  background: repeating-conic-gradient(from 0deg, rgb(255 255 255 / 9%) 0deg 3deg, transparent 3deg 11deg);
+  -webkit-mask: radial-gradient(circle, #000 0%, transparent 38%); mask: radial-gradient(circle, #000 0%, transparent 38%);
+  animation: sky-turn 240s linear infinite;
+}
+.sky-haze { position: absolute; inset: auto 0 0 0; height: 32vh; background: linear-gradient(0deg, rgb(255 255 255 / 70%), transparent); }
+
+/* clouds: three stacked shapes (shadow, body, top light) roughened by the turbulence filter */
+.cloud {
+  position: absolute; left: 0; top: var(--top); width: var(--w); aspect-ratio: 2.4;
+  animation: sky-drift var(--dur) linear var(--delay) infinite; will-change: transform;
+}
+.cloud > span { position: absolute; border-radius: 50%; filter: var(--f); }
+.cloud-shade { inset: 30% 6% 0 10%; background: radial-gradient(ellipse at 50% 30%, #c9d8ea 40%, rgb(170 192 220 / 0%) 70%); }
+.cloud-body { inset: 8% 4% 14% 0; background: radial-gradient(ellipse at 45% 55%, #fff 42%, rgb(255 255 255 / 0%) 70%); }
+.cloud-light { inset: 0 24% 40% 18%; background: radial-gradient(ellipse at 50% 60%, #fff 30%, rgb(255 255 255 / 0%) 68%); opacity: .95; }
+.cloud-far { opacity: .55; }
+.cloud-far > span { filter: var(--f) blur(2px); }
+.cloud-mid { opacity: .8; }
+.cloud-near { opacity: .92; }
+.cloud-near > span { filter: var(--f) blur(1px); }
+
+/* pigeons: cross the sky in a loose flock, wings flapping, a gentle rise and fall */
+.pigeon {
+  position: absolute; left: 0; top: var(--top); width: 60px; height: 40px;
+  animation: pigeon-fly var(--dur) linear var(--delay) infinite; will-change: transform;
+}
+.pigeon svg { display: block; transform: scale(var(--s)); filter: drop-shadow(0 6px 4px rgb(30 60 110 / 18%)); animation: pigeon-bob 1.6s ease-in-out infinite; }
+.pigeon-wing { transform-box: fill-box; transform-origin: 30% 100%; animation: pigeon-flap .34s ease-in-out infinite alternate; }
+.pigeon-wing-far { animation-delay: -.06s; }
+
+/* sun bloom breathes a little */
+.sky-sun { animation: sun-breathe 9s ease-in-out infinite; }
+
+/* faint rainbow arc low on the left, behind the clouds */
+.sky-rainbow {
+  position: absolute; left: -30vw; bottom: -70vh; width: 120vw; height: 120vw; border-radius: 50%; opacity: .5;
+  background: radial-gradient(circle, transparent 60%, rgb(255 90 90 / 22%) 61%, rgb(255 180 70 / 22%) 62.4%, rgb(255 240 110 / 22%) 63.8%,
+    rgb(110 220 130 / 22%) 65.2%, rgb(90 170 255 / 22%) 66.6%, rgb(170 120 255 / 20%) 68%, transparent 69.5%);
+  -webkit-mask: linear-gradient(180deg, #000 20%, transparent 55%); mask: linear-gradient(180deg, #000 20%, transparent 55%);
+  animation: rainbow-glow 14s ease-in-out infinite;
+}
+
+/* lens flare: soft discs on the line from the sun toward the middle */
+.sky-flare { position: absolute; border-radius: 50%; translate: -50% -50%; filter: blur(1px); mix-blend-mode: screen; animation: flare-pulse 7s ease-in-out calc(var(--i) * -1.6s) infinite; }
+
+/* horizon cloud bank: big, slow, swaying */
+.sky-bank { position: absolute; left: 0; right: 0; bottom: -6vh; height: 34vh; }
+.bank-cloud {
+  position: absolute; bottom: 0; width: var(--w); aspect-ratio: 2.2;
+  animation: bank-sway 26s ease-in-out calc(var(--i) * -6s) infinite alternate; will-change: transform;
+}
+.bank-cloud > span { position: absolute; border-radius: 50%; filter: var(--f); }
+
+/* distant birds: tiny strokes */
+.far-bird { position: absolute; left: 0; top: var(--top); animation: pigeon-fly var(--dur) linear var(--delay) infinite; will-change: transform; }
+.far-bird svg { display: block; transform: scale(var(--s)); opacity: .6; }
+.far-bird path { transform-box: fill-box; transform-origin: center; animation: bird-flap .45s ease-in-out infinite alternate; }
+
+/* hot-air balloon drifting far away, slowly rising and falling */
+.balloon { position: absolute; left: 8vw; top: 18vh; width: clamp(60px, 7vw, 120px); animation: balloon-float 18s ease-in-out infinite alternate; }
+.balloon svg { width: 100%; height: auto; filter: drop-shadow(0 14px 14px rgb(20 60 120 / 22%)); opacity: .92; animation: balloon-tilt 7s ease-in-out infinite; transform-origin: 50% 0; }
+@media (min-width: 900px) { .balloon { left: 12vw; top: 24vh; } }
+
+/* delivery drone crossing with a medicine box */
+.drone { position: absolute; left: 0; top: 30vh; width: clamp(70px, 6vw, 110px); animation: drone-fly 34s linear -8s infinite; will-change: transform; }
+.drone svg { width: 100%; height: auto; filter: drop-shadow(0 10px 8px rgb(20 50 90 / 25%)); animation: drone-hover 2.4s ease-in-out infinite; }
+.rotor { transform-box: fill-box; transform-origin: center; animation: rotor-spin .12s linear infinite alternate; }
+.rotor-b { animation-delay: -.06s; }
+.drone-led { animation: led-blink 1.2s steps(2) infinite; }
+
+/* floating light motes (stars at night) */
+.mote {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 30%, rgb(255 250 220 / 60%) 45%, transparent 70%);
+  box-shadow: 0 0 10px 2px rgb(255 248 220 / 55%);
+  animation: mote-rise var(--d) ease-in-out var(--delay) infinite;
+}
+
+@keyframes sun-breathe { 50% { opacity: .82; transform: scale(1.03); } }
+@keyframes rainbow-glow { 50% { opacity: .28; } }
+@keyframes flare-pulse { 50% { opacity: .45; transform: scale(1.18); } }
+@keyframes bank-sway { to { transform: translateX(-5vw); } }
+@keyframes bird-flap { to { transform: scaleY(-.4); } }
+@keyframes balloon-float { to { transform: translate(10vw, -7vh); } }
+@keyframes balloon-tilt { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+@keyframes drone-fly { from { transform: translate(115vw, 0); } 45% { transform: translate(40vw, -6vh); } 80%, to { transform: translate(-20vw, 4vh); } }
+@keyframes drone-hover { 50% { transform: translateY(-8px) rotate(-2deg); } }
+@keyframes rotor-spin { to { transform: scaleX(.25); } }
+@keyframes led-blink { 50% { opacity: .2; } }
+@keyframes mote-rise { 0% { opacity: 0; transform: translateY(0) scale(.6); } 25% { opacity: .9; } 75% { opacity: .7; } 100% { opacity: 0; transform: translateY(-14vh) scale(1.1); } }
+@keyframes sky-turn { to { transform: rotate(360deg); } }
+@keyframes sky-drift { from { transform: translateX(-70vw); } to { transform: translateX(130vw); } }
+@keyframes pigeon-fly { from { transform: translateX(-12vw); } 70%, to { transform: translateX(112vw); } }
+@keyframes pigeon-bob { 50% { transform: scale(var(--s)) translateY(-6px); } }
+@keyframes pigeon-flap { from { transform: scaleY(1); } to { transform: scaleY(-.75); } }
+
+/* night: dusk sky, moon instead of sun, dimmer clouds, no pigeons */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sky { background: linear-gradient(180deg, #07122a 0%, #142c55 45%, #2c4c7c 80%, #45648f 100%); }
+  :root:not([data-theme='light']) .sky-sun { background: radial-gradient(circle at 84% 9%, #f4f7ff 0 1.6%, rgb(210 225 255 / 40%) 3%, transparent 14%); }
+  :root:not([data-theme='light']) .sky-rays, :root:not([data-theme='light']) .pigeon, :root:not([data-theme='light']) .far-bird,
+  :root:not([data-theme='light']) .sky-rainbow, :root:not([data-theme='light']) .sky-flare { display: none; }
+  :root:not([data-theme='light']) .balloon, :root:not([data-theme='light']) .bank-cloud { opacity: .35; }
+  :root:not([data-theme='light']) .mote { box-shadow: 0 0 6px 1px rgb(200 220 255 / 60%); }
+  :root:not([data-theme='light']) .cloud { opacity: .28; }
+  :root:not([data-theme='light']) .sky-haze { background: linear-gradient(0deg, rgb(10 25 50 / 60%), transparent); }
+}
+:root[data-theme='dark'] .sky { background: linear-gradient(180deg, #07122a 0%, #142c55 45%, #2c4c7c 80%, #45648f 100%); }
+:root[data-theme='dark'] .sky-sun { background: radial-gradient(circle at 84% 9%, #f4f7ff 0 1.6%, rgb(210 225 255 / 40%) 3%, transparent 14%); }
+:root[data-theme='dark'] .sky-rays, :root[data-theme='dark'] .pigeon, :root[data-theme='dark'] .far-bird,
+:root[data-theme='dark'] .sky-rainbow, :root[data-theme='dark'] .sky-flare { display: none; }
+:root[data-theme='dark'] .balloon, :root[data-theme='dark'] .bank-cloud { opacity: .35; }
+:root[data-theme='dark'] .mote { box-shadow: 0 0 6px 1px rgb(200 220 255 / 60%); }
+:root[data-theme='dark'] .cloud { opacity: .28; }
+:root[data-theme='dark'] .sky-haze { background: linear-gradient(0deg, rgb(10 25 50 / 60%), transparent); }
+
+/* ───────── the page on top of the sky: frosted glass, white header ───────── */
+.sky-page .backdrop { display: none; }
+.sky-page .flow-title { background: none; color: #fff; text-shadow: 0 2px 14px rgb(15 50 110 / 45%); }
+.sky-page .flow-step { color: rgb(255 255 255 / 92%); text-shadow: 0 1px 8px rgb(15 50 110 / 40%); }
+.sky-page .flow-top .round-btn { background: rgb(255 255 255 / 55%); border-color: rgb(255 255 255 / 70%); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.sky-page .flow-dots span { background: rgb(255 255 255 / 40%); }
+.sky-page .flow-dots span.on { background: #fff; animation: none; }
+@media (min-width: 900px) {
+  .sky-page .flow:not(.flow-wide) .flow-body {
+    background: rgb(255 255 255 / 22%); border-color: rgb(255 255 255 / 55%);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 30px 60px -30px rgb(20 60 120 / 45%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sky *, .sky-sun { animation: none !important; }
+  .pigeon, .far-bird, .drone, .mote { display: none; }
+}
+
+/* ───────── storybook countryside (SkyScene nature mode, components/Storybook.jsx) ───────── */
+.sky-bank[hidden], .sky-haze[hidden] { display: none; }
+.sky-nature { background: linear-gradient(180deg, #1478e0 0%, #3d9ef2 30%, #8ccdfd 52%, #d4effe 66%, #eaf8ff 72%); }
+.sky-nature .sky-rainbow, .sky-nature .pigeon { display: none; }
+.sky-nature .far-bird path { stroke: #fff; }
+.sky-nature .far-bird svg { opacity: .95; filter: drop-shadow(0 2px 2px rgb(20 60 120 / 25%)); }
+.sky-nature .balloon { left: 20vw; top: 11vh; }
+.sky-nature .cloud-near { opacity: 1; }
+
+.storybook { position: absolute; inset: 0; }
+.sb-land { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 66vh; }
+.sb-branch { position: absolute; left: 0; top: 0; width: min(52vw, 780px); height: auto; transform-origin: 0 0; }
+.sb-bush-l { position: absolute; left: -2vw; bottom: -2vh; width: min(42vw, 600px); height: auto; }
+.sb-corner-r { position: absolute; right: -1vw; bottom: -2vh; width: min(44vw, 660px); height: auto; }
+@media (max-width: 700px) {
+  .sb-branch { width: 78vw; top: -4vh; }
+  .sb-bush-l { width: 70vw; }
+  .sb-corner-r { width: 72vw; right: -18vw; }
+}
+
+.sb-sway { transform-box: fill-box; transform-origin: 0 50%; animation: sb-sway 7s ease-in-out infinite; }
+.daisy-g.sb-nod { animation: sb-nod 5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.sb-shimmer { animation: sb-shimmer 3.5s ease-in-out var(--d, 0s) infinite; }
+.sb-land .blade { transform-box: fill-box; transform-origin: 50% 100%; animation: blade-sway 3s ease-in-out var(--d, 0s) infinite; }
+.sb-falling { position: absolute; top: -6vh; animation: sb-fall var(--d) linear var(--delay) infinite; }
+.sb-falling svg { display: block; scale: var(--s); animation: sb-spin 3s ease-in-out infinite alternate; }
+
+@keyframes sb-sway { 0%, 100% { rotate: 0deg; } 50% { rotate: 1.3deg; } }
+@keyframes sb-nod { 0%, 100% { rotate: -5deg; } 50% { rotate: 6deg; } }
+@keyframes sb-shimmer { 0%, 100% { opacity: .2; translate: -10px 0; } 50% { opacity: .9; translate: 10px 0; } }
+@keyframes blade-sway { 0%, 100% { rotate: -6deg; } 50% { rotate: 7deg; } }
+@keyframes sb-fall { from { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } to { transform: translate(26vw, 110vh); opacity: 0; } }
+@keyframes sb-spin { from { rotate: -40deg; } to { rotate: 60deg; } }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .storybook { filter: brightness(.5) saturate(.85); }
+  :root:not([data-theme='light']) .sky-nature { background: linear-gradient(180deg, #07122a 0%, #142c55 45%, #2c4c7c 80%, #45648f 100%); }
+}
+:root[data-theme='dark'] .storybook { filter: brightness(.5) saturate(.85); }
+:root[data-theme='dark'] .sky-nature { background: linear-gradient(180deg, #07122a 0%, #142c55 45%, #2c4c7c 80%, #45648f 100%); }
+@media (prefers-reduced-motion: reduce) { .sb-falling { display: none; } }

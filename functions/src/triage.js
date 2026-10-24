@@ -255,6 +255,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   let suggestedCatalogIds = [];
   let healthNotes = [];
   let healthMissing = false;
+  let healthBasis = [];
 
   if (flag) {
     reply = EMERGENCY_REPLY[flag];
@@ -285,6 +286,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
         suggestedCatalogIds = suggestedCatalogIds.filter((id) => !insight.blocked.some((b) => b.catalogId === id));
         healthNotes = [...insight.blocked.map((b) => b.reason), ...insight.notes];
         healthMissing = insight.missing;
+        healthBasis = insight.basis;
       }
       if (route === 'emergency' && !out.reply.includes('1669')) reply = `${out.reply}\n\n${EMERGENCY_REPLY.emergency}`;
     }
@@ -310,7 +312,7 @@ export const triageSendMessage = onCall({ secrets: [GEMINI_API_KEY] }, async (re
   });
   if (redFlag) audit(batch, { actorUid: uid, action: 'triage.redFlag', targetPath: ref.path, reason: flag ?? 'model' });
   await batch.commit();
-  return { reply, route, aiUnavailable, suggestedCatalogIds, healthNotes, healthMissing };
+  return { reply, route, aiUnavailable, suggestedCatalogIds, healthNotes, healthMissing, healthBasis };
 });
 
 export const triageShareWithPharmacy = onCall(async (req) => {

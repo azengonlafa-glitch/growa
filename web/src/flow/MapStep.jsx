@@ -9,9 +9,11 @@ import { useSession } from '../lib/session.js';
 import { loadPrefs } from '../lib/prefs.js';
 import { fetchRoute } from '../lib/route.js';
 import { Button, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
+import NavPill from '../components/NavPill.jsx';
 import FlowMap from './FlowMap.jsx';
 import StoreInfo from './StoreInfo.jsx';
 import { useFlow } from './state.jsx';
+import './journal.css';
 
 const RADIUS_KM = 50;
 const VICTORY_MONUMENT = { lat: 13.765, lng: 100.5381 };
@@ -129,16 +131,21 @@ export default function MapStep() {
           <span className="map-step">ขั้นที่ 1 จาก 5 · เลือกร้าน</span>
           <h1>เลือกร้านยาใกล้คุณ</h1>
         </div>
-        <a className="round-btn" href="#/care" aria-label="โฮมแคร์และเมนู"><Icon name="people" /></a>
+        <NavPill />
       </header>
 
       <button type="button" className="map-fab" style={{ bottom: inset.left ? 28 : inset.bottom + 14 }} onClick={locate} aria-label="ไปที่ตำแหน่งของฉัน">
         <Icon name="locate" size={26} />
       </button>
 
-      <section className="map-sheet" ref={sheet} aria-label="ร้านยาใกล้คุณ">
+      <section className="map-sheet journal" ref={sheet} aria-label="ร้านยาใกล้คุณ">
         <span className="sheet-grab" aria-hidden />
+        <span className="jr-tabs" aria-hidden><i /><i /><i /><i /></span>
+        <span className="jr-ribbon" aria-hidden />
+        <span className="jr-pen" aria-hidden><i /></span>
+        <span className="jr-cover" aria-hidden />
         <div className="sheet-scroll">
+          <JournalDate />
           {staffOf.length ? (
             <a className="tile tile-peach" href="#/pharmacist" style={{ flexDirection: 'row', alignItems: 'center' }}>
               <span className="tile-icon"><Icon name="list" /></span>
@@ -209,6 +216,7 @@ export default function MapStep() {
           </details>
         </div>
         <div className="sheet-cta">
+          <span className="jr-clover" aria-hidden><i /><i /><i /><i /></span>
           <Button size="lg" block disabled={!selected} busy={busy} onClick={next}>
             {selected ? `เลือก ${selected.name}` : 'แตะร้านบนแผนที่หรือในรายการ'}
           </Button>
@@ -224,6 +232,17 @@ export default function MapStep() {
           onChoose={() => { setSelectedId(infoId); closeInfo(); }}
         />
       ) : null}
+    </div>
+  );
+}
+
+// Diary header: bubble-letter stickers, a capsule sticker and a few sparkles. Decoration only.
+function JournalDate() {
+  return (
+    <div className="jr-date" aria-hidden>
+      <span className="jr-bubbles">{['ร้าน', 'ยา', 'ใกล้', 'ฉัน'].map((w, i) => <i key={w} style={{ '--i': i }}>{w}</i>)}</span>
+      <span className="jr-pill"><svg viewBox="0 0 64 30" width="64" height="30"><rect x="2" y="2" width="60" height="26" rx="13" fill="#fff" stroke="#3a2a1f" strokeWidth="2.5" /><path d="M32 2h17a13 13 0 0 1 0 26H32z" fill="#ff7aa2" stroke="#3a2a1f" strokeWidth="2.5" /><path d="M10 10q4-3 9-2" stroke="#ffd0dc" strokeWidth="3" fill="none" strokeLinecap="round" /></svg></span>
+      <span className="jr-sparks"><i>✦</i><i>✧</i><i>✦</i></span>
     </div>
   );
 }

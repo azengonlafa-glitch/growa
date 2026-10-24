@@ -156,11 +156,15 @@ export default function ResultStep() {
           {result.healthNotes?.length ? (
             <Notice tone="warn" title="เชื่อมกับข้อมูลสุขภาพที่คุณกรอกไว้">
               <ul className="advice">{result.healthNotes.map((n) => <li key={n}>{n}</li>)}</ul>
+              {result.healthBasis?.length ? (
+                <p className="small">ดูจากข้อมูลที่บันทึกไว้: {result.healthBasis.join(', ')} · <a href="#/profile">แก้ไขข้อมูล</a></p>
+              ) : null}
+              <p className="small">เป็นข้อสังเกตเบื้องต้น ไม่ใช่การวินิจฉัย เภสัชกรหรือแพทย์เป็นผู้ประเมิน</p>
             </Notice>
           ) : null}
           {result.healthMissing ? (
             <Notice tone="info" title="ยังไม่มีข้อมูลแพ้ยาและโรคประจำตัว">
-              กรอกไว้เพื่อให้ระบบช่วยเตือนเรื่องยาและอาการที่เกี่ยวข้องได้ <a href="#/health">กรอกข้อมูลสุขภาพ</a>
+              กรอกไว้เพื่อให้ระบบช่วยเตือนเรื่องยาและอาการที่เกี่ยวข้องได้ <a href="#/profile">กรอกข้อมูลสุขภาพ</a>
             </Notice>
           ) : null}
           {result.warn.length ? (

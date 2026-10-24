@@ -2,6 +2,7 @@
 // pinned action bar at the bottom (like the confirm button in a ride-hailing app).
 import { useEffect } from 'react';
 import { Icon } from '../components/ui.jsx';
+import NavPill from '../components/NavPill.jsx';
 import { go } from '../lib/hooks.js';
 import { STEPS } from './state.jsx';
 
@@ -22,7 +23,7 @@ export default function FlowPage({ step, steps = STEPS, title, onBack, children,
           {step ? <span className="flow-step">ขั้นที่ {step} จาก {steps.length} · {steps[step - 1]}</span> : null}
           <h1 className="flow-title">{title}</h1>
         </div>
-        <a className="round-btn" href="#/care" aria-label="โฮมแคร์และเมนู"><Icon name="people" /></a>
+        <NavPill />
       </header>
       {step ? (
         <div className="flow-dots" role="img" aria-label={`ขั้นที่ ${step} จาก ${steps.length}`}>

@@ -11,6 +11,7 @@ import { Confetti } from '../components/Flair.jsx';
 import FlowPage from './FlowPage.jsx';
 import TrackMap from './TrackMap.jsx';
 import { PAYMENT_METHODS } from './CheckoutStep.jsx';
+import PayPanel from '../components/PayPanel.jsx';
 import { useFlow } from './state.jsx';
 
 const DEMO_BUTTON = !isProduction || import.meta.env.VITE_DEMO_SIMULATION === 'true';
@@ -88,12 +89,9 @@ function Payment({ order, flow }) {
           </button>
         ))}
       </div>
-      {method[0] === 'promptpay' ? (
-        <div className="qr-mock" role="img" aria-label="คิวอาร์โค้ดจำลองสำหรับพร้อมเพย์"><span>QR จำลอง</span></div>
-      ) : null}
+      <PayPanel order={order} method={method[0]} busy={busy} onPay={() => pay()} />
       <p className="muted small">ไม่มีการตัดเงินจริง ระบบชำระเงินนี้เป็นข้อมูลจำลองเพื่อสาธิตขั้นตอน</p>
       <ErrorText>{error}</ErrorText>
-      <Button size="lg" block busy={busy} onClick={() => pay()}>ชำระเงิน (จำลอง) · {baht(order.total)}</Button>
       {DEMO_BUTTON ? (
         <Button size="sm" variant="ghost" onClick={() => pay(true)} disabled={busy}>จำลองชำระเงินไม่สำเร็จ</Button>
       ) : null}
@@ -191,7 +189,7 @@ export default function OrderStep() {
             ) : null}
             {['awaiting_payment', 'payment_failed'].includes(order.status) ? <Payment order={order} flow={flow} /> : null}
             {['paid', 'preparing'].includes(order.status) ? (
-              <Notice tone="good" title={order.status === 'paid' ? 'ชำระเงินแล้ว รอร้านจัดยา' : 'ร้านกำลังจัดยา'}>
+              <Notice tone="good" title={<><span className="pp-ok" aria-hidden><Icon name="check" size={22} stroke={3} /></span>{order.status === 'paid' ? 'ชำระเงินแล้ว รอร้านจัดยา' : 'ร้านกำลังจัดยา'}</>}>
                 {PAYMENT_METHODS.find(([id]) => id === order.paymentMethod)?.[1] ? `ช่องทาง ${PAYMENT_METHODS.find(([id]) => id === order.paymentMethod)[1]} · ` : ''}รหัสชำระเงิน (จำลอง) <span className="num">{order.paymentRef}</span>
               </Notice>
             ) : null}

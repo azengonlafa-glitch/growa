@@ -54,6 +54,27 @@ describe('health insight', () => {
     assert.equal(analyze(profile({ conditions: ['โรคไต'] }), { topic: 'fever', suggestedCatalogIds: ['para500'] }).blocked.length, 0);
   });
 
+  test('the rest of the setup form is used: other conditions, lifestyle and age', () => {
+    const notesFor = (p, ctx) => analyze(profile(p), ctx).notes;
+    assert.ok(notesFor({ conditions: ['ซึมเศร้า / วิตกกังวล'] }, { topic: topicOfOutcome('insomnia') }).some((n) => /ซึมเศร้า/.test(n)));
+    assert.ok(notesFor({ conditions: ['ไทรอยด์'] }, { topic: 'stomach', outcomeId: 'constipation_simple' }).some((n) => /ไทรอยด์/.test(n)));
+    assert.equal(notesFor({ conditions: ['ไทรอยด์'] }, { topic: 'stomach', outcomeId: 'dyspepsia' }).length, 0);
+    assert.ok(notesFor({ conditions: ['ลมชัก'] }, { topic: 'fever' }).some((n) => /ชัก/.test(n)));
+    assert.ok(notesFor({ conditions: ['กระดูกพรุน'] }, { topic: 'pain' }).some((n) => /กระดูก/.test(n)));
+    assert.ok(notesFor({ conditions: ['เบาหวาน'] }, { topic: 'wound' }).some((n) => /แผล/.test(n)));
+    assert.ok(notesFor({ conditions: ['ภูมิแพ้'] }, { topic: topicOfOutcome('conjunctivitis_allergic') }).some((n) => /ภูมิแพ้/.test(n)));
+    assert.ok(notesFor({ smoking: 'current' }, { topic: 'respiratory' }).some((n) => /สูบบุหรี่/.test(n)));
+    assert.ok(notesFor({ alcohol: 'regular' }, { topic: 'fever', suggestedCatalogIds: ['para500'] }).some((n) => /แอลกอฮอล์/.test(n)));
+    assert.ok(notesFor({ age: 70 }, { topic: 'diarrhea' }).some((n) => /65/.test(n)));
+    assert.equal(notesFor({ age: 30, smoking: 'never' }, { topic: 'diarrhea' }).length, 0);
+  });
+
+  test('the data the notes were based on is returned', () => {
+    const a = analyze(profile({ conditions: ['เบาหวาน'], allergies: [{ substance: 'เพนิซิลลิน' }], currentMeds: ['Metformin 500 mg'] }), { topic: 'diarrhea' });
+    assert.deepEqual(a.basis, ['เบาหวาน', 'แพ้เพนิซิลลิน', 'ยา Metformin 500 mg']);
+    assert.deepEqual(applyInsight({ suggestedCatalogIds: [] }, a).healthBasis, a.basis);
+  });
+
   test('pregnancy is mentioned and nothing is ever added to the suggestions', () => {
     const a = analyze(profile(), { topic: 'fever', suggestedCatalogIds: ['para500'], pregnancy: 'pregnant' });
     assert.ok(a.notes.some((n) => /ตั้งครรภ์/.test(n)));

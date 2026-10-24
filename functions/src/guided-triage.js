@@ -16,7 +16,7 @@ async function withHealth(patientId, state) {
   const r = result(state);
   if (!r || r.route === 'emergency') return r;
   const insight = await loadHealthInsight(db, patientId, {
-    topic: topicOfOutcome(r.outcomeId), suggestedCatalogIds: r.suggestedCatalogIds, pregnancy: state.facts.pregnancy,
+    topic: topicOfOutcome(r.outcomeId), outcomeId: r.outcomeId, suggestedCatalogIds: r.suggestedCatalogIds, pregnancy: state.facts.pregnancy,
   });
   return applyInsight(r, insight);
 }

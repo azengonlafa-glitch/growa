@@ -30,6 +30,10 @@ const OUTCOME_TOPIC = [
   [/^(wound_|burn_)/, 'wound'],
   [/^(muscle_strain|back_pain|joint_|injury_)/, 'pain'],
   [/^(uti_|dysmenorrhea|vaginal_)/, 'urinary'],
+  [/^(conjunctivitis_|eye_)/, 'eye'],
+  [/^ear_/, 'ear'],
+  [/^(mouth_|toothache)/, 'mouth'],
+  [/^insomnia/, 'sleep'],
 ];
 export const topicOfOutcome = (id) => OUTCOME_TOPIC.find(([re]) => re.test(id ?? ''))?.[1] ?? 'other';
 
@@ -44,6 +48,7 @@ const COND = {
   bp: ['ความดัน'], diabetes: ['เบาหวาน'], heart: ['หัวใจ', 'หลอดเลือดสมอง'], kidney: ['ไต'], liver: ['ตับ'],
   asthma: ['หอบหืด', 'ถุงลมโป่งพอง', 'copd'], allergy: ['ภูมิแพ้'], gastric: ['กระเพาะ', 'กรดไหลย้อน'],
   gout: ['เกาต์'], immune: ['ภูมิคุ้มกัน', 'มะเร็ง'], blood: ['ละลายลิ่มเลือด'],
+  thyroid: ['ไทรอยด์'], epilepsy: ['ลมชัก'], mental: ['ซึมเศร้า', 'วิตกกังวล'], osteo: ['กระดูกพรุน'],
 };
 const STATIN = ['simvastatin', 'atorvastatin', 'rosuvastatin', 'ซิมวาสแตติน', 'อะทอร์วาสแตติน', 'โรสุวาสแตติน', 'สแตติน', 'statin'];
 const ACEI = ['enalapril', 'lisinopril', 'captopril', 'เอนาลาพริล', 'ไลซิโนพริล', 'แคปโตพริล'];
@@ -51,9 +56,10 @@ const METFORMIN = ['metformin', 'เมทฟอร์มิน'];
 
 const anyIn = (haystack, words) => words.some((w) => haystack.includes(norm(w)));
 
-// profile: { allergies: [{substance}], otherAllergies: [], conditions: [], currentMeds: [], noAllergies, noConditions, pregnancy }
-// ctx: { topic, suggestedCatalogIds, pregnancy }
-export function analyze(profile, { topic, suggestedCatalogIds = [], pregnancy = null }) {
+// profile: { allergies: [{substance}], otherAllergies: [], conditions: [], currentMeds: [], noAllergies, noConditions, pregnancy,
+//            age, smoking, alcohol }
+// ctx: { topic, outcomeId, suggestedCatalogIds, pregnancy } (outcomeId is only known for the guided checker)
+export function analyze(profile, { topic, outcomeId = '', suggestedCatalogIds = [], pregnancy = null }) {
   const allergyText = [...(profile.allergies ?? []).map((a) => a.substance), ...(profile.otherAllergies ?? [])].map(norm).filter(Boolean);
   const condText = (profile.conditions ?? []).map(norm).join('|');
   const medText = (profile.currentMeds ?? []).map(norm).join('|');
@@ -98,11 +104,40 @@ export function analyze(profile, { topic, suggestedCatalogIds = [], pregnancy = 
   add(topic === 'rash' && has('allergy'), 'คุณมีประวัติภูมิแพ้ ผื่นอาจเกี่ยวข้องกับสิ่งที่แพ้ ถ้าหน้า ปากบวม หรือหายใจลำบากให้โทร 1669 ทันที');
   add(topic === 'rash' && allergyText.length > 0, 'คุณมีประวัติแพ้ยา ถ้าผื่นเริ่มหลังกินยาใหม่ ให้หยุดยานั้นและแจ้งแพทย์หรือเภสัชกรทันที');
   add(topic === 'urinary' && has('diabetes'), 'เบาหวานทำให้ติดเชื้อทางเดินปัสสาวะซ้ำได้ง่าย ควรให้แพทย์ตรวจ ไม่ควรรักษาเอง');
+  add(['wound', 'rash'].includes(topic) && has('diabetes'), 'คุณเป็นเบาหวาน แผลและการติดเชื้อที่ผิวหนังหายช้าและลุกลามง่าย โดยเฉพาะที่เท้า ถ้าแผลบวมแดงหรือมีหนองให้พบแพทย์เร็ว');
+  add(topic === 'wound' && has('blood'), 'คุณใช้ยาละลายลิ่มเลือด แผลอาจเลือดหยุดยาก ถ้ากดห้ามเลือด 10 นาทีแล้วไม่หยุด ให้ไปโรงพยาบาล');
+  add(['diarrhea', 'stomach'].includes(topic) && has('kidney'), 'คุณมีโรคไต ท้องเสียหรืออาเจียนทำให้ขาดน้ำและไตทำงานแย่ลงได้เร็ว ถ้าปัสสาวะน้อยลงให้พบแพทย์');
+  add(['respiratory', 'eye'].includes(topic) && has('allergy'), 'คุณบันทึกว่าเป็นภูมิแพ้ อาการคัดจมูก จาม หรือคันตา อาจเป็นภูมิแพ้กำเริบ ลองนึกว่าช่วงนี้เจอฝุ่น ละอองเกสร หรือสิ่งที่แพ้หรือไม่');
+  add(topic === 'sleep' && has('mental'), 'คุณบันทึกว่ามีภาวะซึมเศร้าหรือวิตกกังวล นอนไม่หลับอาจเกี่ยวข้องกับภาวะนี้ ควรแจ้งแพทย์ที่ดูแลอยู่ ถ้ามีความคิดทำร้ายตัวเองให้โทร 1323');
+  add(topic === 'headache' && has('mental'), 'ความเครียดและวิตกกังวลที่คุณบันทึกไว้ อาจเกี่ยวข้องกับอาการปวดศีรษะแบบตึงรัด');
+  add(topic === 'sleep' && has('thyroid'), 'คุณมีโรคไทรอยด์ ภาวะไทรอยด์เป็นพิษอาจทำให้นอนไม่หลับ ใจสั่น ควรให้แพทย์ตรวจระดับไทรอยด์');
+  add(outcomeId.startsWith('constipation_') && has('thyroid'), 'คุณมีโรคไทรอยด์ ภาวะไทรอยด์ต่ำอาจทำให้ท้องผูกได้ ถ้าเป็นเรื้อรังควรแจ้งแพทย์');
+  add(['fever', 'sleep'].includes(topic) && has('epilepsy'), 'คุณบันทึกว่าเป็นลมชัก ไข้สูงและการอดนอนอาจกระตุ้นให้ชักได้ ใช้ยากันชักต่อตามเดิม ถ้าชักให้โทร 1669');
+  add(topic === 'pain' && has('osteo'), 'คุณมีกระดูกพรุน ปวดหลังหรือปวดหลังล้ม แม้ล้มเบา ๆ อาจเกี่ยวข้องกับกระดูกหักหรือยุบ ควรให้แพทย์ตรวจ');
+  add(topic === 'respiratory' && profile.smoking === 'current', 'คุณสูบบุหรี่อยู่ อาการไอและเจ็บคออาจเกี่ยวข้องกับการสูบบุหรี่ และทำให้หายช้า ถ้าไอเกิน 3 สัปดาห์หรือมีเลือดปนให้พบแพทย์');
+  add(['stomach', 'diarrhea'].includes(topic) && profile.alcohol === 'regular', 'คุณดื่มแอลกอฮอล์เป็นประจำ ซึ่งอาจเกี่ยวข้องกับอาการแสบท้อง คลื่นไส้ หรือท้องเสีย ควรงดระหว่างที่มีอาการ');
+  add(suggestedCatalogIds.includes('para500') && profile.alcohol === 'regular', 'คุณดื่มแอลกอฮอล์เป็นประจำ พาราเซตามอลจะเสี่ยงต่อตับมากขึ้น ให้ถามเภสัชกรก่อนใช้');
+  add(profile.age >= 65 && ['fever', 'diarrhea', 'stomach'].includes(topic), 'อายุ 65 ปีขึ้นไป ไข้ ท้องเสีย หรืออาเจียน ทำให้ขาดน้ำได้เร็ว ควรดื่มน้ำบ่อย ๆ และพบแพทย์ถ้ากินดื่มไม่ได้หรือซึมลง');
+  add(profile.age >= 65 && topic === 'dizziness', 'อายุ 65 ปีขึ้นไป เวียนศีรษะเสี่ยงต่อการล้ม ลุกช้า ๆ และแจ้งเภสัชกรเรื่องยาที่ใช้อยู่ทั้งหมด');
   add(['pregnant', 'breastfeeding'].includes(pregnancy ?? profile.pregnancy), 'คุณตั้งครรภ์หรือให้นมบุตร ยาหลายชนิดไม่เหมาะ ให้เภสัชกรเลือกยาให้ทุกครั้ง');
 
   const hasAnything = (profile.allergies ?? []).length || (profile.otherAllergies ?? []).length || (profile.conditions ?? []).length
     || (profile.currentMeds ?? []).length || profile.noAllergies || profile.noConditions;
-  return { notes: [...new Set(notes)], blocked, missing: !hasAnything };
+  // What the notes were based on, shown with them so the person can see (and correct) the data used.
+  const basis = [
+    ...(profile.conditions ?? []),
+    ...[...(profile.allergies ?? []).map((a) => a.substance), ...(profile.otherAllergies ?? [])].filter(Boolean).map((a) => `แพ้${a}`),
+    ...(profile.currentMeds ?? []).filter(Boolean).map((m) => `ยา ${m}`),
+  ];
+  return { notes: [...new Set(notes)], blocked, missing: !hasAnything, basis: [...new Set(basis)].slice(0, 12) };
+}
+
+// Whole years from an ISO birth date, or null.
+function ageFrom(iso) {
+  const [y, m, d] = typeof iso === 'string' ? iso.split('-').map(Number) : [];
+  if (!y) return null;
+  const now = new Date();
+  return now.getFullYear() - y - (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d) ? 1 : 0);
 }
 
 // Reads the profile and the active medicines, then runs analyze(). Never throws: a failed read just means no notes.
@@ -122,10 +157,13 @@ export async function loadHealthInsight(db, patientId, ctx) {
       noAllergies: history.noAllergies === true,
       noConditions: history.noConditions === true,
       pregnancy: h.about?.pregnancy ?? null,
+      age: ageFrom(h.about?.birthDate),
+      smoking: h.about?.smoking ?? null,
+      alcohol: h.about?.alcohol ?? null,
     };
     return analyze(profile, ctx);
   } catch {
-    return { notes: [], blocked: [], missing: false };
+    return { notes: [], blocked: [], missing: false, basis: [] };
   }
 }
 
@@ -137,5 +175,6 @@ export function applyInsight(result, insight) {
     suggestedCatalogIds: (result.suggestedCatalogIds ?? []).filter((id) => !dropped.has(id)),
     healthNotes: [...insight.blocked.map((b) => b.reason), ...insight.notes],
     healthMissing: insight.missing,
+    healthBasis: insight.basis ?? [],
   };
 }
