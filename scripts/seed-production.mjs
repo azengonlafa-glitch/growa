@@ -43,8 +43,13 @@ const db = getFirestore();
 const auth = getAuth();
 
 await seedCatalogAndPharmacies(db);
-const count = await seedDirectory(db);
-console.log(`Seeded catalog, 2 sample partner pharmacies and ${count} FDA-licensed pharmacies.`);
+if (args.includes('--skip-directory')) {
+  // The 3,260 directory writes are a lot on the free plan; skip them when only the catalog/products changed.
+  console.log('Seeded catalog and 2 sample partner pharmacies (directory skipped).');
+} else {
+  const count = await seedDirectory(db);
+  console.log(`Seeded catalog, 2 sample partner pharmacies and ${count} FDA-licensed pharmacies.`);
+}
 
 if (args.includes('--admin-email')) {
   const user = await auth.getUserByEmail(flag('--admin-email'));
