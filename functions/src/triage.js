@@ -103,7 +103,10 @@ async function patientContext(patientId) {
 // bad JSON) so the caller sends the user to a pharmacist instead of failing.
 async function askGemini(context, history) {
   const key = GEMINI_API_KEY.value();
-  if (!key) return null;
+  if (!key) {
+    console.error('gemini key missing');
+    return null;
+  }
   const contents = history.map((m, i) => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: i === 0 ? `[ข้อมูลผู้ป่วยจากระบบ]
@@ -124,17 +127,23 @@ ${m.text}` : m.text }],
       }),
       signal: AbortSignal.timeout(20000),
     });
-  } catch {
+  } catch (err) {
+    console.error('gemini request failed', err?.name, err?.message);
     return null;
   }
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error('gemini http', res.status, (await res.text().catch(() => '')).slice(0, 300));
+    return null;
+  }
   try {
     const body = await res.json();
     const out = JSON.parse(body.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
     const ok = typeof out.reply === 'string' && ['continue', 'info', 'pharmacist', 'emergency'].includes(out.route)
       && typeof out.redFlag === 'boolean' && out.summary && typeof out.summary === 'object';
+    if (!ok) console.error('gemini bad shape', JSON.stringify(out).slice(0, 200));
     return ok ? out : null;
-  } catch {
+  } catch (err) {
+    console.error('gemini parse failed', err?.message);
     return null;
   }
 }
