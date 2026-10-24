@@ -11,3 +11,6 @@ web/dist/
 *service-account*.json
 .vercel/
 .claude/
+
+.vercel
+.env*
