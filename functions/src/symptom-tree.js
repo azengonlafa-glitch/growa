@@ -30,6 +30,11 @@ export const OUTCOMES = {
     route: 'emergency',
     advice: ['โทร 1669 หรือไปห้องฉุกเฉินที่ใกล้ที่สุดทันที', 'ไม่ควรรอสั่งยาออนไลน์', 'ถ้าอยู่คนเดียวให้แจ้งคนใกล้ตัวช่วย'],
   },
+  red_flag_urgent: {
+    title: 'อาการนี้ควรได้รับการตรวจจากแพทย์ภายในวันนี้',
+    route: 'urgent',
+    advice: ['ไปพบแพทย์หรือห้องฉุกเฉินภายในวันนี้ เพื่อตรวจหาสาเหตุ', 'ไม่ควรรอดูอาการที่บ้านหรือสั่งยาเอง', 'ถ้าอาการแย่ลง หรือมีอาการอื่นเพิ่ม โทร 1669 ทันที'],
+  },
   mental_health: {
     title: 'ต้องการความช่วยเหลือด้านสุขภาพจิตโดยเร็ว',
     route: 'emergency',
@@ -489,23 +494,92 @@ const DURATION_DAYS = (prefix, longOutcome = 'outcome:long_duration_doctor') => 
 export const START = 'red_flags';
 
 export const NODES = {
-  // Step 1: universal red flags before anything else.
+  // Step 1: universal red flags before anything else. One symptom per option. Symptoms that need a closer
+  // look open a short follow-up page (rf_*); the follow-ups only ever go to emergency or "see a doctor today",
+  // never to self-care, and "not sure" always means emergency. Several follow-up symptoms together are
+  // treated as an emergency (see answer() in symptom-engine.js).
   red_flags: {
     type: 'multi',
     text: 'ตอนนี้ผู้ป่วยมีอาการต่อไปนี้ข้อใดบ้าง',
     help: 'เลือกได้หลายข้อ ถ้าไม่มีให้เลือก "ไม่มีอาการเหล่านี้"',
     to: 'age',
     options: [
-      { label: 'หายใจลำบาก หอบเหนื่อย หรือริมฝีปากเขียว', to: 'outcome:emergency' },
-      { label: 'เจ็บแน่นหน้าอก หรือเจ็บร้าวไปแขน กราม', to: 'outcome:emergency' },
-      { label: 'หมดสติ ชัก สับสน หรือซึมจนปลุกไม่ค่อยตื่น', to: 'outcome:emergency' },
-      { label: 'แขนขาอ่อนแรงครึ่งซีก ปากเบี้ยว หรือพูดไม่ชัดทันที', to: 'outcome:emergency' },
-      { label: 'อาเจียนเป็นเลือด ไอเป็นเลือด ถ่ายเป็นเลือดหรืออุจจาระดำ หรือเลือดออกไม่หยุด', to: 'outcome:emergency' },
-      { label: 'หน้า ปาก ลิ้น หรือคอบวม หรือผื่นทั้งตัวร่วมกับหน้ามืด', to: 'outcome:emergency' },
-      { label: 'ได้รับอุบัติเหตุรุนแรง หรือศีรษะกระแทกแล้วอาเจียนหรือซึม', to: 'outcome:emergency' },
-      { label: 'กินยาเกินขนาด หรือได้รับสารพิษ', to: 'outcome:emergency' },
-      { label: 'มีความคิดอยากทำร้ายตัวเองหรืออยากตาย', to: 'outcome:mental_health' },
+      { label: 'หายใจลำบาก หรือหอบเหนื่อย', to: 'rf_breath' },
+      { label: 'ริมฝีปากหรือปลายนิ้วเขียวคล้ำ', to: 'outcome:emergency' },
+      { label: 'เจ็บแน่นหน้าอก', to: 'rf_chest' },
+      { label: 'หมดสติ ไม่รู้สึกตัว', to: 'outcome:emergency' },
+      { label: 'ชัก', to: 'outcome:emergency' },
+      { label: 'สับสน พูดจาไม่รู้เรื่อง', to: 'outcome:emergency' },
+      { label: 'ซึมมาก ปลุกไม่ค่อยตื่น', to: 'outcome:emergency' },
+      { label: 'แขนหรือขาอ่อนแรงครึ่งซีก', to: 'outcome:emergency' },
+      { label: 'ปากเบี้ยวขึ้นมาทันที', to: 'outcome:emergency' },
+      { label: 'พูดไม่ชัดขึ้นมาทันที', to: 'outcome:emergency' },
+      { label: 'อาเจียนเป็นเลือด', to: 'outcome:emergency' },
+      { label: 'ไอเป็นเลือด', to: 'rf_cough_blood' },
+      { label: 'ถ่ายเป็นเลือด หรืออุจจาระสีดำ', to: 'rf_stool_blood' },
+      { label: 'เลือดออกไม่หยุด', to: 'outcome:emergency' },
+      { label: 'ลิ้นหรือคอบวม', to: 'outcome:emergency' },
+      { label: 'หน้าหรือปากบวม', to: 'outcome:emergency' },
+      { label: 'ผื่นขึ้นทั้งตัวร่วมกับหน้ามืด', to: 'outcome:emergency' },
+      { label: 'ศีรษะถูกกระแทกแรง', to: 'rf_head_injury' },
+      { label: 'ได้รับอุบัติเหตุรุนแรง', to: 'outcome:emergency' },
+      { label: 'กินยาเกินขนาด', to: 'outcome:emergency' },
+      { label: 'ได้รับสารพิษ', to: 'outcome:emergency' },
+      { label: 'คิดอยากทำร้ายตัวเองหรืออยากตาย', to: 'outcome:mental_health' },
       { label: 'ไม่มีอาการเหล่านี้', exclusive: true },
+    ],
+  },
+
+  // Follow-up pages for red flags that need a closer look.
+  rf_breath: {
+    type: 'single',
+    text: 'หายใจลำบากแบบไหน',
+    options: [
+      { label: 'หอบมาก พูดได้ไม่ครบประโยค', to: 'outcome:emergency' },
+      { label: 'หายใจเร็วและแน่นขึ้นเรื่อย ๆ', to: 'outcome:emergency' },
+      { label: 'เหนื่อยง่ายกว่าปกติ แต่พักแล้วดีขึ้น', to: 'outcome:red_flag_urgent' },
+      { label: 'ไม่แน่ใจ', to: 'outcome:emergency' },
+    ],
+  },
+  rf_chest: {
+    type: 'single',
+    text: 'เจ็บหน้าอกลักษณะไหน',
+    help: 'เลือกข้อที่ใกล้เคียงที่สุด',
+    options: [
+      { label: 'แน่น เหมือนมีของหนักทับ หรือบีบรัด', to: 'outcome:emergency' },
+      { label: 'เจ็บร้าวไปแขน กราม คอ หรือหลัง', to: 'outcome:emergency' },
+      { label: 'เจ็บร่วมกับเหงื่อออก คลื่นไส้ หรือหน้ามืด', to: 'outcome:emergency' },
+      { label: 'เจ็บจี๊ดเฉพาะจุด กดหรือขยับแล้วเจ็บ ไม่มีอาการอื่น', to: 'outcome:red_flag_urgent' },
+      { label: 'ไม่แน่ใจ', to: 'outcome:emergency' },
+    ],
+  },
+  rf_cough_blood: {
+    type: 'single',
+    text: 'ไอเป็นเลือดมากแค่ไหน',
+    options: [
+      { label: 'เลือดสดเป็นก้อน หรือปริมาณมาก', to: 'outcome:emergency' },
+      { label: 'มีเลือดปนเสมหะเล็กน้อย', to: 'outcome:red_flag_urgent' },
+      { label: 'ไม่แน่ใจ', to: 'outcome:emergency' },
+    ],
+  },
+  rf_stool_blood: {
+    type: 'single',
+    text: 'ถ่ายเป็นเลือดลักษณะไหน',
+    options: [
+      { label: 'อุจจาระสีดำเหนียวคล้ายยางมะตอย', to: 'outcome:emergency' },
+      { label: 'เลือดสดปริมาณมาก หรือใจสั่น หน้ามืด', to: 'outcome:emergency' },
+      { label: 'เลือดสดเล็กน้อยติดกระดาษชำระ', to: 'outcome:red_flag_urgent' },
+      { label: 'ไม่แน่ใจ', to: 'outcome:emergency' },
+    ],
+  },
+  rf_head_injury: {
+    type: 'single',
+    text: 'หลังศีรษะถูกกระแทกมีอาการข้อไหนบ้าง',
+    options: [
+      { label: 'อาเจียน ซึม ปวดหัวมากขึ้น หรือชัก', to: 'outcome:emergency' },
+      { label: 'หมดสติ หรือจำเหตุการณ์ไม่ได้', to: 'outcome:emergency' },
+      { label: 'แค่ปวดหรือบวมตรงที่ชน ตื่นตัวดี', to: 'outcome:red_flag_urgent' },
+      { label: 'ไม่แน่ใจ', to: 'outcome:emergency' },
     ],
   },
 

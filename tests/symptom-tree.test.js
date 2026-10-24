@@ -80,11 +80,36 @@ describe('tree structure', () => {
 
 describe('scenarios', () => {
   test('red flags stop everything before any other question', () => {
-    const s = walk([['เจ็บแน่นหน้าอก']]);
-    assert.equal(result(s).route, 'emergency');
-    const m = walk([['ทำร้ายตัวเอง', 'หายใจลำบาก']]);
+    assert.equal(result(walk([['หมดสติ']])).route, 'emergency');
+    assert.equal(result(walk([['ชัก']])).route, 'emergency');
+    const m = walk([['ทำร้ายตัวเอง', 'ชัก']]);
     assert.equal(result(m).route, 'emergency');
     assert.match(result(walk([['ทำร้ายตัวเอง']])).advice.join(), /1323/);
+  });
+
+  test('each red flag is a single symptom and follow-up pages never lead to self-care', () => {
+    const labels = NODES[START].options.map((o) => o.label);
+    assert.ok(labels.length >= 20, 'one option per symptom');
+    for (const [id, node] of Object.entries(NODES)) {
+      if (!id.startsWith('rf_')) continue;
+      assert.ok(node.options.some((o) => o.label === 'ไม่แน่ใจ' && o.to === 'outcome:emergency'), `${id}: not sure means emergency`);
+      for (const o of node.options) {
+        const route = OUTCOMES[o.to.slice(8)]?.route;
+        assert.ok(['urgent', 'emergency'].includes(route), `${id} -> ${o.label} must be urgent or emergency`);
+      }
+    }
+  });
+
+  test('chest pain opens a follow-up page; the typical pattern is an emergency', () => {
+    assert.equal(walk([['เจ็บแน่นหน้าอก']]).current, 'rf_chest');
+    assert.equal(result(walk([['เจ็บแน่นหน้าอก'], 'เหมือนมีของหนักทับ'])).route, 'emergency');
+    assert.equal(result(walk([['เจ็บแน่นหน้าอก'], 'ไม่แน่ใจ'])).route, 'emergency');
+    assert.equal(result(walk([['เจ็บแน่นหน้าอก'], 'เจ็บจี๊ดเฉพาะจุด'])).route, 'urgent');
+  });
+
+  test('two follow-up red flags together are an emergency without asking either', () => {
+    assert.equal(result(walk([['เจ็บแน่นหน้าอก', 'ไอเป็นเลือด']])).route, 'emergency');
+    assert.equal(result(walk([['เจ็บแน่นหน้าอก', 'หมดสติ']])).route, 'emergency');
   });
 
   test('infant under 3 months with fever goes to a doctor urgently', () => {

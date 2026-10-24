@@ -582,7 +582,7 @@ describe('guided symptom checker', () => {
   test('a red flag in the guided checker blocks sharing for purchase', async () => {
     const user = await buyer('guidedUser2');
     const res = await user.call('guidedTriageStart', { patientId: user.patientId, consent: true });
-    const i = pick(res.question, 'เจ็บแน่นหน้าอก');
+    const i = pick(res.question, 'หมดสติ');
     const out = await user.call('guidedTriageAnswer', { sessionId: res.sessionId, nodeId: 'red_flags', choices: [i] });
     assert.equal(out.result.route, 'emergency');
     await rejectsWith(user.call('triageShareWithPharmacy', { sessionId: res.sessionId, pharmacyId: 'demoRx1', consent: true }), 'failed-precondition');

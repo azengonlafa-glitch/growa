@@ -108,7 +108,9 @@ export function answer(state, nodeId, choices) {
     // The most severe flagged choice wins.
     const flagged = opts.filter((o) => o.to)
       .sort((a, b) => ROUTE_RANK.indexOf(OUTCOMES[b.to.slice(8)]?.route) - ROUTE_RANK.indexOf(OUTCOMES[a.to.slice(8)]?.route));
-    to = flagged[0]?.to ?? node.to;
+    // More than one red flag that still needs a follow-up page: do not guess which one to ask about.
+    const followUps = flagged.filter((o) => !o.to.startsWith('outcome:'));
+    to = followUps.length > 1 ? 'outcome:emergency' : flagged[0]?.to ?? node.to;
   }
 
   if (state.path.length >= MAX_STEPS) throw new Error('too many steps');
