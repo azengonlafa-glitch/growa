@@ -226,5 +226,12 @@ export async function saveProfile({ uid, user, patient, form, finish = false, le
     updatedAt: serverTimestamp(),
     updatedBy: uid,
   });
-  await batch.commit();
+  try {
+    await batch.commit();
+  } catch (err) {
+    if (err?.code === 'permission-denied') {
+      throw new Error('บันทึกไม่สำเร็จ ฐานข้อมูลไม่อนุญาตให้บันทึกข้อมูลโปรไฟล์ในตอนนี้ (กฎความปลอดภัยฝั่งเซิร์ฟเวอร์อาจยังไม่อัปเดต) ลองใหม่ภายหลังหรือแจ้งผู้ดูแลระบบ');
+    }
+    throw err;
+  }
 }

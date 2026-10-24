@@ -16,7 +16,7 @@ const INTRO = [
   ['clock', 'ใช้เวลา 3–4 นาที', 'ข้ามได้ทุกข้อ กลับมากรอกที่หน้าโปรไฟล์ภายหลัง'],
 ];
 
-export default function Onboarding() {
+export default function Onboarding({ onLeave }) {
   const { user, profile, patients } = useSession();
   const patient = patients.find((p) => p.isSelf && p.isOwner);
   const [health, loading] = useDocData(doc(db, 'patients', patient.id, 'health', 'profile'), [patient.id]);
@@ -78,6 +78,7 @@ export default function Onboarding() {
               <Button size="lg" block variant="ghost" busy={busy} onClick={() => save(true)}>ข้ามไปก่อน</Button>
             </div>
             <ErrorText>{error}</ErrorText>
+            {error && onLeave ? <Button variant="secondary" onClick={onLeave}>เข้าใช้งานก่อน (ยังไม่บันทึก)</Button> : null}
           </section>
         ) : (
           <section className="onb-card" aria-labelledby="onb-title" key={current[0]}>
@@ -86,6 +87,7 @@ export default function Onboarding() {
             <p className="onb-lead">{current[2]}</p>
             <Section f={form} set={set} />
             <ErrorText>{error}</ErrorText>
+            {error && onLeave ? <Button variant="secondary" onClick={onLeave}>เข้าใช้งานก่อน (ยังไม่บันทึก)</Button> : null}
             <div className="onb-actions onb-row">
               <Button size="lg" variant="secondary" onClick={() => setStep(step - 1)} disabled={busy}>
                 <Icon name="back" size={20} />{step === 0 ? 'กลับ' : 'ก่อนหน้า'}

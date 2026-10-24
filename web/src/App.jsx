@@ -103,7 +103,9 @@ export default function App() {
   const session = useSessionData(user);
   const ready = Boolean(user) && !session.loading;
   // First sign-in: collect the profile before showing the app (skippable; the user doc gets onboardedAt either way).
-  const needsSetup = ready && Boolean(session.profile) && !session.profile.onboardedAt && session.patients.some((p) => p.isSelf && p.isOwner);
+  const [setupDismissed, setSetupDismissed] = useState(() => { try { return sessionStorage.getItem('growaSetupSkipped') === '1'; } catch { return false; } });
+  const needsSetup = ready && !setupDismissed && Boolean(session.profile) && !session.profile.onboardedAt && session.patients.some((p) => p.isSelf && p.isOwner);
+  const dismissSetup = () => { try { sessionStorage.setItem('growaSetupSkipped', '1'); } catch { /* ignore */ } setSetupDismissed(true); };
   // loading → (app ready, brand shown long enough) reveal → done; signing out starts it over.
   const [phase, setPhase] = useState('loading');
 
@@ -123,7 +125,7 @@ export default function App() {
     <>
       {ready ? (
         <SessionContext.Provider value={session}>
-          {needsSetup ? <Onboarding /> : (
+          {needsSetup ? <Onboarding onLeave={dismissSetup} /> : (
             <FlowProvider>
               <Shell route={route} />
             </FlowProvider>
