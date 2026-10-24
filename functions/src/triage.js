@@ -13,7 +13,7 @@ import {
 } from './common.js';
 
 const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-latest';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 const MAX_USER_TURNS = 12;
 
 // ───────────── deterministic red flags ─────────────
@@ -115,22 +115,33 @@ ${context}
 [ข้อความผู้ใช้]
 ${m.text}` : m.text }],
   }));
-  let res;
-  try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        generationConfig: { responseMimeType: 'application/json', responseSchema: OUTPUT_SCHEMA, temperature: 0.3, maxOutputTokens: 1500 },
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-  } catch (err) {
-    console.error('gemini request failed', err?.name, err?.message);
-    return null;
+  const request = () => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents,
+      generationConfig: {
+        responseMimeType: 'application/json', responseSchema: OUTPUT_SCHEMA, temperature: 0.3, maxOutputTokens: 1500,
+        thinkingConfig: { thinkingBudget: 0 },
+      },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  // One retry when the free tier is busy (503/429) or slow.
+  let res = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      res = await request();
+    } catch (err) {
+      console.error('gemini request failed', err?.name, err?.message);
+      res = null;
+    }
+    if (res?.ok || (res && res.status !== 503 && res.status !== 429)) break;
+    if (res) console.error('gemini http', res.status, (await res.text().catch(() => '')).slice(0, 200));
+    await new Promise((r) => setTimeout(r, 1500));
   }
+  if (!res) return null;
   if (!res.ok) {
     console.error('gemini http', res.status, (await res.text().catch(() => '')).slice(0, 300));
     return null;
