@@ -76,13 +76,24 @@ export async function loadOrder(tx, orderId) {
 const MAX_ITEMS = 20;
 const MAX_QTY = 10;
 
+// The fictional sample pharmacies deliver anywhere, so a demo never stops at a missing address or "outside the delivery area".
+// Real pharmacies keep the strict check: a delivery address with coordinates inside one of their zones.
+function addressFor(pharmacy, address) {
+  if (pharmacy.sample !== true) return address;
+  const base = address ?? { label: 'บ้าน', line1: 'ที่อยู่จำลอง (ข้อมูลจำลอง)' };
+  if (base.geo) return base;
+  return { ...base, geo: { lat: pharmacy.geo.lat + 0.02, lng: pharmacy.geo.lng + 0.02 } };
+}
+
 async function deliveryQuote(pharmacy, address) {
   if (!address?.geo) throw new HttpsError('failed-precondition', 'ที่อยู่จัดส่งยังไม่มีพิกัด');
   const km = distanceKm(pharmacy.geo, address.geo);
-  const zone = [...(pharmacy.deliveryZones ?? [])]
-    .sort((a, b) => a.radiusKm - b.radiusKm)
-    .find((z) => km <= z.radiusKm);
-  if (!zone) throw new HttpsError('failed-precondition', 'ที่อยู่นี้อยู่นอกพื้นที่จัดส่งของร้าน');
+  const zones = [...(pharmacy.deliveryZones ?? [])].sort((a, b) => a.radiusKm - b.radiusKm);
+  const zone = zones.find((z) => km <= z.radiusKm);
+  if (!zone) {
+    if (pharmacy.sample === true) return zones.at(-1)?.fee ?? 30;
+    throw new HttpsError('failed-precondition', 'ที่อยู่นี้อยู่นอกพื้นที่จัดส่งของร้าน');
+  }
   return zone.fee;
 }
 
@@ -111,7 +122,7 @@ async function createOrderCore(uid, { source, patientId, pharmacyId, items, addr
     throw new HttpsError('failed-precondition', 'ร้านนี้ยังไม่เปิดให้บริการ');
   }
   const pharmacy = pharmacySnap.data();
-  const address = userSnap.data()?.addresses?.[addressIndex];
+  const address = addressFor(pharmacy, userSnap.data()?.addresses?.[addressIndex]);
   if (!address) throw new HttpsError('invalid-argument', 'ไม่พบที่อยู่จัดส่ง');
   const deliveryFee = await deliveryQuote(pharmacy, address);
 

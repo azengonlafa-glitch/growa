@@ -84,3 +84,6 @@
 .cb-report .btn-primary:disabled { background: #efe9d3; color: #6d6445; border: 2px dashed #b5aa80; box-shadow: none; opacity: 1; animation: none; }
 @media (max-width: 640px) { .rp-head { flex-direction: column; } .rp-stamp { align-self: flex-end; margin-top: -8px; } }
 @media (prefers-reduced-motion: reduce) { .rp-stamp { animation: none; } }
+
+.desk-calm .desk svg:not(.desk-defs), .desk-calm .dk-pill { display: none; }
+@media (min-width: 1700px) { .desk-calm .dk-steth, .desk-calm .dk-blister, .desk-calm .dk-pen, .desk-calm .dk-plant { display: block; } }

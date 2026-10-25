@@ -6,6 +6,7 @@ import { db } from '../firebase.js';
 import { useAction, useDocData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { Backdrop } from '../components/Flair.jsx';
+import { DeskPage } from '../flow/Desk.jsx';
 import { Button, ErrorText, Icon, Loading } from '../components/ui.jsx';
 import { SECTIONS } from './sections.jsx';
 import { fromDocs, saveProfile, validate } from './model.js';
@@ -47,8 +48,8 @@ export default function Onboarding({ onLeave }) {
   };
 
   return (
-    <div className="onb">
-      <Backdrop />
+    <DeskPage calm>
+    <div className="onb paper-theme">
       <div className="onb-wrap">
         <header className="onb-top">
           <span className="onb-brand">growa</span>
@@ -98,5 +99,6 @@ export default function Onboarding({ onLeave }) {
         )}
       </div>
     </div>
+    </DeskPage>
   );
 }

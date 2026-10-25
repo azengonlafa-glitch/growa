@@ -51,9 +51,10 @@ export function Clipboard({ children, className = '' }) {
   );
 }
 
-export function DeskPage({ children }) {
+// calm: working pages keep the dotted desk but not the props, which would sit behind the text.
+export function DeskPage({ children, calm = false }) {
   return (
-    <div className="desk-page">
+    <div className={`desk-page${calm ? ' desk-calm' : ''}`}>
       <Desk />
       {children}
     </div>

@@ -5,6 +5,7 @@ import './styles.css';
 import './flair.css';
 import './profile.css';
 import './health-analysis.css';
+import './paper.css';
 import App from './App.jsx';
 import { startPrefs } from './lib/prefs.js';
 

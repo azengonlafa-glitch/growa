@@ -20,6 +20,7 @@ import MyCare from './pages/MyCare.jsx';
 import Home from './pages/Home.jsx';
 import More from './pages/More.jsx';
 import TabBar from './components/TabBar.jsx';
+import { DeskPage } from './flow/Desk.jsx';
 import House from './pages/House.jsx';
 import Report from './pages/Report.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
@@ -93,7 +94,8 @@ function Shell({ route }) {
       {Step ? (
         <main className="flow-main" id="main" ref={mainRef} tabIndex={-1}><Step /></main>
       ) : (
-        <main className="main care-main" id="main" ref={mainRef} tabIndex={-1}>
+        <DeskPage calm>
+        <main className="main care-main paper-theme" id="main" ref={mainRef} tabIndex={-1}>
           <nav className="care-bar" aria-label="แถบนำทาง">
             <a className="btn btn-secondary btn-sm" href="#/care">‹ หน้ารวมโหมด (โฮมแคร์)</a>
             <a className="btn btn-ghost btn-sm" href="#/">สั่งซื้อยา</a>
@@ -101,6 +103,7 @@ function Shell({ route }) {
           {['home', 'house', 'family', 'more'].includes(page) ? <TabBar page={page} /> : null}
           <CarePage route={route} />
         </main>
+        </DeskPage>
       )}
     </div>
   );

@@ -7,6 +7,7 @@ import { go, useQueryData } from '../lib/hooks.js';
 import { baht } from '../lib/format.js';
 import { Badge, Button, Empty, Icon, Loading, MockBadge } from '../components/ui.jsx';
 import ProductArt from '../components/ProductArt.jsx';
+import { CardboardBox, TablePage } from './Table.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { StockLine, toLine } from './ResultStep.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
@@ -90,6 +91,7 @@ export default function ShopStep() {
   const total = flow.cart.reduce((s, l) => s + l.price * l.qty, 0);
 
   return (
+    <TablePage>
     <FlowPage
       step={3}
       steps={STEPS_GOODS}
@@ -103,6 +105,8 @@ export default function ShopStep() {
         </Button>
       ) : null}
     >
+      <CardboardBox>
+      <div className="paper-theme stack">
       <div className="between"><span className="muted small">{pharmacy.name}</span><MockBadge /></div>
       <label className="shop-search">
         <Icon name="search" size={24} />
@@ -131,6 +135,9 @@ export default function ShopStep() {
         </Empty>
       )}
       <p className="muted small">สินค้า ราคา และสต็อกเป็นข้อมูลจำลอง ร้านจะยืนยันสต็อกจริงก่อนให้ชำระเงิน</p>
+      </div>
+      </CardboardBox>
     </FlowPage>
+    </TablePage>
   );
 }

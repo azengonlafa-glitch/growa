@@ -5,6 +5,7 @@ import { go, useAction, useDocData, useQueryData } from '../lib/hooks.js';
 import { baht, DRUG_CLASS } from '../lib/format.js';
 import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
+import { Clipboard, DeskPage } from './Desk.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { StockLine, toLine } from './ResultStep.jsx';
 import { useFlow } from './state.jsx';
@@ -72,6 +73,7 @@ export default function ConsultStep() {
   const share = useAction();
   const send = useAction();
   const demo = useAction();
+  const quick = useAction();
   const endRef = useRef(null);
 
   const [session, sessionLoading] = useDocData(triage ? doc(db, 'triageSessions', triage.sessionId) : null, [triage?.sessionId]);
@@ -91,7 +93,10 @@ export default function ConsultStep() {
   ) : null;
 
   return (
+    <DeskPage>
     <FlowPage step={4} title="คุยกับเภสัชกร" onBack={() => go('result')}>
+      <Clipboard className="paper-theme">
+      <div className="stack">
       <Card className="stack" style={{ gap: 4 }}>
         <strong>{pharmacy.name}</strong>
         <span className="muted small">เภสัชกรของร้านที่คุณเลือกในขั้นแรก</span>
@@ -146,8 +151,18 @@ export default function ConsultStep() {
           {decision === 'pending' && DEMO_BUTTON && pharmacy.sample ? (
             <div className="demo-box">
               <p className="small"><MockBadge label="เฉพาะเดโม" /> ร้านนี้เป็นร้านตัวอย่าง ไม่มีเภสัชกรจริง กดเพื่อจำลองว่าเภสัชกรตอบกลับ</p>
-              <Button size="sm" variant="secondary" busy={demo.busy} onClick={() => demo.run(() => call('demoPharmacyReview', { reviewId }))}>จำลองร้านตอบ</Button>
-              <ErrorText>{demo.error}</ErrorText>
+              <div className="row">
+                <Button size="sm" variant="secondary" busy={demo.busy} onClick={() => demo.run(() => call('demoPharmacyReview', { reviewId }))}>จำลองร้านตอบ</Button>
+                <Button size="sm" busy={quick.busy} onClick={() => quick.run(async () => {
+                  // The pretend pharmacist asks one question, a canned answer is sent, then the approval comes.
+                  const first = await call('demoPharmacyReview', { reviewId });
+                  if (first.decision === 'need_more_info') {
+                    await call('answerPharmacistQuestion', { reviewId, answer: 'ไม่มีประวัติแพ้ยา และไม่มียาประจำตัว (ข้อความจำลอง)' });
+                    await call('demoPharmacyReview', { reviewId });
+                  }
+                })}>จำลองเภสัชกรอนุมัติเลย</Button>
+              </div>
+              <ErrorText>{demo.error || quick.error}</ErrorText>
             </div>
           ) : null}
 
@@ -157,6 +172,9 @@ export default function ConsultStep() {
           {decision === 'rejected' ? <Notice tone="bad" title="เภสัชกรไม่อนุมัติการจ่ายยา">ไม่มีการเก็บเงิน ปรึกษาเภสัชกรหรือแพทย์เพิ่มเติม</Notice> : null}
         </>
       )}
+      </div>
+      </Clipboard>
     </FlowPage>
+    </DeskPage>
   );
 }

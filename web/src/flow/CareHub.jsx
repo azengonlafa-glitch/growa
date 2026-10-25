@@ -8,6 +8,7 @@ import { auth } from '../firebase.js';
 import { useSession } from '../lib/session.js';
 import { useMeds, useTodaySchedule, isLow } from '../lib/meds.js';
 import { Icon } from '../components/ui.jsx';
+import { DeskPage } from './Desk.jsx';
 import FlowPage from './FlowPage.jsx';
 import { go } from '../lib/hooks.js';
 import '../carehub.css';
@@ -307,8 +308,9 @@ export default function CareHub() {
   };
 
   return (
+    <DeskPage>
     <FlowPage wide title="เมนู" onBack={() => go('')}>
-      <div className="hub">
+      <div className="hub paper-theme">
         <div className="hub-deck" ref={deck} onScroll={onScroll} onKeyDown={onKey} tabIndex={0} role="region" aria-label="เมนูแบบวิดเจ็ต เลื่อนขึ้นลงเพื่อเปลี่ยนการ์ด แล้วแตะการ์ดเพื่อเปิด">
           {widgets.map((w, i) => <Widget key={w.id} w={w} index={i} active={i === active} onPick={jump} />)}
         </div>
@@ -320,5 +322,6 @@ export default function CareHub() {
         <p className="hub-hint-scroll" aria-hidden><i />เลื่อนเมาส์เพื่อเปลี่ยนการ์ด · คลิกการ์ดเพื่อเปิด</p>
       </div>
     </FlowPage>
+    </DeskPage>
   );
 }

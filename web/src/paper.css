@@ -1,0 +1,92 @@
+/* Paper theme: the shared look of every page that is not one of the staged scenes (mat, clipboard, box).
+   Cream paper on a mint clinic desk, ink-blue accents, yellow sticky notes for page headers. Everything is done by
+   re-pointing the design tokens, so existing pages follow without changes; the rules below only add the paper details. */
+.paper-theme {
+  --bg: #f9efd2; --surface: #fffdf6; --surface-2: #f4ebd2;
+  --text: #2d2a22; --muted: #6b5f43; --border: #ddd3b6; --border-strong: #8a6a35;
+  --primary-soft: #e4f3d8; --info-soft: #e3eefc; --warn-soft: #fff0b8; --good-soft: #e4f3d8; --bad-soft: #fde3df; --mock-soft: #f4ebd2; --hero: #ffd84d;
+  --radius: 10px; --radius-sm: 5px;
+  --shadow: 0 14px 20px -12px rgb(20 70 60 / 45%); --shadow-soft: 0 1px 0 rgb(90 68 33 / 18%);
+  --font: 'Mali', 'Noto Sans Thai Looped', system-ui, sans-serif; --font-head: 'Mali', 'Mitr', sans-serif;
+  font-family: var(--font); color: var(--text);
+}
+.desk-page > .paper-theme { position: relative; z-index: 2; }
+
+/* page header = yellow sticky note */
+.paper-theme .hero { background: linear-gradient(172deg, #ffd84d, #f9b91f); border-radius: 3px 3px 3px 24px / 3px 3px 3px 10px; color: #3a2c05; box-shadow: 0 20px 24px -12px rgb(20 70 60 / 55%), 0 3px 4px rgb(0 0 0 / 18%); }
+.paper-theme .hero::before { display: none; }
+.paper-theme .hero-title, .paper-theme .hero-eyebrow { color: #3a2c05; font-family: var(--font-head); }
+.paper-theme .hero-sub { color: #5a4309; }
+.paper-theme .hero-honey .hero-eyebrow { color: #5a4309; }
+.paper-theme .back-link { background: #fffdf5; box-shadow: 0 6px 10px -6px rgb(60 30 5 / 55%); }
+
+/* cards = sheets of paper, notices = notes with a coloured edge */
+.paper-theme .card { background: var(--surface); border: 0; border-radius: 4px; box-shadow: 0 14px 20px -12px rgb(20 70 60 / 45%); }
+.paper-theme .notice { background: rgb(255 255 255 / 55%); border: 0; border-left: 6px solid; border-radius: 4px 12px 12px 4px; box-shadow: 0 2px 0 rgb(90 68 33 / 12%); color: #3a2c05; }
+.paper-theme .notice strong { font-family: var(--font-head); }
+.paper-theme .notice-info { border-color: #3f86d6; color: #123a66; }
+.paper-theme .notice-warn { border-color: #e0a21c; background: rgb(255 230 140 / 45%); color: #5a3d00; }
+.paper-theme .notice-good { border-color: #1c8a4f; color: #0b4a2a; }
+.paper-theme .notice-bad { border-color: #c0392b; color: #7a1c14; }
+.paper-theme .badge { background: transparent; border: 1.5px solid currentColor; font-family: var(--font); }
+.paper-theme .badge-neutral { color: #6b5f43; }
+.paper-theme .badge-mock { border-style: dashed; background: transparent; }
+.paper-theme h1, .paper-theme h2, .paper-theme h3 { font-family: var(--font-head); }
+.paper-theme h2 { color: #2d2a22; }
+
+/* buttons = stickers */
+.paper-theme .btn-primary { background: linear-gradient(180deg, #17b36b, #0e8a50); color: #fff; box-shadow: 0 10px 16px -8px rgb(0 60 40 / 55%), 0 4px 0 #0a6a3c; border-radius: 6px; }
+.paper-theme .btn-primary:disabled { background: #efe9d3; color: #6d6445; border: 2px dashed #b5aa80; box-shadow: none; opacity: 1; }
+.paper-theme .btn-secondary { background: #ffe2ea; color: #5a1230; border: 0; border-radius: 4px; font-weight: 700; box-shadow: 0 10px 14px -8px rgb(20 70 60 / 45%); }
+.paper-theme .btn-ghost { background: #f7edd3; color: #3b2410; border-radius: 4px; box-shadow: 0 6px 10px -6px rgb(60 30 5 / 40%); }
+.paper-theme .round-btn { background: #fffdf5; color: #3b2410; box-shadow: 0 6px 10px -6px rgb(60 30 5 / 55%); }
+.paper-theme .round-btn-primary { background: #0e8a50; color: #fff; }
+
+/* fields = lined paper with a dashed edge */
+.paper-theme input:not([type='checkbox']):not([type='radio']), .paper-theme select, .paper-theme textarea {
+  background: #fffdf6 repeating-linear-gradient(transparent 0 27px, rgb(120 150 190 / 18%) 27px 28px); border: 1.5px dashed #8a6a35; border-radius: 4px; color: #2d2a22; font-family: var(--font);
+}
+.paper-theme .segmented { background: #efe4c6; border-radius: 6px; }
+.paper-theme .segmented button { border-radius: 4px; }
+.paper-theme .segmented button.active { background: #fffdf6; box-shadow: 0 4px 8px -4px rgb(60 30 5 / 50%); color: #1d4fb3; }
+.paper-theme .chip { background: #fffdf6; border: 1.5px dashed #8a6a35; border-radius: 4px; }
+.paper-theme .chip.on { background: #fff0a8; border-style: solid; color: #3a2c05; }
+
+/* ruled paper rows and answers with an ink tick */
+.paper-theme .list-item { border-bottom: 1.5px dashed rgb(90 68 33 / 35%); }
+.paper-theme .option { background: #fffdf6; border: 0; border-bottom: 1.5px dashed rgb(120 100 50 / 40%); border-radius: 0; font-family: var(--font); box-shadow: none; }
+.paper-theme .option.selected { background: rgb(255 226 110 / 55%); box-shadow: inset 5px 0 0 #f2b61f; border: 0; border-bottom: 1.5px dashed rgb(120 100 50 / 40%); font-weight: 700; padding: 16px 20px; }
+.paper-theme .option-box { position: relative; width: 28px; height: 28px; border-radius: 6px 8px 5px 9px / 8px 5px 9px 6px; border: 2.5px solid #5a4421; background: #fffdf5; color: transparent; font-size: 0; }
+.paper-theme .option.selected .option-box { background: #fffdf5; border-color: #5a4421; }
+.paper-theme .option-box::after { content: ''; position: absolute; left: 7px; top: -6px; width: 10px; height: 21px; border-right: 4px solid #1d4fb3; border-bottom: 4px solid #1d4fb3; rotate: 40deg; scale: 0; transform-origin: 20% 90%; }
+.paper-theme .option.selected .option-box::after { scale: 1; }
+.paper-theme .progress { border: 2px solid #5a4421; background: #f3ead2; }
+.paper-theme .progress > span { background: repeating-linear-gradient(135deg, #1d4fb3 0 10px, #3a6fd6 10px 20px); }
+.paper-theme .timeline li::before { background: #1d4fb3; border-color: #fffdf6; }
+.paper-theme .empty-icon { color: #8a6a35; }
+.paper-theme a { color: #1d4fb3; }
+.paper-theme .btn, .paper-theme .tabbar a, .paper-theme a.btn { text-decoration: none; }
+
+/* tables and the med list */
+.paper-theme table { background: #fffdf6; }
+.paper-theme th { font-family: var(--font-head); color: #3b2410; border-bottom: 2px solid rgb(90 68 33 / 55%); }
+.paper-theme td { border-bottom: 1.5px dashed rgb(90 68 33 / 30%); }
+
+/* the top bar and the tab row on the desk */
+.paper-theme .care-bar .btn { background: #fffdf5; color: #3b2410; border-radius: 999px; box-shadow: 0 6px 10px -6px rgb(60 30 5 / 55%); }
+.paper-theme .tabbar { background: #fbf1d6; border: 1.5px dashed #b5aa80; border-radius: 10px; backdrop-filter: none; box-shadow: 0 14px 22px -14px rgb(20 70 60 / 55%); }
+.paper-theme .tabbar a { border-radius: 6px; color: #5b4f33; font-family: var(--font); }
+.paper-theme .tabbar a.on { background: linear-gradient(180deg, #17b36b, #0e8a50); color: #fff; box-shadow: 0 8px 12px -6px rgb(0 60 40 / 55%); }
+.paper-theme .care-main { padding-top: 12px; }
+
+/* the greeting on the home page is a sticky note too */
+.paper-theme .hm-hello { padding: 22px 28px 24px; background: linear-gradient(172deg, #ffd84d, #f9b91f); border-radius: 3px 3px 3px 24px / 3px 3px 3px 10px; box-shadow: 0 20px 24px -12px rgb(20 70 60 / 55%), 0 3px 4px rgb(0 0 0 / 18%); }
+.paper-theme .hm-hello > p, .paper-theme .hm-hello h1 { color: #3a2c05; text-shadow: none; opacity: 1; }
+.paper-theme .hm-house { background: #fffdf5; }
+
+/* first-run setup and the muted line on the cardboard */
+.desk-page > .onb { position: relative; z-index: 2; background: transparent; }
+.paper-theme .onb-card { position: relative; background: #fffdf6; border: 0; border-radius: 4px; box-shadow: 0 22px 26px -14px rgb(20 70 60 / 55%); }
+.paper-theme .onb-card::before { content: ''; position: absolute; left: 50%; top: -14px; width: 110px; height: 26px; translate: -50% 0; rotate: -2deg; background: repeating-linear-gradient(135deg, rgb(170 220 160 / 88%) 0 9px, rgb(205 235 195 / 88%) 9px 18px); box-shadow: 0 3px 6px rgb(0 0 0 / 18%); }
+.paper-theme .onb-brand { font-family: var(--font-head); }
+.cbox .paper-theme > .between .muted { color: #3f2a12; }

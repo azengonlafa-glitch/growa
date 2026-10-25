@@ -227,9 +227,17 @@ describe('orders', () => {
     assert.equal((await getDoc(`orders/${orderId}`)).status, 'out_of_stock');
     await b.call('cancelOrder', { orderId });
 
+    // A real pharmacy keeps the strict delivery area; the fictional sample pharmacies deliver anywhere so demos never stop here.
+    await adminDb.doc('pharmacies/demoRx1').update({ sample: false });
     await rejectsWith(b.call('createOrder', {
       patientId: b.patientId, pharmacyId: 'demoRx1', items: [{ productId: 'para500', qty: 1 }], addressIndex: 1,
     }), 'failed-precondition');
+    await adminDb.doc('pharmacies/demoRx1').update({ sample: true });
+    const far = await b.call('createOrder', {
+      patientId: b.patientId, pharmacyId: 'demoRx1', items: [{ productId: 'para500', qty: 1 }], addressIndex: 1,
+    });
+    assert.ok((await getDoc(`orders/${far.orderId}`)).deliveryFee > 0);
+    await b.call('cancelOrder', { orderId: far.orderId });
     await rejectsWith(b.call('createOrder', {
       patientId: b.patientId, pharmacyId: 'demoRx1', items: [{ productId: 'diazepam5', qty: 1 }],
     }), 'failed-precondition');

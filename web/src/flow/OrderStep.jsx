@@ -146,6 +146,7 @@ export default function OrderStep() {
   const sim = useAction();
   const recv = useAction();
   const cancel = useAction();
+  const auto = useAction();
   const again = () => { flow.restart(); go('choose'); };
 
   if (loading) return <FlowPage title="ติดตามคำสั่งซื้อ"><Loading /></FlowPage>;
@@ -162,6 +163,19 @@ export default function OrderStep() {
   const stage = STAGE_OF[order.status] ?? 0;
   const demoLabel = DEMO_STEP_LABEL[order.status];
   const needsPharmacist = order.needsPharmacistReview && !order.reviewId;
+  // One tap for a presentation: plays the shop's steps and the payment, in order, up to "delivered".
+  const autoOk = DEMO_BUTTON && pharmacy?.sample && ['pharmacy_checking', 'awaiting_payment', 'payment_failed', 'paid', 'preparing', 'shipping'].includes(order.status) && !(order.status === 'pharmacy_checking' && needsPharmacist);
+  const playAll = () => auto.run(async () => {
+    const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let status = order.status;
+    for (let i = 0; i < 8 && status !== 'delivered'; i += 1) {
+      if (['pharmacy_checking', 'paid', 'preparing'].includes(status)) status = (await call('demoPharmacyOrder', { orderId: order.id })).status;
+      else if (['awaiting_payment', 'payment_failed'].includes(status)) { await call('payOrder', { orderId: order.id, method: flow.payment ?? 'promptpay' }); status = 'paid'; }
+      else if (status === 'shipping') { await pause(5000); await call('confirmReceived', { orderId: order.id }); status = 'delivered'; }
+      else break;
+      await pause(1600);
+    }
+  });
   const canSimulate = DEMO_BUTTON && pharmacy?.sample && demoLabel && !(order.status === 'pharmacy_checking' && needsPharmacist);
 
   return (
@@ -206,6 +220,14 @@ export default function OrderStep() {
                 <span className="muted small"><Badge tone="neutral">เฉพาะเดโม</Badge> ร้านนี้เป็นร้านตัวอย่าง ไม่มีเภสัชกรจริงคอยตอบ</span>
                 <Button size="sm" variant="secondary" busy={sim.busy} onClick={() => sim.run(() => call('demoPharmacyOrder', { orderId: order.id }))}>{demoLabel}</Button>
                 <ErrorText>{sim.error}</ErrorText>
+              </div>
+            ) : null}
+
+            {autoOk ? (
+              <div className="demo-box">
+                <span className="muted small"><Badge tone="neutral">เฉพาะเดโม</Badge> สาธิตแบบรวด: จำลองร้านและการชำระเงินให้ต่อเนื่องจนส่งสำเร็จ</span>
+                <Button size="sm" busy={auto.busy} onClick={playAll}>เล่นต่ออัตโนมัติจนส่งสำเร็จ</Button>
+                <ErrorText>{auto.error}</ErrorText>
               </div>
             ) : null}
 
