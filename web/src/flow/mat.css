@@ -1,0 +1,73 @@
+/* The green cutting mat (flow/Mat.jsx) shared by the sticky-note screens: grid, desk items, header on the mat. */
+.mat-page { position: relative; isolation: isolate; }
+.mat-page .flow { position: relative; z-index: 2; }
+.mat {
+  position: fixed; inset: 0; z-index: 1; overflow: hidden; pointer-events: none;
+  background:
+    linear-gradient(rgb(255 255 255 / 34%) 2px, transparent 2px) 0 0 / 220px 220px,
+    linear-gradient(90deg, rgb(255 255 255 / 34%) 2px, transparent 2px) 0 0 / 220px 220px,
+    linear-gradient(rgb(255 255 255 / 20%) 1.2px, transparent 1.2px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgb(255 255 255 / 20%) 1.2px, transparent 1.2px) 0 0 / 44px 44px,
+    radial-gradient(120% 90% at 30% 10%, #36a07a 0%, #2a8a66 55%, #206f52 100%);
+  box-shadow: inset 0 0 120px rgb(0 40 25 / 40%);
+}
+.mat-lines { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mat-lines path { fill: none; stroke: rgb(255 255 255 / 38%); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.mat-holes { position: absolute; left: 10px; top: 18%; display: grid; gap: 52px; }
+.mat-holes i { width: 8px; height: 8px; border-radius: 50%; background: rgb(255 255 255 / 85%); box-shadow: inset 0 1px 2px rgb(0 0 0 / 30%); }
+.mat-rim { position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(180deg, #3f64b8, #35549e); border-top: 5px solid #2e4b8c; box-shadow: 0 -10px 24px rgb(0 20 60 / 30%); }
+.mat-tape { position: absolute; width: 130px; height: 34px; background: repeating-linear-gradient(135deg, rgb(255 224 130 / 88%) 0 10px, rgb(255 244 200 / 88%) 10px 20px); box-shadow: 0 4px 8px rgb(0 0 0 / 18%); }
+.mt-1 { right: 7%; top: 12%; rotate: 24deg; }
+.mt-2 { left: 5%; bottom: 20%; rotate: -18deg; width: 110px; background: repeating-linear-gradient(135deg, rgb(255 255 255 / 80%) 0 8px, rgb(240 120 120 / 80%) 8px 16px); }
+.mat-pencil { position: absolute; width: 300px; right: 5%; bottom: 17%; rotate: -14deg; filter: drop-shadow(6px 10px 8px rgb(0 0 0 / 28%)); animation: mat-roll 7s ease-in-out infinite; }
+.mat-ruler { position: absolute; width: 340px; left: 3%; top: 8%; rotate: -8deg; filter: drop-shadow(5px 8px 7px rgb(0 0 0 / 25%)); }
+.mat-eraser { position: absolute; width: 74px; height: 38px; right: 18%; top: 7%; rotate: 16deg; border-radius: 8px; background: linear-gradient(90deg, #f7f7f7 62%, #5aa0e6 62%); box-shadow: 4px 7px 8px rgb(0 0 0 / 25%); }
+.mat-clip { position: absolute; width: 34px; left: 14%; bottom: 16%; rotate: 28deg; filter: drop-shadow(3px 5px 4px rgb(0 0 0 / 25%)); }
+@keyframes mat-roll { 0%, 100% { rotate: -14deg; } 50% { rotate: -12deg; translate: 6px -3px; } }
+
+/* the header reads as writing on the mat */
+.mat-page .flow-top { backdrop-filter: none; -webkit-backdrop-filter: none; }
+.mat-page .flow-title { background: none; color: #fff; text-shadow: 0 2px 10px rgb(0 50 30 / 55%); font-family: 'Mali', var(--font-head); }
+.mat-page .flow-step { color: #fff; text-shadow: 0 1px 6px rgb(0 50 30 / 55%); }
+.mat-page .flow-dots span { background: rgb(255 255 255 / 35%); }
+.mat-page .flow-dots span.on { background: #ffe58a; animation: none; }
+.mat-page .flow .flow-body { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; padding: 0 0 32px; }
+
+.mat-scissors { position: absolute; width: 190px; left: 22%; bottom: 13%; rotate: -24deg; filter: drop-shadow(5px 8px 7px rgb(0 0 0 / 28%)); }
+.mat-mini { position: absolute; width: 96px; height: 96px; background: linear-gradient(170deg, #ffe27a, #fccf3a); box-shadow: 5px 9px 12px -4px rgb(0 0 0 / 35%); }
+.mm-1 { right: 9%; top: 36%; rotate: 9deg; } .mm-2 { left: 7%; top: 44%; rotate: -12deg; background: linear-gradient(170deg, #ffc3d3, #f7a2ba); width: 84px; height: 84px; }
+.mm-3 { right: 24%; bottom: 14%; rotate: -5deg; background: linear-gradient(170deg, #bfe8ff, #8fd0f7); width: 78px; height: 78px; }
+.mat-mini::after { content: ''; position: absolute; left: 14px; right: 14px; top: 30px; height: 3px; border-radius: 2px; background: rgb(60 40 10 / 28%); box-shadow: 0 14px 0 rgb(60 40 10 / 22%), 0 28px 0 rgb(60 40 10 / 16%); }
+
+@media (max-width: 640px) { .mat-scissors, .mat-mini { display: none; } .mat-ruler, .mat-eraser, .mat-clip { opacity: .55; } .mat-pencil { width: 220px; } .mt-1 { right: -20px; } }
+
+@media (min-width: 900px) {
+  .mat-page .flow:not(.flow-wide) { max-width: 1120px; }
+  .mat-page .flow .flow-body { margin-top: clamp(10px, 6vh, 80px); gap: 28px; }
+}
+@media (prefers-reduced-motion: reduce) { .mat-pencil { animation: none; } }
+
+/* Consent screens: each thing sits in its own zone of the mat: warning, privacy, the form to sign, the way out. */
+.zones { display: grid; gap: 34px 40px; padding: 8px 8px 0; grid-template-areas: 'warn' 'info' 'form' 'alt'; }
+@media (min-width: 900px) { .zones { grid-template-columns: 1fr 1fr; grid-template-areas: 'warn info' 'form form' 'alt alt'; padding: 8px 40px 0; } }
+@keyframes zone-drop { 0% { opacity: 0; transform: translateY(-60px) rotate(-7deg) scale(1.08); } 55% { opacity: 1; } 100% { transform: none; } }
+.zone { position: relative; font-family: 'Mali', var(--font); line-height: 1.5; color: #3a2c05; animation: zone-drop .7s cubic-bezier(.2, 1.2, .35, 1) backwards; }
+.zone h2 { margin: 0 0 8px; font-size: 1.25rem; font-family: 'Mali', var(--font-head); }
+.zone p { margin: 0; }
+.zone-warn { grid-area: warn; rotate: -1.8deg; padding: 28px 24px 30px; background: linear-gradient(172deg, #ffd84d, #f9b91f); border-radius: 3px 3px 3px 20px / 3px 3px 3px 10px; box-shadow: 0 20px 24px -12px rgb(0 40 25 / 55%), 0 3px 4px rgb(0 0 0 / 18%); }
+.zone-warn::before { content: ''; position: absolute; left: 50%; top: -14px; width: 20px; height: 20px; translate: -50% 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8b8b, #d62f2f); box-shadow: 0 6px 6px rgb(0 0 0 / 30%); }
+.zone-info { grid-area: info; rotate: 1.5deg; animation-delay: .12s; padding: 28px 24px 30px; background: linear-gradient(172deg, #cdeeff, #9fd8f7); border-radius: 3px 3px 20px 3px / 3px 3px 10px 3px; box-shadow: 0 20px 24px -12px rgb(0 40 25 / 55%), 0 3px 4px rgb(0 0 0 / 18%); color: #0b3a57; }
+.zone-info::before { content: ''; position: absolute; right: 18px; top: -12px; width: 90px; height: 24px; rotate: 6deg; background: repeating-linear-gradient(135deg, rgb(255 255 255 / 85%) 0 8px, rgb(240 120 120 / 80%) 8px 16px); box-shadow: 0 3px 6px rgb(0 0 0 / 18%); }
+.zone-form { grid-area: form; justify-self: center; width: min(100%, 720px); animation-delay: .24s; padding: 30px 28px 26px; background: #fbf8ec repeating-linear-gradient(transparent 0 33px, rgb(110 150 190 / 22%) 33px 34px); border: 1.5px solid #d9d2b6; border-radius: 4px; box-shadow: 0 22px 26px -14px rgb(0 40 25 / 60%); color: #2d2a22; rotate: -.6deg; }
+.zone-form::before { content: ''; position: absolute; left: 50%; top: -14px; width: 120px; height: 28px; translate: -50% 0; rotate: -2deg; background: repeating-linear-gradient(135deg, rgb(170 220 160 / 88%) 0 9px, rgb(205 235 195 / 88%) 9px 18px); box-shadow: 0 3px 6px rgb(0 0 0 / 18%); }
+.zone-form .check { font-size: 1.05rem; }
+.zone-form .hint { margin-top: 10px; font-size: .9rem; color: #7a5200; }
+.zone-alt { grid-area: alt; justify-self: center; animation-delay: .36s; }
+.zone-alt .btn { rotate: 1.2deg; padding: 14px 24px; background: #ffc3d3; color: #5a1230; font-family: 'Mali', var(--font); font-weight: 700; border-radius: 3px; box-shadow: 0 12px 16px -8px rgb(0 40 25 / 55%); transition: transform .3s cubic-bezier(.3, 1.6, .5, 1); }
+.zone-alt .btn:hover { transform: translateY(-4px) rotate(-1deg); text-decoration: none; }
+.mat-page .flow-bottom { background: transparent; border: 0; box-shadow: none; backdrop-filter: none; }
+@media (prefers-reduced-motion: reduce) { .zone { animation: none; } .zone-alt .btn { transition: none; } }
+
+/* The main button sits on the mat as a solid sticker, never see-through: the grid must not show through its label. */
+.mat-page .flow-bottom .btn { opacity: 1; background: linear-gradient(180deg, #17b36b, #0e8a50); color: #fff; box-shadow: 0 10px 18px -8px rgb(0 40 25 / 65%), 0 4px 0 #0a6a3c; text-shadow: 0 1px 0 rgb(0 0 0 / 25%); }
+.mat-page .flow-bottom .btn:disabled, .mat-page .flow-bottom .btn[disabled] { opacity: 1; background: #efe9d3; color: #6d6445; border: 2px dashed #b5aa80; box-shadow: 0 8px 14px -8px rgb(0 40 25 / 55%); text-shadow: none; cursor: not-allowed; }

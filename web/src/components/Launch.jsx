@@ -1,9 +1,11 @@
-// Launch screen shown while the app loads after sign-in: a green brand screen with the wordmark,
+// Launch screen shown while the app loads after sign-in: a clear sky (no sun) with drifting clouds and the wordmark,
 // then a circle opens from the centre to reveal the app underneath (like a ride-hailing app opening).
 export default function Launch({ phase }) {
   return (
     <div className={`launch launch-${phase}`} role="status" aria-live="polite">
-      <span className="launch-hole" aria-hidden />
+      <div className="launch-clouds" aria-hidden>
+        {[1, 2, 3, 4, 5, 6].map((n) => <span key={n} className={`launch-cloud lc-${n}`} />)}
+      </div>
       <div className="launch-brand">
         <span className="launch-word" aria-hidden>
           gr<span className="launch-o">o

@@ -182,23 +182,40 @@ input:focus-visible, select:focus-visible, textarea:focus-visible { box-shadow: 
 /* ───────── desktop: let the bottom bar glow too ───────── */
 @media (min-width: 900px) { .flow-bottom { background: var(--glass); backdrop-filter: blur(16px); } }
 
-/* ───────── launch: green brand screen, then a circle opens onto the app ───────── */
-.launch { --launch: #149a52; position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; color: #fff; }
-/* the hole is a circle with an enormous green ring; growing it uncovers the app underneath */
-.launch-hole { position: absolute; left: 50%; top: 50%; width: 0; height: 0; border-radius: 50%; translate: -50% -50%; box-shadow: 0 0 0 220vmax var(--launch); }
-.launch-reveal { pointer-events: none; }
+/* ───────── launch: a clear sky with drifting clouds, then a circle opens onto the app ───────── */
+@property --launch-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
+.launch {
+  --launch-r: 0px; position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; overflow: hidden; color: #0b4f7a;
+  background: linear-gradient(180deg, #3aa4ee 0%, #6cc0f7 38%, #a9dcfb 70%, #e4f5ff 100%);
+}
+.launch-reveal {
+  pointer-events: none; animation: launch-open 1s cubic-bezier(.7, 0, .2, 1) .15s forwards;
+  -webkit-mask: radial-gradient(circle at 50% 50%, transparent var(--launch-r), #000 calc(var(--launch-r) + 1px));
+  mask: radial-gradient(circle at 50% 50%, transparent var(--launch-r), #000 calc(var(--launch-r) + 1px));
+}
 html:has(.launch) { overflow: hidden; }
-.launch-reveal .launch-hole { animation: launch-open 1s cubic-bezier(.7, 0, .2, 1) .15s forwards; }
-@keyframes launch-open { 0% { width: 0; height: 0; } 18% { width: 120px; height: 120px; } 100% { width: 300vmax; height: 300vmax; } }
+@keyframes launch-open { 0% { --launch-r: 0px; } 18% { --launch-r: 60px; } 100% { --launch-r: 160vmax; } }
+.launch-clouds { position: absolute; inset: 0; pointer-events: none; }
+.launch-cloud { position: absolute; left: -320px; width: 240px; height: 64px; border-radius: 64px; background: #fff; filter: drop-shadow(0 14px 18px rgb(40 110 170 / 18%)); animation: launch-drift 60s linear infinite; }
+.launch-cloud::before, .launch-cloud::after { content: ''; position: absolute; background: #fff; border-radius: 50%; }
+.launch-cloud::before { width: 104px; height: 104px; left: 34px; top: -50px; }
+.launch-cloud::after { width: 136px; height: 136px; right: 30px; top: -70px; }
+.lc-1 { top: 10%; scale: .9; animation-duration: 70s; animation-delay: -24s; }
+.lc-2 { top: 26%; scale: .7; opacity: .9; animation-duration: 52s; animation-delay: -8s; }
+.lc-3 { top: 66%; scale: 1.1; opacity: .95; animation-duration: 90s; animation-delay: -50s; }
+.lc-4 { top: 78%; scale: .7; animation-duration: 64s; animation-delay: -30s; }
+.lc-5 { top: 44%; scale: .55; opacity: .8; animation-duration: 46s; animation-delay: -36s; }
+.lc-6 { top: 88%; scale: 1; animation-duration: 80s; animation-delay: -12s; }
+@keyframes launch-drift { to { translate: calc(100vw + 640px) 0; } }
 .launch-brand { position: relative; display: flex; flex-direction: column; align-items: center; gap: 52px; animation: launch-in .6s cubic-bezier(.2, 1.2, .4, 1) both; }
 .launch-reveal .launch-brand { animation: launch-out .25s ease-in forwards; }
 @keyframes launch-in { from { opacity: 0; translate: 0 16px; scale: .92; } }
 @keyframes launch-out { to { opacity: 0; scale: .8; } }
-.launch-word { font-family: var(--font-head); font-weight: 600; font-size: clamp(3.4rem, 12vw, 5.5rem); line-height: 1; letter-spacing: -1px; }
+.launch-word { font-family: 'Fredoka', var(--font-head); font-weight: 700; font-size: clamp(4.2rem, 14vw, 7rem); line-height: 1; letter-spacing: .5px; color: #12843f; -webkit-text-stroke: 10px #fff; paint-order: stroke fill; text-shadow: 0 10px 0 rgb(18 100 160 / 22%); }
 .launch-o { position: relative; display: inline-block; }
-.launch-apple { position: absolute; left: 50%; bottom: -.34em; width: .3em; height: auto; translate: -50% 0; transform-origin: 50% 100%; filter: drop-shadow(0 3px 3px rgb(0 40 10 / 35%)); animation: launch-dot 1s ease-in-out infinite; }
+.launch-apple { position: absolute; left: 50%; bottom: -.34em; width: .3em; height: auto; translate: -50% 0; transform-origin: 50% 100%; filter: drop-shadow(0 3px 3px rgb(0 40 10 / 35%)); z-index: 1; animation: launch-dot 1s ease-in-out infinite; }
 @keyframes launch-dot { 0%, 100% { translate: -50% 0; } 45% { translate: -50% -.26em; rotate: -8deg; } 60% { translate: -50% 0; scale: 1.15 .85; } }
-.launch-text { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 600; font-size: 1.05rem; opacity: .92; }
+.launch-text { display: inline-flex; align-items: baseline; gap: 4px; font-weight: 700; font-size: 1.1rem; color: #0b4f7a; }
 .launch-dots { display: inline-flex; gap: 4px; }
 .launch-dots i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: launch-dots 1.2s ease-in-out infinite; }
 .launch-dots i:nth-child(2) { animation-delay: .15s; } .launch-dots i:nth-child(3) { animation-delay: .3s; }
@@ -487,3 +504,5 @@ html:has(.launch) { overflow: hidden; }
 @media (pointer: coarse) {
   .store-more, .flow a.small, .care-bar a, .empty a, .info-list a { min-height: 40px; display: inline-flex; align-items: center; }
 }
+
+@media (prefers-reduced-motion: reduce) { .launch-cloud { animation: none; left: 12%; } }

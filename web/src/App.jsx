@@ -98,7 +98,7 @@ function Shell({ route }) {
             <a className="btn btn-secondary btn-sm" href="#/care">‹ หน้ารวมโหมด (โฮมแคร์)</a>
             <a className="btn btn-ghost btn-sm" href="#/">สั่งซื้อยา</a>
           </nav>
-          <TabBar page={page} />
+          {['home', 'house', 'family', 'more'].includes(page) ? <TabBar page={page} /> : null}
           <CarePage route={route} />
         </main>
       )}

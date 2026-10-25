@@ -13,13 +13,14 @@ const TABS = [
   ['more', '#/more', 'เพิ่มเติม', 'list'],
 ];
 
-// Which tab a page belongs under.
-const TAB_OF = { care: 'home', home: 'home', meds: 'meds', health: 'meds', profile: 'meds', report: 'meds', notifications: 'notifications' };
+// The pages of the family-care mode and the tab each one sits under. Other pages (settings, orders, my pharmacy) show no tabs.
+const TAB_OF = { home: 'home', meds: 'meds', health: 'meds', profile: 'meds', report: 'meds', notifications: 'notifications', more: 'more', house: 'more', family: 'more' };
 
 export default function TabBar({ page }) {
   const { user } = useSession();
   const [unread] = useQueryData(query(collection(db, 'users', user.uid, 'notifications'), where('readAt', '==', null), limit(20)), [user.uid]);
-  const current = TAB_OF[page] ?? 'more';
+  const current = TAB_OF[page];
+  if (!current) return null;
   return (
     <nav className="tabbar" aria-label="เมนูหลัก">
       {TABS.map(([id, href, label, icon]) => (

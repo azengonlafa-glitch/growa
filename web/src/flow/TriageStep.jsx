@@ -4,6 +4,8 @@ import { go, useAction } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
+import { MatPage } from './Mat.jsx';
+import { Clipboard, DeskPage } from './Desk.jsx';
 import { useFlow } from './state.jsx';
 import ChatTriage from './ChatTriage.jsx';
 import { saveSymptomRecord } from '../lib/symptomHistory.js';
@@ -95,7 +97,8 @@ function GuidedTriage() {
   };
 
   const q = state && !state.done ? state.question : null;
-  return (
+  const onMat = (page) => (state ? <DeskPage>{page}</DeskPage> : <MatPage>{page}</MatPage>);
+  return onMat(
     <FlowPage
       step={3}
       title="ตอบคำถามอาการ"
@@ -107,19 +110,22 @@ function GuidedTriage() {
       ) : null}
     >
       {!state ? (
-        <>
-          <Notice tone="warn" title="ก่อนเริ่ม">
-            ใช้ประเมินเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค และไม่ใช่การอนุมัติจ่ายยา หากมีอาการฉุกเฉิน <a href="tel:1669">โทร 1669</a> ทันที
-          </Notice>
-          <label className="check">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            ยินยอมให้บันทึกคำตอบเพื่อใช้ประเมินอาการ
-          </label>
-          {!consent ? <p className="hint">ติ๊กยินยอมก่อน จึงจะเริ่มตอบคำถามได้</p> : null}
-          {!self ? <ErrorText>ไม่พบโปรไฟล์ของคุณ กรุณาออกจากระบบแล้วเข้าใหม่</ErrorText> : null}
-        </>
+        <div className="zones">
+          <section className="zone zone-warn">
+            <h2>ก่อนเริ่ม</h2>
+            <p>ใช้ประเมินเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค และไม่ใช่การอนุมัติจ่ายยา หากมีอาการฉุกเฉิน <a href="tel:1669">โทร 1669</a> ทันที</p>
+          </section>
+          <section className="zone zone-form">
+            <label className="check">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              ยินยอมให้บันทึกคำตอบเพื่อใช้ประเมินอาการ
+            </label>
+            {!consent ? <p className="hint">ติ๊กยินยอมก่อน จึงจะเริ่มตอบคำถามได้</p> : null}
+            {!self ? <ErrorText>ไม่พบโปรไฟล์ของคุณ กรุณาออกจากระบบแล้วเข้าใหม่</ErrorText> : null}
+          </section>
+        </div>
       ) : q ? (
-        <Question key={q.nodeId + q.step} q={q} busy={busy} onAnswer={answer} picked={picked} setPicked={setPicked} />
+        <Clipboard><Question key={q.nodeId + q.step} q={q} busy={busy} onAnswer={answer} picked={picked} setPicked={setPicked} /></Clipboard>
       ) : null}
       <ErrorText>{error}</ErrorText>
       {state && busy ? <p className="hint"><Icon name="clock" size={16} /> กำลังโหลดคำถามถัดไป…</p> : null}

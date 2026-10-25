@@ -4,6 +4,7 @@ import { call, db } from '../firebase.js';
 import { useAction, useDocData, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { ORDER_STATUS, baht, dateTime, timeAgo } from '../lib/format.js';
+import { CardboardBox, TablePage } from '../flow/Table.jsx';
 import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, Loading, MockBadge, Notice, PageHeader } from '../components/ui.jsx';
 
 // Orders still moving open the live tracking screen; finished ones open the detail page (receipt, rating).
@@ -138,6 +139,8 @@ export function OrderDetail({ orderId }) {
   const stepIndex = STEPS.indexOf(order.status === 'need_more_info' ? 'awaiting_pharmacist' : order.status === 'payment_failed' ? 'awaiting_payment' : order.status);
 
   return (
+    <TablePage>
+    <CardboardBox>
     <div className="stack-lg">
       <PageHeader tone="honey" eyebrow="ตอนนี้" title={label} back="orders" mascot />
       <p className="muted small">#{order.id.slice(0, 6)} · {pharmacy?.name} · {dateTime(order.createdAt)}</p>
@@ -219,5 +222,7 @@ export function OrderDetail({ orderId }) {
 
       {order.status === 'delivered' && isBuyer ? <RateOrder order={order} /> : null}
     </div>
+    </CardboardBox>
+    </TablePage>
   );
 }

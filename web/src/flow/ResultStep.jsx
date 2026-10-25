@@ -7,6 +7,7 @@ import { baht, DRUG_CLASS, timeAgo } from '../lib/format.js';
 import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
+import { Clipboard, DeskPage } from './Desk.jsx';
 import { useFlow } from './state.jsx';
 
 // The three outcomes the customer sees: 1 household medicines, 2 talk to the pharmacist, 3 see a doctor.
@@ -134,7 +135,10 @@ export default function ResultStep() {
   const order = (lines) => { flow.update({ cart: lines }); go('checkout'); };
   const again = () => { flow.restart(); go('choose'); };
 
-  return (
+  const onDesk = (page) => (emergency ? page : <DeskPage>{page}</DeskPage>);
+  const stamp = outcome === 1 ? 'ดูแลตัวเองได้' : outcome === 2 ? 'ปรึกษาเภสัชกร' : 'ควรพบแพทย์';
+  const today = new Intl.DateTimeFormat('th-TH', { dateStyle: 'long', timeZone: 'Asia/Bangkok' }).format(new Date());
+  return onDesk(
     <FlowPage
       step={4}
       title={emergency ? 'ต้องการความช่วยเหลือทันที' : 'ผลการประเมิน'}
@@ -144,7 +148,15 @@ export default function ResultStep() {
       ) : null}
     >
       {emergency ? <Emergency result={result} headingRef={headingRef} /> : (
-        <>
+        <Clipboard className="cb-report">
+          <header className="rp-head">
+            <div>
+              <span className="rp-kicker">รายงานผลประเมินเบื้องต้น</span>
+              <span>{pharmacy.name}</span>
+              <span>วันที่ {today}</span>
+            </div>
+            <span className={`rp-stamp rp-stamp-${outcome}`} aria-hidden>{stamp}</span>
+          </header>
           <div className="result-head">
             <Badge tone={outcome === 1 ? 'good' : outcome === 2 ? 'info' : 'warn'}>
               {outcome === 1 ? 'ยาทั่วไป · ดูแลตัวเองเบื้องต้นได้' : outcome === 2 ? 'ต้องให้เภสัชกรช่วยเลือกยา' : result.route === 'urgent' ? 'ควรพบแพทย์ภายในวันนี้' : 'ควรพบแพทย์'}
@@ -187,10 +199,17 @@ export default function ResultStep() {
               ) : null}
             </Notice>
           ) : null}
-        </>
+          <p className="muted small">{result.disclaimer}</p>
+          <p className="rp-sign">ผู้ประเมิน: ระบบประเมินเบื้องต้นของ growa <span>ไม่ใช่แพทย์ ไม่ใช่การวินิจฉัย</span></p>
+          <Button variant="secondary" block onClick={again}>ประเมินใหม่</Button>
+        </Clipboard>
       )}
-      <p className="muted small">{result.disclaimer}</p>
-      <Button variant="secondary" block onClick={again}>ประเมินใหม่</Button>
+      {emergency ? (
+        <>
+          <p className="muted small">{result.disclaimer}</p>
+          <Button variant="secondary" block onClick={again}>ประเมินใหม่</Button>
+        </>
+      ) : null}
     </FlowPage>
   );
 }

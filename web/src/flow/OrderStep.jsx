@@ -9,6 +9,7 @@ import { baht } from '../lib/format.js';
 import { Badge, Button, Card, ConfirmButton, ErrorText, Icon, Loading, MockBadge, Notice } from '../components/ui.jsx';
 import { Confetti } from '../components/Flair.jsx';
 import FlowPage from './FlowPage.jsx';
+import { CardboardBox, TablePage } from './Table.jsx';
 import TrackMap from './TrackMap.jsx';
 import { PAYMENT_METHODS } from './CheckoutStep.jsx';
 import PayPanel from '../components/PayPanel.jsx';
@@ -164,8 +165,10 @@ export default function OrderStep() {
   const canSimulate = DEMO_BUTTON && pharmacy?.sample && demoLabel && !(order.status === 'pharmacy_checking' && needsPharmacist);
 
   return (
+    <TablePage>
     <FlowPage wide title={order.status === 'delivered' ? 'ได้รับยาแล้ว' : 'ติดตามคำสั่งซื้อ'}>
       {order.status === 'delivered' ? <Confetti /> : null}
+      <CardboardBox>
       {ended ? (
         <>
           <Notice tone="warn" title={ended[0]}>{ended[1]}</Notice>
@@ -254,6 +257,8 @@ export default function OrderStep() {
             </div>
         </div>
       )}
+      </CardboardBox>
     </FlowPage>
+    </TablePage>
   );
 }

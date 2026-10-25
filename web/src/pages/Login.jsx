@@ -7,7 +7,7 @@ import { Button, ErrorText, Field, Icon, Segmented } from '../components/ui.jsx'
 import PicnicLawn from './PicnicLawn.jsx';
 import './Login.css';
 
-// Emulator-only demo accounts created by `npm run seed`.
+// Demo accounts: seeded by `npm run seed` in the emulator, created on first tap on a real project.
 const DEMO_PASSWORD = 'demo-medilink';
 const DEMO = [
   ['mom@demo.test', 'คุณแม่', 'ผู้ป่วย มียาความดันใกล้หมด', 'heart'],
@@ -77,21 +77,39 @@ export default function Login() {
 
   const signIn = (e, p) => run(() => signInWithEmailAndPassword(auth, e, p));
 
-  const signUp = () => run(async () => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(cred.user, { displayName: name });
+  // New account with its own profile. The first-time profile setup opens by itself (the user doc has no onboardedAt yet).
+  const createAccount = async (accountEmail, accountPassword, displayName) => {
+    const cred = await createUserWithEmailAndPassword(auth, accountEmail, accountPassword);
+    await updateProfile(cred.user, { displayName });
     const uid = cred.user.uid;
     const patientId = `${uid}-self`;
     const batch = writeBatch(db);
     batch.set(doc(db, 'patients', patientId), {
-      ownerUid: uid, isSelf: true, displayName: name, archived: false, createdAt: serverTimestamp(),
+      ownerUid: uid, isSelf: true, displayName, archived: false, createdAt: serverTimestamp(),
     });
     batch.set(doc(db, 'users', uid), {
-      displayName: name, email, selfPatientId: patientId, addresses: [DEFAULT_ADDRESS], createdAt: serverTimestamp(),
+      displayName, email: accountEmail, selfPatientId: patientId, addresses: [DEFAULT_ADDRESS], createdAt: serverTimestamp(),
     });
     await batch.commit();
-    // The first-time profile setup opens by itself (the user doc has no onboardedAt yet).
     window.location.hash = '#/';
+  };
+
+  const signUp = () => run(() => createAccount(email, password, name));
+
+  // Demo buttons: the seeded accounts only exist in the emulator, so on a real project the first tap creates the demo account
+  // (public password, no real data) and every later tap signs in to it.
+  const demoSignIn = (demoEmail, demoName) => run(async () => {
+    try {
+      await signInWithEmailAndPassword(auth, demoEmail, DEMO_PASSWORD);
+    } catch (err) {
+      if (!['auth/invalid-credential', 'auth/user-not-found', 'auth/invalid-login-credentials'].includes(err?.code)) throw err;
+      try {
+        await createAccount(demoEmail, DEMO_PASSWORD, demoName);
+      } catch (createErr) {
+        // The account exists with another password: report the original sign-in problem.
+        throw createErr?.code === 'auth/email-already-in-use' ? err : createErr;
+      }
+    }
   });
 
   return (
@@ -138,7 +156,7 @@ export default function Login() {
                   <p className="note-hint">เลือกบทบาทเพื่อทดลองใช้งาน <span className="note-mock">บัญชีทดสอบ</span></p>
                   <div className="tags">
                     {DEMO.map(([e, label, desc, icon], i) => (
-                      <Button key={e} variant="secondary" className="tag" style={{ '--n': i }} busy={busy} onClick={() => signIn(e, DEMO_PASSWORD)}>
+                      <Button key={e} variant="secondary" className="tag" style={{ '--n': i }} busy={busy} onClick={() => demoSignIn(e, label)}>
                         <span className="tag-icon" aria-hidden><Icon name={icon} size={22} /></span>
                         <span className="tag-text"><strong>{label}</strong><span>{desc}</span></span>
                         <span className="tag-go" aria-hidden>›</span>

@@ -6,6 +6,7 @@ import { go, useAction } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
+import { MatPage } from './Mat.jsx';
 import { useFlow } from './state.jsx';
 import { saveSymptomRecord } from '../lib/symptomHistory.js';
 
@@ -147,7 +148,8 @@ export default function ChatTriage({ onFallback }) {
     rec.start();
   };
 
-  return (
+  const onMat = (page) => (sessionId ? page : <MatPage>{page}</MatPage>);
+  return onMat(
     <FlowPage
       step={3}
       title={sessionId ? 'คุยกับผู้ช่วย AI' : 'ผู้ช่วยประเมินอาการ'}
@@ -186,21 +188,27 @@ export default function ChatTriage({ onFallback }) {
       )}
     >
       {!sessionId ? (
-        <>
-          <Notice tone="warn" title="ก่อนเริ่ม">
-            ผู้ช่วย AI ใช้ประเมินเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค และไม่อนุมัติจ่ายยา หากมีอาการฉุกเฉิน <a href="tel:1669">โทร 1669</a> ทันที
-          </Notice>
-          <Notice tone="info" title="เรื่องข้อมูลของคุณ">
-            ข้อความและรูปที่แนบจะถูกส่งไปประมวลผลกับ Google Gemini (บริการฟรี) ระบบไม่เก็บรูปไว้ กรุณาไม่พิมพ์ชื่อ เบอร์โทร หรือที่อยู่ และอย่าถ่ายให้เห็นใบหน้าหรือชื่อบนฉลาก ปุ่มไมค์ใช้บริการแปลงเสียงของเบราว์เซอร์
-          </Notice>
-          <label className="check">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            ยินยอมให้ส่งข้อความอาการและข้อมูลสุขภาพที่ไม่ระบุตัวตน (อายุ แพ้ยา โรคประจำตัว ยาที่ใช้) ให้ AI ประมวลผล
-          </label>
-          {!consent ? <p className="hint">ติ๊กยินยอมก่อน จึงจะเริ่มคุยได้</p> : null}
-          <button type="button" className="btn btn-ghost" onClick={onFallback}>ไม่ใช้ AI ตอบเป็นชุดคำถามแทน</button>
-          {!self ? <ErrorText>ไม่พบโปรไฟล์ของคุณ กรุณาออกจากระบบแล้วเข้าใหม่</ErrorText> : null}
-        </>
+        <div className="zones">
+          <section className="zone zone-warn">
+            <h2>ก่อนเริ่ม</h2>
+            <p>ผู้ช่วย AI ใช้ประเมินเบื้องต้นเท่านั้น ไม่ใช่การวินิจฉัยโรค และไม่อนุมัติจ่ายยา หากมีอาการฉุกเฉิน <a href="tel:1669">โทร 1669</a> ทันที</p>
+          </section>
+          <section className="zone zone-info">
+            <h2>เรื่องข้อมูลของคุณ</h2>
+            <p>ข้อความและรูปที่แนบจะถูกส่งไปประมวลผลกับ Google Gemini (บริการฟรี) ระบบไม่เก็บรูปไว้ กรุณาไม่พิมพ์ชื่อ เบอร์โทร หรือที่อยู่ และอย่าถ่ายให้เห็นใบหน้าหรือชื่อบนฉลาก ปุ่มไมค์ใช้บริการแปลงเสียงของเบราว์เซอร์</p>
+          </section>
+          <section className="zone zone-form">
+            <label className="check">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              ยินยอมให้ส่งข้อความอาการและข้อมูลสุขภาพที่ไม่ระบุตัวตน (อายุ แพ้ยา โรคประจำตัว ยาที่ใช้) ให้ AI ประมวลผล
+            </label>
+            {!consent ? <p className="hint">ติ๊กยินยอมก่อน จึงจะเริ่มคุยได้</p> : null}
+            {!self ? <ErrorText>ไม่พบโปรไฟล์ของคุณ กรุณาออกจากระบบแล้วเข้าใหม่</ErrorText> : null}
+          </section>
+          <div className="zone zone-alt">
+            <button type="button" className="btn btn-ghost" onClick={onFallback}>ไม่ใช้ AI ตอบเป็นชุดคำถามแทน</button>
+          </div>
+        </div>
       ) : (
         <div className="chat" aria-live="polite">
           {messages.map((m, i) => (

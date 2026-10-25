@@ -6,6 +6,7 @@ import { baht, DRUG_CLASS } from '../lib/format.js';
 import ProductArt from '../components/ProductArt.jsx';
 import { Badge, Button, Card, ErrorText, MockBadge, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
+import { CardboardBox, TablePage } from './Table.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
 
 export const PAYMENT_METHODS = [
@@ -54,6 +55,7 @@ export default function CheckoutStep() {
   });
 
   return (
+    <TablePage>
     <FlowPage
       step={goods ? 4 : 5}
       steps={goods ? STEPS_GOODS : undefined}
@@ -62,6 +64,7 @@ export default function CheckoutStep() {
       onBack={() => go(backTo)}
       footer={<Button size="lg" block busy={busy} disabled={!self && !triage} onClick={place}>ยืนยันสั่งซื้อ · {baht(subtotal + (zone?.fee ?? 0))}</Button>}
     >
+      <CardboardBox>
       <div className="split split-even">
       <div className="stack">
       <Card className="stack" style={{ gap: 4 }}>
@@ -131,6 +134,8 @@ export default function CheckoutStep() {
       <ErrorText>{error}</ErrorText>
       </div>
       </div>
+      </CardboardBox>
     </FlowPage>
+    </TablePage>
   );
 }
