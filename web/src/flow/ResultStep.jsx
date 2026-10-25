@@ -62,7 +62,7 @@ function SuggestedDrugs({ result, pharmacyId, patientId, cart, onOrder }) {
           <div className="list">
             {items.map((p) => (
               <div key={p.id} className="list-item">
-                <span className="mini-art"><ProductArt catalogId={p.catalogId} label="" /></span>
+                <span className="mini-art"><ProductArt catalogId={p.catalogId || p.id} label={p.name} /></span>
                 <div className="list-item-main stack" style={{ gap: 2 }}>
                   <strong>{p.name}</strong>
                   <span className="muted small">{p.packSize} · {baht(p.price)}</span>

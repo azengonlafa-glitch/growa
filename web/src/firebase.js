@@ -3,7 +3,7 @@
 // - Production (Vercel): real Firebase project from VITE_FIREBASE_* env vars,
 //   functions via the Vercel API route /api/call/<name>.
 import { initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { connectAuthEmulator, getAuth, signOut } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -34,20 +34,42 @@ if (useEmulator) {
   connectFunctionsEmulator(functions, '127.0.0.1', 5001);
 }
 
+// A signed-in page whose token the server no longer accepts (a session left over from another project, or an emulator that was
+// reset) is no use to anyone: refresh the token once, and if it is still refused, sign out so the login screen opens.
+const SESSION_EXPIRED = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
+async function endStaleSession() {
+  try { await signOut(auth); } catch { /* already signed out */ }
+  const err = new Error(SESSION_EXPIRED);
+  err.code = 'functions/unauthenticated';
+  throw err;
+}
+
 // Calls a backend function and returns its data. Errors carry the server's
 // Thai message and a "functions/<status>" code, the same in both modes.
 export async function call(name, data = {}) {
   if (!isProduction) {
-    const res = await httpsCallable(functions, name, { timeout: 120_000 })(data);
-    return res.data;
+    try {
+      const res = await httpsCallable(functions, name, { timeout: 120_000 })(data);
+      return res.data;
+    } catch (err) {
+      if (err?.code === 'functions/unauthenticated' && auth.currentUser) await endStaleSession();
+      throw err;
+    }
   }
-  const token = await auth.currentUser?.getIdToken();
-  const res = await fetch(`/api/call/${name}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: JSON.stringify({ data }),
-  });
-  const body = await res.json().catch(() => ({}));
+  const send = async (forceRefresh) => {
+    const token = await auth.currentUser?.getIdToken(forceRefresh).catch(() => null);
+    const res = await fetch(`/api/call/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ data }),
+    });
+    return { res, body: await res.json().catch(() => ({})) };
+  };
+  let { res, body } = await send(false);
+  if (body.error?.status === 'unauthenticated' && auth.currentUser) {
+    ({ res, body } = await send(true));
+    if (body.error?.status === 'unauthenticated') await endStaleSession();
+  }
   if (!res.ok || body.error) {
     const err = new Error(body.error?.message ?? 'เกิดข้อผิดพลาด');
     err.code = `functions/${body.error?.status ?? 'internal'}`;

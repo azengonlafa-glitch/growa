@@ -4,6 +4,7 @@
 // A real photo wins when one exists: drop web/public/products/<catalogId>.jpg (or .png / .webp) and it is shown
 // instead of the drawing (see web/public/products/README.md).
 import { useId, useState } from 'react';
+import { findProductPhoto } from '../assets/productImages.js';
 
 const SHADOW = <ellipse cx="100" cy="176" rx="58" ry="7" fill="#000" opacity=".12" />;
 
@@ -191,15 +192,33 @@ const EXTENSIONS = ['jpg', 'png', 'webp'];
 export default function ProductArt({ catalogId, label }) {
   const id = useId().replace(/:/g, '');
   const [tried, setTried] = useState(0); // how many photo file types failed to load
+
+  const photo = findProductPhoto(catalogId, label);
+  if (photo) {
+    return (
+      <img
+        className="product-photo"
+        src={photo}
+        alt={label || catalogId || 'สินค้า'}
+        loading="lazy"
+        decoding="async"
+      />
+    );
+  }
+
   if (catalogId && tried < EXTENSIONS.length) {
     return (
       <img
-        className="product-photo" src={`/products/${catalogId}.${EXTENSIONS[tried]}`} alt={label} loading="lazy" decoding="async"
+        className="product-photo"
+        src={`/products/${catalogId}.${EXTENSIONS[tried]}`}
+        alt={label || catalogId}
+        loading="lazy"
+        decoding="async"
         onError={() => setTried((n) => n + 1)}
       />
     );
   }
-  const draw = ART[catalogId] ?? ((i) => <Carton id={i} color="#7ac7a0" dark="#2c7a54" label="สินค้า" />);
+  const draw = ART[catalogId] ?? ((i) => <Carton id={i} color="#7ac7a0" dark="#2c7a54" label={label || 'สินค้า'} />);
   return (
     <svg className="product-art" viewBox="24 26 152 156" role="img" aria-label={label} fontFamily="inherit">
       {SHADOW}

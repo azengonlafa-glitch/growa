@@ -27,7 +27,11 @@ const SORTS = [['recommended', 'แนะนำ'], ['low', 'ราคาต่�
 // No product photos in the sample data, so each product gets a drawn, unbranded pack picture.
 function Thumb({ product }) {
   const [, , , tone] = category(product.category);
-  return <div className={`thumb tile-${tone}`} aria-hidden><ProductArt catalogId={product.catalogId} label="" /></div>;
+  return (
+    <div className={`thumb tile-${tone}`} aria-hidden>
+      <ProductArt catalogId={product.catalogId || product.id} label={product.name} />
+    </div>
+  );
 }
 
 // Shopping-app card: picture on top with a round add button on its corner (it turns into − n + once in the

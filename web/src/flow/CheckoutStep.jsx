@@ -80,7 +80,7 @@ export default function CheckoutStep() {
           <div className="list">
             {cart.map((l) => (
               <div key={l.productId} className="list-item">
-                <span className="mini-art"><ProductArt catalogId={l.catalogId} label="" /></span>
+                <span className="mini-art"><ProductArt catalogId={l.catalogId || l.productId} label={l.name} /></span>
                 <div className="list-item-main stack" style={{ gap: 2 }}>
                   <strong>{l.name}</strong>
                   <span className="muted small">{l.packSize} · <span className="num">{baht(l.price * l.qty)}</span></span>
