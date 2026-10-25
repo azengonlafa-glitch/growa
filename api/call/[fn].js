@@ -12,14 +12,23 @@ const STATUS_CODES = {
 };
 
 async function caller(req) {
+  // The token normally comes in the Authorization header; it is also sent in the body, because a proxy in front of a deployment
+  // (for example Vercel's deployment protection) may remove or replace that header. Both are tried.
   const header = req.headers.authorization ?? '';
-  if (!header.startsWith('Bearer ')) return undefined;
-  try {
-    const token = await auth.verifyIdToken(header.slice(7));
-    return { uid: token.uid, token };
-  } catch {
-    return undefined; // handlers reject missing auth with their own message
+  const candidates = [...new Set([
+    header.startsWith('Bearer ') ? header.slice(7) : '',
+    typeof req.body?.idToken === 'string' ? req.body.idToken : '',
+  ].filter(Boolean))];
+  for (const raw of candidates) {
+    try {
+      const token = await auth.verifyIdToken(raw);
+      return { uid: token.uid, token };
+    } catch (err) {
+      // Handlers reject missing auth with their own message; the reason is passed along so the page can show why.
+      req.authFailure = `${err?.code ?? 'error'}: ${String(err?.message ?? '').slice(0, 140)}`;
+    }
   }
+  return undefined;
 }
 
 export default async function handler(req, res) {
@@ -34,7 +43,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ result: result ?? null });
   } catch (err) {
     if (err instanceof HttpsError) {
-      return res.status(STATUS_CODES[err.code] ?? 500).json({ error: { status: err.code, message: err.message } });
+      const detail = err.code === 'unauthenticated' ? (req.authFailure ?? 'ไม่มีโทเค็นแนบมากับคำขอ') : undefined;
+      return res.status(STATUS_CODES[err.code] ?? 500).json({ error: { status: err.code, message: err.message, ...(detail ? { detail } : {}) } });
     }
     console.error(req.query.fn, err);
     return res.status(500).json({ error: { status: 'internal', message: 'เกิดข้อผิดพลาดในระบบ' } });

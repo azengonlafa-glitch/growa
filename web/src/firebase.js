@@ -38,7 +38,6 @@ if (useEmulator) {
 
 // A signed-in page whose token the server no longer accepts (a session left over from another project, or an emulator that was
 // reset) is no use to anyone: refresh the token once, and if it is still refused, sign out so the login screen opens.
-const SESSION_EXPIRED = 'เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่';
 // A demo account (public password) is simply signed in again, so a presentation carries on instead of stopping at the login screen.
 async function renewDemoSession() {
   const email = auth.currentUser?.email ?? '';
@@ -50,11 +49,12 @@ async function renewDemoSession() {
   } catch { return false; }
 }
 
-async function endStaleSession() {
-  try { await signOut(auth); } catch { /* already signed out */ }
-  const err = new Error(SESSION_EXPIRED);
+// When the server still refuses the user, the page stays where it is (no bounce to the login screen) and the message says why.
+function refused(res, body) {
+  const skew = res?.headers?.get('date') ? Math.round((Date.now() - new Date(res.headers.get('date')).getTime()) / 1000) : null;
+  const err = new Error(`ต้องเข้าสู่ระบบก่อน — เซิร์ฟเวอร์ไม่รับบัญชีนี้ (${body.error?.detail ?? 'ไม่ทราบสาเหตุ'}) · เว็บ ${location.host} · โปรเจกต์ ${firebaseConfig.projectId} · นาฬิกาเครื่องต่างจากเซิร์ฟเวอร์ ${skew ?? '?'} วินาที`);
   err.code = 'functions/unauthenticated';
-  throw err;
+  return err;
 }
 
 // Calls a backend function and returns its data. Errors carry the server's
@@ -65,10 +65,10 @@ export async function call(name, data = {}) {
       const res = await httpsCallable(functions, name, { timeout: 120_000 })(data);
       return res.data;
     } catch (err) {
-      if (err?.code === 'functions/unauthenticated' && auth.currentUser) {
-        if (await renewDemoSession()) return (await httpsCallable(functions, name, { timeout: 120_000 })(data)).data;
-        await endStaleSession();
+      if (err?.code === 'functions/unauthenticated' && auth.currentUser && await renewDemoSession()) {
+        return (await httpsCallable(functions, name, { timeout: 120_000 })(data)).data;
       }
+      if (err?.code === 'functions/unauthenticated') err.message = `ต้องเข้าสู่ระบบก่อน — ตัวจำลอง Firebase ในเครื่องไม่รับบัญชีนี้ (เดโมอาจถูกรีสตาร์ต ให้ออกจากระบบแล้วกดบัญชีเดโมใหม่) · เว็บ ${location.host}`;
       throw err;
     }
   }
@@ -77,7 +77,7 @@ export async function call(name, data = {}) {
     const res = await fetch(`/api/call/${name}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: JSON.stringify({ data }),
+      body: JSON.stringify({ data, ...(token ? { idToken: token } : {}) }),
     });
     return { res, body: await res.json().catch(() => ({})) };
   };
@@ -86,7 +86,7 @@ export async function call(name, data = {}) {
     ({ res, body } = await send(true));
     if (body.error?.status === 'unauthenticated') {
       if (await renewDemoSession()) ({ res, body } = await send(true));
-      if (body.error?.status === 'unauthenticated') await endStaleSession();
+      if (body.error?.status === 'unauthenticated') throw refused(res, body);
     }
   }
   if (!res.ok || body.error) {
