@@ -272,6 +272,8 @@ export async function checkUnloggedDosesAt(nowMs) {
   for (const m of meds.docs) {
     const med = m.data();
     const patientId = m.ref.parent.parent.id;
+    // Houses have their own, configurable reminders (house.js sweepOverdueDosesAt).
+    if ((await db.doc(`patients/${patientId}`).get()).data()?.houseId) continue;
     for (const slot of doseSlots(med, from, to)) {
       const logs = await db.collection(`patients/${patientId}/doseLogs`)
         .where('medicationId', '==', m.id)

@@ -77,7 +77,27 @@
 | birthYear | number? | |
 | linkedUid | string? | กรณีสมาชิกมีบัญชีของตัวเอง |
 | archived | bool | ใช้ soft delete |
+| houseId | string? | บ้านที่โปรไฟล์นี้อยู่ สมาชิกทุกคนในบ้านดูและจัดการยา/สุขภาพ/บันทึกการกินได้ เขียนโดย function (ตอนสร้างหรือเข้าบ้าน) หรือตอนสร้างโดยสมาชิกบ้าน |
+| sex | `female` | `male` | `other`? | |
+| hospital, doctor | string? (≤120) | โรงพยาบาลและแพทย์ที่ดูแล |
+| nextAppointment | timestamp? | วันนัดครั้งถัดไป |
+| avatar | string? (≤8) | อีโมจิประจำตัวที่ครอบครัวเลือก (เช่น 👵) |
 | createdAt | timestamp | |
+
+### `houses/{houseId}` — บ้าน (หนึ่งคนอยู่ได้บ้านเดียว)
+
+| Field | Type | หมายเหตุ |
+|---|---|---|
+| name | string (≤60) | เช่น "บ้านคุณย่าสมศรี" เจ้าของแก้ได้ |
+| ownerUid | string | เจ้าของบ้าน |
+| memberUids | array<string> | **function เท่านั้น** rules ใช้ตรวจสิทธิ์ |
+| inviteCode | string (8 หลัก) | **function เท่านั้น** เจ้าของเปลี่ยนใหม่ได้ (`regenerateInviteCode`) |
+| settings | {overdueAfterMin 5–720, repeatEveryMin 0–720, maxRepeats 0–10} | เจ้าของแก้ได้ ใช้กับการเตือนยาเลยเวลา (0 = ไม่เตือนซ้ำ) |
+| createdAt, updatedAt | timestamp | |
+
+`houses/{hid}/members/{uid}`: displayName, role (`owner`/`member`), joinedAt — สมาชิกอ่านได้ เขียนโดย function เท่านั้น
+
+`houseJoinAttempts/{uid}`: {count, windowStart} นับจำนวนครั้งที่ลองรหัสผิด (ไม่มีใครอ่านหรือเขียนได้จาก client)
 
 ### `patients/{pid}/health/profile` — ข้อมูลอ่อนไหว (เอกสารเดียว)
 
@@ -97,14 +117,16 @@
 
 | Field | Type | ใครเขียน |
 |---|---|---|
-| name, form, strength | string | client |
+| name, form, strength | string | client (`name` = ชื่อและขนาดยา เช่น "Metformin 500 mg"; `form` = tablet/capsule/liquid/injection/topical/drops/inhaler/other ≤40 ตัวอักษร) |
+| condition | string? (≤100) | client (โรคที่เกี่ยวข้อง) |
+| notes | string? (≤500) | client (หมายเหตุ/ข้อควรระวัง) |
 | catalogId | string? | client |
 | dosePerIntake | number (>0) | client |
 | unit | string (`tablet`, `ml`, ...) | client |
 | times | array<`morning` \| `noon` \| `evening` \| `bedtime` \| `HH:mm`> | client |
 | mealRelation | `before` \| `after` \| `with` \| `none` | client |
 | asNeeded | bool | client (ยาใช้ตามอาการจะไม่นับในการประมาณยาคงเหลือ) |
-| startDate, endDate | timestamp? | client |
+| startDate, endDate | timestamp? | client (ระยะเวลาการใช้ยา: ไม่มี endDate = ใช้ต่อเนื่อง) |
 | stockOnHand | number (>=0) | client (นับจริงล่าสุด) |
 | stockCountedAt | timestamp | client (`== request.time`) |
 | refillThresholdDays | number | client |
@@ -357,6 +379,8 @@ rules ตรวจว่าผู้รีวิวเป็นคนสั่�
 | | `onCaregiverChange` (trigger) | แจ้งทั้งสองฝ่ายเมื่อสถานะเปลี่ยน |
 | | `onMedicationWrite`, `onDoseLogCreated` (trigger) | คำนวณยาคงเหลือ แจ้งยาใกล้หมด และแจ้งเมื่อยืนยันว่าพลาดมื้อ |
 | | `dailyStockRecalc` (06:00), `checkUnloggedDoses` (ทุก 30 นาที) | คำนวณซ้ำรายวัน และแจ้งเตือน "ยังไม่ได้บันทึก" |
+| house.js | `createHouse`, `joinHouse` (รหัส 8 หลัก จำกัดการลองผิด), `regenerateInviteCode`, `leaveHouse`, `removeMember` | สร้าง/เข้า/ออกจากบ้าน และจัดการสมาชิก |
+| | `checkOverdueDoses` (เรียกจากแอป), `sweepOverdueDoses` (ทุก 15 นาที ถ้ามี scheduler) | แจ้งสมาชิกทั้งบ้านเมื่อมื้อยายังไม่ถูกบันทึกเกินเวลาที่ตั้ง และเตือนซ้ำตามรอบ |
 | account.js | `deleteAccount`, `onRatingWrite` | ลบบัญชีแบบ cascade และคำนวณคะแนนร้าน |
 | places.js | `searchPharmacies`, `getPharmacyPlaceDetails` | ดึงข้อมูลจาก Google Places แบบสด ถ้าไม่มี key จะค้นจากข้อมูล อย. แทน |
 | directory.js | `searchPharmacyDirectory` | ค้นร้านยาที่มีใบอนุญาตจากข้อมูล อย. ใกล้ตำแหน่งผู้ใช้ (ไม่ต้องมี key) |

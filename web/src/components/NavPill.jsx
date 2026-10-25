@@ -4,9 +4,9 @@ import { Icon } from './ui.jsx';
 import '../navpill.css';
 
 const LINKS = [
-  ['meds', 'ยาของฉัน'],
+  ['meds', 'สุขภาพและยา'],
   ['orders', 'คำสั่งซื้อ'],
-  ['family', 'ครอบครัว'],
+  ['family', 'บ้าน'],
 ];
 
 function Apple() {

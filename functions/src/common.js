@@ -53,6 +53,12 @@ export async function requireVerifiedPharmacist(pharmacyId, uid) {
   return staff;
 }
 
+// Everyone in a house may see and manage the profiles that belong to it.
+export async function isHouseMember(houseId, uid) {
+  const snap = await db.doc(`houses/${houseId}`).get();
+  return snap.exists && snap.data().memberUids?.includes(uid) === true;
+}
+
 // Returns { patient, isOwner } when uid is the owner or an active caregiver
 // holding `perm`; throws otherwise. Pass perm = null to accept any active caregiver.
 export async function requirePatientAccess(patientId, uid, perm) {
@@ -60,6 +66,7 @@ export async function requirePatientAccess(patientId, uid, perm) {
   if (!patientSnap.exists) throw new HttpsError('not-found', 'ไม่พบโปรไฟล์ผู้ป่วย');
   const patient = { id: patientSnap.id, ...patientSnap.data() };
   if (patient.ownerUid === uid) return { patient, isOwner: true };
+  if (patient.houseId && await isHouseMember(patient.houseId, uid)) return { patient, isOwner: false, viaHouse: true };
 
   const cg = await db.doc(`patients/${patientId}/caregivers/${uid}`).get();
   const ok = cg.exists
@@ -144,6 +151,11 @@ export async function patientWatchers(patientId, perm) {
   ]);
   const uids = new Set();
   if (patientSnap.exists) uids.add(patientSnap.data().ownerUid);
+  const houseId = patientSnap.data()?.houseId;
+  if (houseId) {
+    const house = await db.doc(`houses/${houseId}`).get();
+    for (const m of house.data()?.memberUids ?? []) uids.add(m);
+  }
   for (const d of cgSnap.docs) if (d.data().permissions?.[perm] === true) uids.add(d.id);
   return [...uids];
 }

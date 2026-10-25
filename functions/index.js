@@ -15,6 +15,10 @@ export {
   afterMedicationWrite, afterDoseLog, dailyStockRecalc, checkUnloggedDoses,
 } from './src/care.js';
 
+export {
+  createHouse, joinHouse, inviteToHouse, regenerateInviteCode, leaveHouse, removeMember, checkOverdueDoses, sweepOverdueDoses,
+} from './src/house.js';
+
 export { deleteAccount, afterRating } from './src/account.js';
 export { demoPharmacyReview, demoPharmacyOrder } from './src/demo.js';
 export { searchPharmacies, getPharmacyPlaceDetails } from './src/places.js';

@@ -208,6 +208,27 @@ describe('patients and caregivers', () => {
     }));
   });
 
+  test('medicine can carry a related condition, note and course length; oversized text is rejected', async () => {
+    const ref = doc(db('mom'), 'patients/mom/medications/amlo');
+    await assertSucceeds(updateDoc(ref, {
+      condition: 'ความดันโลหิตสูง', notes: 'ห้ามดื่มแอลกอฮอล์', form: 'tablet',
+      startDate: Timestamp.now(), endDate: Timestamp.fromMillis(Date.now() + 30 * 864e5),
+      updatedAt: serverTimestamp(), updatedBy: 'mom',
+    }));
+    await assertFails(updateDoc(ref, { notes: 'x'.repeat(501), updatedAt: serverTimestamp(), updatedBy: 'mom' }));
+    await assertFails(updateDoc(ref, { condition: 'x'.repeat(101), updatedAt: serverTimestamp(), updatedBy: 'mom' }));
+    await assertFails(updateDoc(ref, { endDate: 'tomorrow', updatedAt: serverTimestamp(), updatedBy: 'mom' }));
+  });
+
+  test('owner can create a medicine with the full set of fields the form writes', async () => {
+    const ref = doc(db('mom'), 'patients/mom/medications/new1');
+    await assertSucceeds(setDoc(ref, {
+      name: 'Metformin 500 mg', form: 'tablet', condition: '', notes: '', dosePerIntake: 1, unit: 'เม็ด', times: ['morning', '13:30'],
+      mealRelation: 'after', stockOnHand: 30, refillThresholdDays: 7, startDate: Timestamp.now(),
+      asNeeded: false, active: true, stockCountedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: 'mom',
+    }));
+  });
+
   test('dose logs are append-only and attributed to the writer', async () => {
     const m = db('mom');
     const log = {
@@ -217,6 +238,89 @@ describe('patients and caregivers', () => {
     await assertFails(setDoc(doc(m, 'patients/mom/doseLogs/l1'), { ...log, loggedBy: 'son' }));
     await assertSucceeds(setDoc(doc(m, 'patients/mom/doseLogs/l1'), { ...log, loggedBy: 'mom' }));
     await assertFails(updateDoc(doc(m, 'patients/mom/doseLogs/l1'), { status: 'taken' }));
+  });
+});
+
+describe('houses', () => {
+  beforeEach(async () => {
+    await seed(async (s) => {
+      await setDoc(doc(s, 'houses/h1'), {
+        name: 'บ้านคุณย่า', ownerUid: 'mom', memberUids: ['mom', 'son'], inviteCode: '12345678',
+        settings: { overdueAfterMin: 30, repeatEveryMin: 30, maxRepeats: 3 }, createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
+      });
+      await setDoc(doc(s, 'houses/h1/members/mom'), { displayName: 'แม่', role: 'owner' });
+      await setDoc(doc(s, 'patients/mom'), { ownerUid: 'mom', isSelf: true, displayName: 'คุณแม่', archived: false, houseId: 'h1', createdAt: Timestamp.now() });
+      await setDoc(doc(s, 'patients/mom/medications/amlo'), {
+        name: 'Amlodipine 5 mg', dosePerIntake: 1, unit: 'tablet', times: ['morning'], stockOnHand: 30, active: true,
+        updatedAt: Timestamp.now(), updatedBy: 'mom',
+      });
+      await setDoc(doc(s, 'patients/mom/health/profile'), { allergies: [], conditions: [], updatedAt: Timestamp.now(), updatedBy: 'mom' });
+    });
+  });
+
+  test('only members read the house; nobody writes members or the code from the client', async () => {
+    await assertSucceeds(getDoc(doc(db('son'), 'houses/h1')));
+    await assertSucceeds(getDoc(doc(db('son'), 'houses/h1/members/mom')));
+    await assertFails(getDoc(doc(db('stranger'), 'houses/h1')));
+    await assertFails(getDoc(doc(db('stranger'), 'houses/h1/members/mom')));
+    await assertSucceeds(getDocs(query(collection(db('son'), 'houses'), where('memberUids', 'array-contains', 'son'))));
+    await assertFails(getDocs(collection(db('son'), 'houses')));
+    await assertFails(updateDoc(doc(db('son'), 'houses/h1'), { memberUids: ['son'], updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(db('mom'), 'houses/h1'), { inviteCode: '00000000', updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(db('stranger'), 'houses/h2'), { name: 'x', ownerUid: 'stranger', memberUids: ['stranger'] }));
+  });
+
+  test('the owner renames the house and sets reminders within limits; members cannot', async () => {
+    const ok = { name: 'บ้านใหม่', settings: { overdueAfterMin: 45, repeatEveryMin: 0, maxRepeats: 0 }, updatedAt: serverTimestamp() };
+    await assertSucceeds(updateDoc(doc(db('mom'), 'houses/h1'), ok));
+    await assertFails(updateDoc(doc(db('son'), 'houses/h1'), ok));
+    await assertFails(updateDoc(doc(db('mom'), 'houses/h1'), { ...ok, settings: { overdueAfterMin: 1, repeatEveryMin: 30, maxRepeats: 3 } }));
+    await assertFails(updateDoc(doc(db('mom'), 'houses/h1'), { ...ok, settings: { overdueAfterMin: 30, repeatEveryMin: 30, maxRepeats: 3, extra: 1 } }));
+  });
+
+  test('house members manage the profiles of the house; outsiders see nothing', async () => {
+    await assertSucceeds(getDoc(doc(db('son'), 'patients/mom')));
+    await assertSucceeds(getDocs(query(collection(db('son'), 'patients'), where('houseId', '==', 'h1'))));
+    await assertSucceeds(getDoc(doc(db('son'), 'patients/mom/health/profile')));
+    await assertSucceeds(getDoc(doc(db('son'), 'patients/mom/medications/amlo')));
+    await assertSucceeds(updateDoc(doc(db('son'), 'patients/mom'), { hospital: 'โรงพยาบาลตัวอย่าง', doctor: 'นพ.ตัวอย่าง', nextAppointment: Timestamp.now(), sex: 'female' }));
+    await assertSucceeds(updateDoc(doc(db('son'), 'patients/mom/medications/amlo'), { stockOnHand: 20, updatedAt: serverTimestamp(), updatedBy: 'son' }));
+    await assertSucceeds(setDoc(doc(db('son'), 'patients/mom/doseLogs/x1'), {
+      medicationId: 'amlo', scheduledFor: Timestamp.now(), status: 'taken', loggedBy: 'son', loggedAt: serverTimestamp(),
+    }));
+    await assertSucceeds(setDoc(doc(db('son'), 'patients/mom/health/profile'), { allergies: [{ substance: 'penicillin' }], conditions: ['ความดันโลหิตสูง'], updatedAt: serverTimestamp(), updatedBy: 'son' }));
+    // …but not the ownership, the house link, or delete
+    await assertFails(updateDoc(doc(db('son'), 'patients/mom'), { ownerUid: 'son' }));
+    await assertFails(updateDoc(doc(db('son'), 'patients/mom'), { houseId: 'other' }));
+    await assertSucceeds(updateDoc(doc(db('son'), 'patients/mom'), { avatar: '👵' }));
+    await assertFails(updateDoc(doc(db('son'), 'patients/mom'), { avatar: 'x'.repeat(9) }));
+    await assertFails(updateDoc(doc(db('son'), 'patients/mom'), { sex: 'robot' }));
+    await assertFails(updateDoc(doc(db('son'), 'patients/mom'), { hospital: 'x'.repeat(121) }));
+    await assertFails(getDoc(doc(db('stranger'), 'patients/mom')));
+    await assertFails(getDoc(doc(db('stranger'), 'patients/mom/health/profile')));
+    await assertFails(getDoc(doc(db('admin1', { admin: true }), 'patients/mom/health/profile')));
+    await assertFails(setDoc(doc(db('stranger'), 'patients/mom/doseLogs/x2'), {
+      medicationId: 'amlo', scheduledFor: Timestamp.now(), status: 'taken', loggedBy: 'stranger', loggedAt: serverTimestamp(),
+    }));
+  });
+
+  test('a member adds a profile into the house; joining someone else\'s house this way is refused', async () => {
+    const profile = (houseId) => ({
+      ownerUid: 'son', isSelf: false, displayName: 'คุณยาย', birthYear: 1945, archived: false, createdAt: serverTimestamp(),
+      sex: 'female', hospital: 'โรงพยาบาลตัวอย่าง', doctor: 'นพ.ตัวอย่าง', houseId,
+    });
+    await assertSucceeds(setDoc(doc(db('son'), 'patients/granny'), profile('h1')));
+    await assertSucceeds(getDoc(doc(db('mom'), 'patients/granny')));
+    await assertFails(setDoc(doc(db('stranger'), 'patients/intruder'), { ...profile('h1'), ownerUid: 'stranger' }));
+  });
+
+  test('the creator can read, then create, the health profile of the profile just added to the house', async () => {
+    await assertSucceeds(setDoc(doc(db('son'), 'patients/granny'), {
+      ownerUid: 'son', isSelf: false, displayName: 'คุณยาย', archived: false, createdAt: serverTimestamp(), houseId: 'h1',
+    }));
+    const ref = doc(db('son'), 'patients/granny/health/profile');
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(setDoc(ref, { allergies: [], conditions: ['เบาหวาน'], updatedAt: serverTimestamp(), updatedBy: 'son' }));
   });
 });
 

@@ -1,0 +1,65 @@
+/* House page: start cards, invite code, members, patient cards, activity feed, reminder settings.
+   Colours from the theme tokens. Only transform/opacity animate; off under prefers-reduced-motion. */
+.care-main:has(.hs), .care-main:has(.hs-start) { max-width: min(960px, 100%); }
+
+.hs-start { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .hs-start { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hs-start-card { padding: 24px; }
+.hs-start-ico { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 18px; background: var(--primary-soft); color: var(--primary-text); }
+.hs-start-ico-2 { background: var(--accent-soft); color: var(--accent-text); }
+.hs-code-input { font-size: 1.6rem; letter-spacing: .18em; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.hs-invite {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; padding: 18px 20px;
+  background: linear-gradient(135deg, var(--primary-soft), color-mix(in srgb, var(--accent-soft) 70%, var(--surface)));
+  border: 1.5px dashed color-mix(in srgb, var(--primary) 45%, transparent);
+}
+.hs-code { display: block; font-size: 2.2rem; line-height: 1.15; letter-spacing: .14em; font-weight: 800; color: var(--primary-text); font-variant-numeric: tabular-nums; }
+
+.hs-invite-mail { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+.hs-invite-mail input { flex: 1 1 240px; min-width: 0; }
+
+.hs-members { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.hs-member { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1.5px solid var(--border); }
+.hs-member-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.hs-avatar { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: var(--primary-ink); font-family: var(--font-head); font-size: 1.15rem; }
+.hs-avatar-lg { width: 54px; height: 54px; font-size: 1.4rem; background: linear-gradient(150deg, #ffb069, #ff7a59); color: #fff; }
+.hs-leave { padding-top: 6px; }
+
+.hs-grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 760px) { .hs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.hs-patient { display: flex; flex-direction: column; gap: 14px; padding: 20px; }
+.hs-patient-head { display: flex; align-items: center; gap: 14px; }
+.hs-patient-head h3 { font-size: 1.15rem; }
+.hs-facts { display: grid; gap: 8px; margin: 0; }
+.hs-facts > div { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px; padding-bottom: 8px; border-bottom: 1px dashed var(--border); }
+.hs-facts dt { color: var(--muted); font-size: .85rem; font-weight: 700; }
+.hs-facts dd { margin: 0; overflow-wrap: anywhere; }
+.hs-patient-actions { margin-top: auto; }
+
+.hs-feed { list-style: none; margin: 0; padding: 0 0 0 6px; display: grid; gap: 4px; position: relative; }
+.hs-feed::before { content: ''; position: absolute; left: 21px; top: 10px; bottom: 10px; width: 2px; background: var(--border); }
+.hs-feed-row { position: relative; display: flex; gap: 14px; padding: 8px 4px; }
+.hs-feed-dot { position: relative; flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--good-soft); color: var(--good); border: 3px solid var(--bg); }
+.hs-skipped .hs-feed-dot { background: var(--surface-2); color: var(--muted); }
+.hs-missed .hs-feed-dot { background: var(--bad-soft); color: var(--bad); }
+.hs-feed-row p { margin: 0; }
+.hs-feed-row p:first-child { line-height: 1.45; }
+
+.hs-settings { padding: 22px; }
+.hs-note { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--accent-soft); color: var(--accent-text); font-size: .86rem; line-height: 1.45; }
+.hs-note svg { flex: none; margin-top: 2px; }
+.hs-legacy { border: 1.5px dashed var(--border-strong); border-radius: 18px; padding: 10px 14px; }
+.hs-legacy summary { cursor: pointer; font-weight: 700; color: var(--muted); min-height: 44px; display: flex; align-items: center; }
+.hs-legacy[open] summary { margin-bottom: 14px; }
+.hs-form { padding: 22px; }
+
+.hs-patient, .hs-member, .hs-start-card { animation: hs-in .45s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes hs-in { from { opacity: 0; transform: translateY(12px); } }
+@media (prefers-reduced-motion: reduce) { .hs-patient, .hs-member, .hs-start-card { animation: none; } }
+
+.hs-avatars { display: flex; flex-wrap: wrap; gap: 8px; }
+.hs-avatars button { width: 52px; height: 52px; border-radius: 16px; border: 2px solid var(--border); background: var(--surface); font-size: 1.7rem; line-height: 1; cursor: pointer; transition: transform .2s cubic-bezier(.3, 1.5, .5, 1); }
+.hs-avatars button:hover { transform: translateY(-2px); }
+.hs-avatars button.on { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 6px 12px -8px var(--primary-dark); }
+.hs-avatar-lg { font-size: 1.7rem; }

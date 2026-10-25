@@ -18,6 +18,19 @@ export const deleteAccount = onCall(async (req) => {
     throw new HttpsError('failed-precondition', 'โอนหรือปิดร้านที่คุณเป็นเจ้าของก่อนลบบัญชี');
   }
 
+  // A house owner with other members must hand over first; anyone else just leaves (the last one out closes the house).
+  const inHouse = await db.collection('houses').where('memberUids', 'array-contains', uid).limit(1).get();
+  if (!inHouse.empty) {
+    const house = inHouse.docs[0];
+    const others = house.data().memberUids.filter((m) => m !== uid);
+    if (house.data().ownerUid === uid && others.length) {
+      throw new HttpsError('failed-precondition', 'เอาสมาชิกคนอื่นออกจากบ้านก่อน จึงจะลบบัญชีได้');
+    }
+    await house.ref.collection('members').doc(uid).delete();
+    if (others.length) await house.ref.update({ memberUids: FieldValue.arrayRemove(uid) });
+    else await db.recursiveDelete(house.ref);
+  }
+
   const [patients, links, orders] = await Promise.all([
     db.collection('patients').where('ownerUid', '==', uid).get(),
     db.collectionGroup('caregivers').where('caregiverUid', '==', uid).get(),

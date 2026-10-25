@@ -4,7 +4,7 @@
 export const TZ_OFFSET_MS = 7 * 3600e3;
 export const DAY_MS = 24 * 3600e3;
 export const NAMED_TIMES = { morning: '08:00', noon: '12:00', evening: '18:00', bedtime: '21:00' };
-export const NAMED_TIME_LABELS = { morning: 'เช้า', noon: 'กลางวัน', evening: 'เย็น', bedtime: 'ก่อนนอน' };
+export const NAMED_TIME_LABELS = { morning: 'เช้า', noon: 'เที่ยง', evening: 'เย็น', bedtime: 'ก่อนนอน' };
 
 const toMillis = (t) => (t == null ? null : typeof t === 'number' ? t : t.toMillis?.() ?? null);
 

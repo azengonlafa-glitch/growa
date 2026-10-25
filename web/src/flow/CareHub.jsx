@@ -112,24 +112,26 @@ function OrdersBody({ active }) {
   );
 }
 
-function FamilyBody({ names, count, invites }) {
+function FamilyBody({ names, count, invites, house }) {
   return (
     <div className="wd-family">
       <div className="wd-avatars" aria-hidden>
         {names.slice(0, 5).map((n, i) => <span key={`${n}-${i}`} style={{ '--i': i }}>{n.slice(0, 1).toUpperCase()}</span>)}
         {count > 5 ? <span className="more">+{count - 5}</span> : null}
       </div>
-      <p className="wd-family-count"><b>{count}</b> โปรไฟล์ในความดูแล</p>
-      <p className="wd-family-sub">{invites ? `มีคำเชิญรอตอบ ${invites} รายการ` : 'เชิญผู้ดูแล และกำหนดสิทธิ์รายคนได้'}</p>
+      <p className="wd-family-count">{house ? <><b>{house.memberUids.length}</b> สมาชิกในบ้าน</> : <><b>{count}</b> โปรไฟล์</>}</p>
+      <p className="wd-family-sub">{house ? `${house.name} · ${count} โปรไฟล์ผู้ป่วย` : invites ? `มีคำเชิญรอตอบ ${invites} รายการ` : 'สร้างบ้านหรือเข้าร่วมด้วยรหัสเชิญ 8 หลัก'}</p>
     </div>
   );
 }
 
-function HealthBody() {
+function HealthBody({ first, email }) {
   const chips = [['shield', 'ประวัติแพ้ยา'], ['info', 'โรคประจำตัว'], ['pill', 'ยาที่ใช้อยู่']];
   return (
     <div className="wd-health">
       <div className="wd-shield" aria-hidden><span /><span /><Icon name="shield" size={56} stroke={1.8} /></div>
+      <p className="wd-account-name">{first}</p>
+      <p className="wd-account-mail">{email}</p>
       <ul>{chips.map(([icon, t]) => <li key={t}><Icon name={icon} size={18} />{t}</li>)}</ul>
       <p className="wd-health-note">เห็นได้เฉพาะเจ้าของและผู้ดูแลที่ได้รับสิทธิ์ ผู้ดูแลระบบอ่านไม่ได้</p>
     </div>
@@ -159,17 +161,27 @@ function AccountBody({ first, email, askOut, setAskOut }) {
 }
 
 function Widget({ w, active, index, onPick }) {
+  const [mode, setMode] = useState(w.modes?.[0]?.id);
+  const cur = w.modes?.find((m) => m.id === mode) ?? w.modes?.[0];
+  const href = cur?.href ?? w.href;
   return (
     <section className={`wd wd-${w.tone}${active ? ' on' : ''}`} data-index={index} aria-label={w.title}>
       <span className="wd-tab" aria-hidden><i /><i /><i /></span>
       <header className="wd-head">
         <span className="wd-ico" aria-hidden><Icon name={w.icon} size={26} /></span>
         <div>
-          <h2><a className="wd-open" href={w.href} onClick={(e) => { if (!active) { e.preventDefault(); onPick(index); } }}>{w.title}</a></h2>
+          <h2><a className="wd-open" href={href} onClick={(e) => { if (!active) { e.preventDefault(); onPick(index); } }}>{w.title}</a></h2>
           <p>{w.desc}</p>
         </div>
       </header>
-      <div className="wd-body">{w.body(active)}</div>
+      {w.modes ? (
+        <div className="wd-modes" role="group" aria-label={`โหมดของ${w.title}`}>
+          {w.modes.map((m) => (
+            <button key={m.id} type="button" aria-pressed={m.id === cur.id} className={m.id === cur.id ? 'on' : ''} onClick={() => setMode(m.id)}>{m.label}</button>
+          ))}
+        </div>
+      ) : null}
+      <div className="wd-body" key={cur?.id}>{(cur?.body ?? w.body)(active)}</div>
       <footer className="wd-bottom">
         <div className="wd-actions">{(w.actions ?? []).map((a) => <Round key={a.label} {...a} />)}</div>
         <span className="wd-go" aria-hidden>เปิด<Icon name="chevron" size={18} stroke={2.6} /></span>
@@ -179,7 +191,7 @@ function Widget({ w, active, index, onPick }) {
 }
 
 export default function CareHub() {
-  const { user, profile, staffOf, patients, invitations } = useSession();
+  const { user, profile, staffOf, patients, invitations, house } = useSession();
   const self = patients.find((p) => p.isSelf) ?? patients[0];
   const [meds] = useMeds(self?.id);
   const [slots] = useTodaySchedule(self?.id, meds);
@@ -210,10 +222,13 @@ export default function CareHub() {
         body: () => <OrderBody first={first} />, actions: [{ href: '#/', icon: 'pill', label: 'สั่งยา' }, { href: '#/', icon: 'bag', label: 'ของใช้ทั่วไป' }],
       },
       {
-        id: 'meds', tone: 'honey', icon: 'pill', title: 'ยาของฉัน', href: '#/meds',
-        desc: low ? `มีรายการยาใกล้หมด ${low} รายการ` : `ตารางกินยา · ยาทั้งหมด ${meds.length} รายการ`,
-        body: (a) => <MedsBody taken={taken} total={slots.length} marks={marks} active={a} />,
-        actions: [{ href: '#/meds', icon: 'check', label: 'บันทึกการกิน' }, { href: '#/meds', icon: 'plus', label: 'เพิ่ม/เติมยา' }],
+        id: 'meds', tone: 'honey', icon: 'pill', title: 'สุขภาพและยา', href: '#/meds',
+        desc: low ? `ยาใกล้หมด ${low} รายการ · ยา ประวัติแพ้ยา และโปรไฟล์ของคุณและครอบครัว` : `ยาทั้งหมด ${meds.length} รายการ · ประวัติแพ้ยา และโปรไฟล์ของคุณและครอบครัว`,
+        modes: [
+          { id: 'meds', label: 'ยา', href: '#/meds', body: (a) => <MedsBody taken={taken} total={slots.length} marks={marks} active={a} /> },
+          { id: 'health', label: 'สุขภาพและโปรไฟล์', href: '#/health', body: () => <HealthBody first={first} email={user.email ?? ''} /> },
+        ],
+        actions: [],
       },
       {
         id: 'notifications', tone: 'blue', icon: 'bell', title: 'แจ้งเตือน', href: '#/notifications',
@@ -226,18 +241,13 @@ export default function CareHub() {
         body: (a) => <OrdersBody active={a} />, actions: [],
       },
       {
-        id: 'family', tone: 'peach', icon: 'people', title: 'ครอบครัวและผู้ดูแล', href: '#/family',
-        desc: 'คนที่คุณดูแลและคนที่ดูแลคุณ',
-        body: () => <FamilyBody names={names} count={patients.length} invites={invitations.length} />, actions: [],
+        id: 'family', tone: 'peach', icon: 'people', title: house ? house.name : 'บ้านและครอบครัว', href: '#/family',
+        desc: house ? 'สมาชิก ผู้ป่วย กิจกรรม และการเตือนของบ้าน' : 'ให้หลายคนช่วยกันดูแลผู้ป่วยคนเดียวกัน',
+        body: () => <FamilyBody names={names} count={patients.length} invites={invitations.length} house={house} />, actions: [],
       },
       {
-        id: 'health', tone: 'rose', icon: 'shield', title: 'สุขภาพรายคน', href: '#/health',
-        desc: 'แพ้ยา โรคประจำตัว และยาที่ใช้ ของแต่ละคน',
-        body: () => <HealthBody />, actions: [],
-      },
-      {
-        id: 'account', tone: 'green', icon: 'user', title: 'โปรไฟล์ของฉัน', href: '#/profile',
-        desc: 'ข้อมูลส่วนตัว ที่อยู่จัดส่ง และบัญชี',
+        id: 'account', tone: 'green', icon: 'user', title: 'บัญชีและตั้งค่า', href: '#/settings',
+        desc: 'ธีมเช้า/กลางคืน รหัสผ่าน และการออกจากระบบ',
         body: () => <AccountBody first={first} email={user.email ?? ''} askOut={askOut} setAskOut={setAskOut} />, actions: [],
       },
     ];
@@ -249,7 +259,7 @@ export default function CareHub() {
       });
     }
     return list;
-  }, [slots, meds, patients, invitations, staffOf, first, user.email, askOut]);
+  }, [slots, meds, patients, invitations, staffOf, first, user.email, askOut, house]);
 
   // Which card sits closest to the middle of the deck.
   const onScroll = useCallback(() => {

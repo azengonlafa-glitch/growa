@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase.js';
 import { useAction, useDocData } from '../lib/hooks.js';
-import { useSession, can } from '../lib/session.js';
-import { Badge, Button, Card, Empty, ErrorText, Field, Loading, Notice, PageHeader, Segmented } from '../components/ui.jsx';
+import { useSession } from '../lib/session.js';
+import { Badge, Button, Card, ErrorText, Field, Loading, Notice, Segmented } from '../components/ui.jsx';
 
 const SEVERITY = [['mild', 'เล็กน้อย'], ['moderate', 'ปานกลาง'], ['severe', 'รุนแรง']];
 const COMMON_CONDITIONS = [
@@ -82,14 +82,14 @@ function ConditionPicker({ value, onChange }) {
   );
 }
 
-function HealthForm({ patient }) {
+export function HealthForm({ patient }) {
   const { user } = useSession();
   const [health, loading] = useDocData(doc(db, 'patients', patient.id, 'health', 'profile'), [patient.id]);
   const [form, setForm] = useState(empty);
   const [birthYear, setBirthYear] = useState(patient.birthYear ?? '');
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
-  const editable = patient.isOwner;
+  const editable = patient.isOwner || patient.viaHouse;
 
   useEffect(() => { setForm(fromDoc(health)); }, [health]);
   useEffect(() => { setBirthYear(patient.birthYear ?? ''); setSaved(false); }, [patient.id, patient.birthYear]);
@@ -173,24 +173,6 @@ function HealthForm({ patient }) {
         <span role="status" aria-live="polite">{saved ? <Badge tone="good">บันทึกแล้ว</Badge> : null}</span>
       </div>
       <ErrorText>{error}</ErrorText>
-    </div>
-  );
-}
-
-export default function Health() {
-  const { patients } = useSession();
-  const visible = patients.filter((p) => can(p, 'viewHealth'));
-  const [patientId, setPatientId] = useState(visible[0]?.id);
-  const patient = visible.find((p) => p.id === patientId) ?? visible[0];
-  if (!patient) return <Empty title="ยังไม่มีโปรไฟล์ที่ดูได้" />;
-
-  return (
-    <div className="stack-lg">
-      <PageHeader title="โปรไฟล์สุขภาพ" subtitle="ข้อมูลที่ช่วยให้เภสัชกรเลือกยาได้ปลอดภัย" />
-      {visible.length > 1 ? (
-        <Segmented label="เลือกโปรไฟล์" value={patient.id} onChange={setPatientId} options={visible.map((p) => [p.id, p.isSelf && !p.viaCaregiver ? 'ตัวเอง' : p.displayName])} />
-      ) : null}
-      <HealthForm key={patient.id} patient={patient} />
     </div>
   );
 }

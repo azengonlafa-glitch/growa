@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthUser, useHashRoute } from './lib/hooks.js';
+import { call } from './firebase.js';
 import { SessionContext, useSessionData } from './lib/session.js';
 import { Backdrop } from './components/Flair.jsx';
 import Launch from './components/Launch.jsx';
@@ -15,12 +16,14 @@ import OrderStep from './flow/OrderStep.jsx';
 import CareHub from './flow/CareHub.jsx';
 import Login from './pages/Login.jsx';
 import Orders, { OrderDetail } from './pages/Orders.jsx';
-import Meds from './pages/Meds.jsx';
-import Family from './pages/Family.jsx';
+import MyCare from './pages/MyCare.jsx';
+import Home from './pages/Home.jsx';
+import More from './pages/More.jsx';
+import TabBar from './components/TabBar.jsx';
+import House from './pages/House.jsx';
+import Report from './pages/Report.jsx';
 import Pharmacist from './pages/Pharmacist.jsx';
 import Notifications from './pages/Notifications.jsx';
-import Health from './pages/Health.jsx';
-import Profile from './pages/Profile.jsx';
 import Settings from './pages/Settings.jsx';
 import Onboarding from './profile/Onboarding.jsx';
 
@@ -38,23 +41,28 @@ const FLOW = {
   consult: ['คุยกับเภสัชกร', ConsultStep],
   checkout: ['ตรวจรายการสั่งซื้อ', CheckoutStep],
   track: ['ติดตามคำสั่งซื้อ', OrderStep],
-  care: ['โฮมแคร์และเมนู', CareHub],
+  care: ['โฮมแคร์และหน้ารวมโหมด', CareHub],
 };
 
 // Existing pages that are not part of the flow yet; they open from the care hub.
 const CARE_TITLES = {
-  profile: 'โปรไฟล์ของฉัน', settings: 'ตั้งค่า', orders: 'คำสั่งซื้อ', meds: 'ยาของฉัน', family: 'ครอบครัว', health: 'โปรไฟล์สุขภาพ',
+  home: 'หน้าหลัก', care: 'หน้ารวมโหมด', more: 'เพิ่มเติม',
+  profile: 'สุขภาพและยา', settings: 'ตั้งค่า', orders: 'คำสั่งซื้อ', meds: 'สุขภาพและยา', family: 'บ้านและครอบครัว', house: 'บ้านและครอบครัว', report: 'รายงานการใช้ยา', health: 'สุขภาพและยา',
   notifications: 'แจ้งเตือน', pharmacist: 'ร้านของฉัน',
 };
 
 function CarePage({ route }) {
   const [page, a] = route;
   switch (page) {
+    case 'home': return <Home />;
+    case 'care': return <CareHub />;
+    case 'more': return <More />;
     case 'orders': return a ? <OrderDetail orderId={a} /> : <Orders />;
-    case 'meds': return <Meds />;
-    case 'family': return <Family />;
-    case 'health': return <Health />;
-    case 'profile': return <Profile />;
+    case 'meds': return <MyCare tab="meds" />;
+    case 'family': case 'house': return <House />;
+    case 'report': return <Report />;
+    case 'health': return <MyCare tab="health" />;
+    case 'profile': return <MyCare tab="health" />;
     case 'settings': return <Settings />;
     case 'notifications': return <Notifications />;
     case 'pharmacist': return <Pharmacist />;
@@ -86,10 +94,11 @@ function Shell({ route }) {
         <main className="flow-main" id="main" ref={mainRef} tabIndex={-1}><Step /></main>
       ) : (
         <main className="main care-main" id="main" ref={mainRef} tabIndex={-1}>
-          <nav className="care-bar" aria-label="กลับ">
-            <a className="btn btn-secondary btn-sm" href="#/care">‹ โฮมแคร์และเมนู</a>
+          <nav className="care-bar" aria-label="แถบนำทาง">
+            <a className="btn btn-secondary btn-sm" href="#/care">‹ หน้ารวมโหมด (โฮมแคร์)</a>
             <a className="btn btn-ghost btn-sm" href="#/">สั่งซื้อยา</a>
           </nav>
+          <TabBar page={page} />
           <CarePage route={route} />
         </main>
       )}
@@ -118,6 +127,17 @@ export default function App() {
       : setTimeout(() => setPhase('done'), reduced ? 0 : 1100);
     return () => clearTimeout(t);
   }, [user, ready, phase]);
+
+  // Doses nobody has logged tell the whole house after the time the owner set. There is no server scheduler on the free plan,
+  // so while someone has the app open it asks the server to check (idempotent; each reminder is sent once per round).
+  const houseId = session.house?.id ?? null;
+  useEffect(() => {
+    if (!ready || !houseId) return undefined;
+    const ping = () => call('checkOverdueDoses', {}).catch(() => {});
+    ping();
+    const t = setInterval(ping, 5 * 60e3);
+    return () => clearInterval(t);
+  }, [ready, houseId]);
 
   if (user === undefined) return <Launch phase="loading" />;
   if (!user) return <Login />;

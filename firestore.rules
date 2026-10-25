@@ -32,6 +32,13 @@ service cloud.firestore {
       return signedIn() && patient(pid).ownerUid == uid();
     }
 
+    // ── houses: everyone in a house manages the profiles that belong to it ──
+
+    function houseMembers(hid) { return get(/databases/$(database)/documents/houses/$(hid)).data.memberUids; }
+    function inHouse(hid) { return signedIn() && hid != null && uid() in houseMembers(hid); }
+    function isHouseMember(pid) { return inHouse(patient(pid).get('houseId', null)); }
+    function canManagePatient(pid) { return isPatientOwner(pid) || isHouseMember(pid); }
+
     function caregiverPath(pid) { return /databases/$(database)/documents/patients/$(pid)/caregivers/$(uid()); }
 
     function isActiveCaregiver(pid) {
@@ -90,6 +97,34 @@ service cloud.firestore {
       );
     }
 
+    // ─────────────────────── houses ───────────────────────
+    // Members, invite code and joining are handled by functions (house.js). Members read; the owner may rename the
+    // house and change the reminder settings.
+
+    function validHouseSettings(s) {
+      return s is map
+        && s.keys().hasOnly(['overdueAfterMin', 'repeatEveryMin', 'maxRepeats'])
+        && s.overdueAfterMin is int && s.overdueAfterMin >= 5 && s.overdueAfterMin <= 720
+        && s.repeatEveryMin is int && s.repeatEveryMin >= 0 && s.repeatEveryMin <= 720
+        && s.maxRepeats is int && s.maxRepeats >= 0 && s.maxRepeats <= 10;
+    }
+
+    match /houses/{hid} {
+      allow read: if signedIn() && uid() in resource.data.memberUids;
+      allow create, delete: if false;
+      allow update: if signedIn()
+        && resource.data.ownerUid == uid()
+        && onlyChanges(['name', 'settings', 'updatedAt'])
+        && isNonEmptyString(request.resource.data.name, 60)
+        && validHouseSettings(request.resource.data.settings)
+        && request.resource.data.updatedAt == request.time;
+
+      match /members/{memberUid} {
+        allow read: if signedIn() && uid() in get(/databases/$(database)/documents/houses/$(hid)).data.memberUids;
+        allow write: if false;
+      }
+    }
+
     // ─────────────────────── users ───────────────────────
 
     function userKeys() {
@@ -127,25 +162,38 @@ service cloud.firestore {
     // ─────────────────── patients (health data) ───────────────────
     // Platform admins have no read path here on purpose.
 
+    function validPatientDetails(d) {
+      return (!('sex' in d) || d.sex in ['female', 'male', 'other'])
+        && (!('hospital' in d) || (d.hospital is string && d.hospital.size() <= 120))
+        && (!('doctor' in d) || (d.doctor is string && d.doctor.size() <= 120))
+        && (!('avatar' in d) || (d.avatar is string && d.avatar.size() <= 8))
+        && (!('nextAppointment' in d) || d.nextAppointment == null || d.nextAppointment is timestamp);
+    }
+
     match /patients/{pid} {
       allow get: if signedIn()
-        && (resource.data.ownerUid == uid() || isActiveCaregiver(pid));
+        && (resource.data.ownerUid == uid() || isActiveCaregiver(pid) || inHouse(resource.data.get('houseId', null)));
       // Owners list their own profiles; caregivers find theirs through the
       // caregivers collection-group query below and then get() each one.
-      allow list: if signedIn() && resource.data.ownerUid == uid();
+      allow list: if signedIn()
+        && (resource.data.ownerUid == uid() || inHouse(resource.data.get('houseId', null)));
 
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(
-             ['ownerUid', 'isSelf', 'displayName', 'birthYear', 'archived', 'createdAt'])
+             ['ownerUid', 'isSelf', 'displayName', 'birthYear', 'archived', 'createdAt',
+              'houseId', 'sex', 'hospital', 'doctor', 'nextAppointment', 'avatar'])
         && request.resource.data.ownerUid == uid()
+        && (!('houseId' in request.resource.data) || inHouse(request.resource.data.houseId))
+        && validPatientDetails(request.resource.data)
         && request.resource.data.isSelf is bool
         && request.resource.data.archived == false
         && request.resource.data.createdAt == request.time
         && isNonEmptyString(request.resource.data.displayName, 100);
 
       allow update: if signedIn()
-        && resource.data.ownerUid == uid()
-        && onlyChanges(['displayName', 'birthYear', 'archived'])
+        && (resource.data.ownerUid == uid() || inHouse(resource.data.get('houseId', null)))
+        && onlyChanges(['displayName', 'birthYear', 'archived', 'sex', 'hospital', 'doctor', 'nextAppointment', 'avatar'])
+        && validPatientDetails(request.resource.data)
         && isNonEmptyString(request.resource.data.displayName, 100)
         && request.resource.data.archived is bool;
 
@@ -154,8 +202,8 @@ service cloud.firestore {
 
       // ── allergies, conditions, consent ──
       match /health/{docId} {
-        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewHealth');
-        allow create, update: if isPatientOwner(pid)
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewHealth') || isHouseMember(pid);
+        allow create, update: if canManagePatient(pid)
           && docId == 'profile'
           && request.resource.data.keys().hasOnly(
                ['allergies', 'conditions', 'notes', 'consent', 'about', 'history', 'updatedAt', 'updatedBy'])
@@ -173,7 +221,7 @@ service cloud.firestore {
         return ['name', 'form', 'strength', 'catalogId', 'dosePerIntake', 'unit', 'times',
                 'mealRelation', 'asNeeded', 'startDate', 'endDate', 'stockOnHand',
                 'stockCountedAt', 'refillThresholdDays', 'sourcePharmacyId', 'active',
-                'updatedAt', 'updatedBy'];
+                'condition', 'notes', 'updatedAt', 'updatedBy'];
       }
 
       function validMedication(d) {
@@ -182,6 +230,11 @@ service cloud.firestore {
           && d.times is list && d.times.size() <= 12
           && d.stockOnHand is number && d.stockOnHand >= 0
           && d.active is bool
+          && (!('condition' in d) || (d.condition is string && d.condition.size() <= 100))
+          && (!('notes' in d) || (d.notes is string && d.notes.size() <= 500))
+          && (!('form' in d) || (d.form is string && d.form.size() <= 40))
+          && (!('startDate' in d) || d.startDate is timestamp)
+          && (!('endDate' in d) || d.endDate is timestamp)
           && (!('mealRelation' in d) || d.mealRelation in ['before', 'after', 'with', 'none'])
           && (!('refillThresholdDays' in d)
                || (d.refillThresholdDays is int && d.refillThresholdDays >= 0 && d.refillThresholdDays <= 90))
@@ -190,13 +243,13 @@ service cloud.firestore {
       }
 
       match /medications/{medId} {
-        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds');
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds') || isHouseMember(pid);
         // estimatedRemaining / estimatedRunOutDate / lastCalculatedAt / verified
         // are server-computed and therefore absent from medClientKeys().
-        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds'))
+        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds') || isHouseMember(pid))
           && request.resource.data.keys().hasOnly(medClientKeys())
           && validMedication(request.resource.data);
-        allow update: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds'))
+        allow update: if (isPatientOwner(pid) || caregiverCan(pid, 'editMeds') || isHouseMember(pid))
           && onlyChanges(medClientKeys())
           && validMedication(request.resource.data);
         allow delete: if isPatientOwner(pid);
@@ -205,8 +258,8 @@ service cloud.firestore {
       // ── dose logs: append-only ──
       // "Not logged yet" is the absence of a log; "missed" is a confirmed miss.
       match /doseLogs/{logId} {
-        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds');
-        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'logDoses'))
+        allow read: if isPatientOwner(pid) || caregiverCan(pid, 'viewMeds') || isHouseMember(pid);
+        allow create: if (isPatientOwner(pid) || caregiverCan(pid, 'logDoses') || isHouseMember(pid))
           && request.resource.data.keys().hasAll(
                ['medicationId', 'scheduledFor', 'status', 'loggedBy', 'loggedAt'])
           && request.resource.data.keys().hasOnly(

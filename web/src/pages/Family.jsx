@@ -113,7 +113,7 @@ async function answerInvite(inv, status) {
   await call('afterCaregiverChange', { patientId: inv.ref.parent.parent.id, caregiverUid: inv.id });
 }
 
-export default function Family() {
+export function LegacyCaregivers() {
   const { user, patients, invitations } = useSession();
   const owned = patients.filter((p) => p.isOwner);
   const cared = patients.filter((p) => p.viaCaregiver);
@@ -127,8 +127,6 @@ export default function Family() {
 
   return (
     <div className="stack-lg">
-      <PageHeader eyebrow="ดูแลกันและกัน" title="ครอบครัว" subtitle="ผู้ดูแลทำได้เฉพาะสิทธิ์ที่เจ้าของข้อมูลอนุญาต" mascot />
-
       {invitations.length ? (
         <section className="stack">
           <h2>คำเชิญถึงคุณ</h2>
@@ -148,15 +146,6 @@ export default function Family() {
         </section>
       ) : null}
 
-      <section className="stack" aria-label="บัญชีของฉัน">
-        <h2>บัญชีของฉัน</h2>
-        <div className="tile-grid">
-          <a className="tile tile-peach" href="#/health"><span className="tile-icon"><Icon name="shield" /></span><span className="tile-label">โปรไฟล์สุขภาพ</span></a>
-          <a className="tile tile-honey" href="#/notifications"><span className="tile-icon"><Icon name="bell" /></span><span className="tile-label">แจ้งเตือน</span></a>
-          <a className="tile tile-sage" href="#/orders"><span className="tile-icon"><Icon name="truck" /></span><span className="tile-label">คำสั่งซื้อของฉัน</span></a>
-        </div>
-      </section>
-
       {cared.length ? (
         <section className="stack">
           <h2>คนที่คุณดูแล</h2>
@@ -172,27 +161,12 @@ export default function Family() {
       ) : null}
 
       <section className="stack">
-        <h2>โปรไฟล์ที่คุณเป็นเจ้าของ</h2>
+        <h2>ผู้ดูแลภายนอกบ้านของโปรไฟล์ที่คุณเป็นเจ้าของ</h2>
         {owned.map((p) => <OwnedProfile key={p.id} patient={p} />)}
-        <Card className="stack">
-          <h3>เพิ่มโปรไฟล์สมาชิกที่ไม่มีบัญชี</h3>
-          <p className="muted small">เช่น ผู้สูงอายุที่ไม่ได้ใช้สมาร์ตโฟน คุณจะเป็นผู้มีอำนาจดูแลข้อมูลนี้</p>
-          <form className="row" onSubmit={(e) => {
-            e.preventDefault();
-            add.run(() => setDoc(doc(collection(db, 'patients')), {
-              ownerUid: user.uid, isSelf: false, displayName: newName, archived: false, createdAt: serverTimestamp(),
-            }).then(() => { setNewName(''); flashAdded('เพิ่มโปรไฟล์แล้ว'); }));
-          }}>
-            <input style={{ flex: '1 1 200px' }} required name="member-name" autoComplete="off" placeholder="ชื่อหรือชื่อเรียก เช่น คุณยาย…" value={newName} onChange={(e) => setNewName(e.target.value)} aria-label="ชื่อสมาชิก" />
-            <Button type="submit" busy={add.busy}>เพิ่ม</Button>
-          </form>
-          <Flash>{added}</Flash>
-          <ErrorText>{add.error}</ErrorText>
-        </Card>
       </section>
 
       <section className="stack">
-        <h2>ขอสิทธิ์ช่วยดูแลคนในครอบครัว</h2>
+        <h2>ขอสิทธิ์ช่วยดูแลคนนอกบ้าน</h2>
         <Card className="stack">
           <p className="muted small">ระบบจะส่งคำขอไปให้เจ้าของข้อมูลอนุมัติก่อน คุณจะยังไม่เห็นข้อมูลใด ๆ จนกว่าจะได้รับอนุมัติ</p>
           <form className="row" onSubmit={(e) => {
@@ -207,15 +181,6 @@ export default function Family() {
         </Card>
       </section>
 
-      <section className="stack" aria-label="ออกจากระบบ">
-        <hr className="sep" />
-        <div className="between">
-          <span className="muted small truncate">{user.email}</span>
-          <ConfirmButton variant="secondary" size="sm" question="ออกจากระบบ?" yes="ออกจากระบบ" onConfirm={() => signOut(auth)}>
-            <Icon name="logout" size={18} />ออกจากระบบ
-          </ConfirmButton>
-        </div>
-      </section>
     </div>
   );
 }

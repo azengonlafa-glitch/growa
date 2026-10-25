@@ -1,0 +1,23 @@
+/* Care-area navigation (components/TabBar.jsx): a row of tabs at the top, right after the "back to hub" button. */
+.tabbar {
+  display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; margin: 0 0 16px; border-radius: 26px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent); border: 1.5px solid rgb(255 255 255 / 65%);
+  backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  box-shadow: 0 14px 30px -20px rgb(10 60 40 / 45%), inset 0 1px 0 rgb(255 255 255 / 70%);
+}
+.tabbar a {
+  flex: 1 1 120px; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; padding: 0 14px; border-radius: 20px;
+  color: var(--muted); font-size: 1rem; font-weight: 800; text-decoration: none; touch-action: manipulation;
+  transition: background .2s, color .2s, transform .2s cubic-bezier(.3, 1.4, .5, 1);
+}
+.tabbar a:hover { text-decoration: none; transform: translateY(-1px); }
+.tabbar a.on { background: var(--primary); color: var(--primary-ink); box-shadow: 0 8px 16px -8px var(--primary-dark); }
+.tabbar a:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.tabbar-ico { position: relative; display: inline-flex; }
+.tabbar-badge {
+  position: absolute; top: -8px; right: -10px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--bad); color: #fff; font-size: .72rem; font-weight: 800; line-height: 1; box-shadow: 0 0 0 2px var(--surface);
+}
+@media (max-width: 520px) { .tabbar a { flex-direction: column; gap: 2px; min-height: 60px; font-size: .78rem; padding: 0 4px; } }
+@media print { .tabbar { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .tabbar a { transition: none; } }

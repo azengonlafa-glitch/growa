@@ -389,6 +389,134 @@ describe('dose schedule logic', () => {
   });
 });
 
+describe('houses', () => {
+  test('create, join by code, shared access, owner-only code changes, and leaving', async () => {
+    const a = await buyer('houseA');
+    const b = await buyer('houseB');
+    const c = await buyer('houseOutsider');
+
+    const { houseId } = await a.call('createHouse', { name: 'บ้านคุณย่าสมศรี' });
+    let house = await getDoc(`houses/${houseId}`);
+    assert.match(house.inviteCode, /^\d{8}$/);
+    assert.deepEqual(house.memberUids, [a.uid]);
+    assert.equal((await getDoc(`patients/${a.patientId}`)).houseId, houseId, 'own profile joins the house');
+    await rejectsWith(a.call('createHouse', { name: 'อีกบ้าน' }), 'failed-precondition');
+
+    // wrong code, then the right one
+    await rejectsWith(b.call('joinHouse', { code: '00000000' }), 'not-found');
+    await rejectsWith(b.call('joinHouse', { code: 'abc' }), 'invalid-argument');
+    const joined = await b.call('joinHouse', { code: house.inviteCode.replace(/(\d{4})(\d{4})/, '$1 $2') });
+    assert.equal(joined.houseId, houseId);
+    house = await getDoc(`houses/${houseId}`);
+    assert.deepEqual([...house.memberUids].sort(), [a.uid, b.uid].sort());
+    assert.equal((await getDoc(`patients/${b.patientId}`)).houseId, houseId);
+    const told = await adminDb.collection(`users/${a.uid}/notifications`).where('type', '==', 'house_change').get();
+    assert.equal(told.size, 1, 'existing members hear about the newcomer');
+
+    // a member manages another member's profile and medicines straight from the client
+    await setDoc(doc(b.db, `patients/${a.patientId}/medications/mh1`), {
+      name: 'Metformin 500 mg', form: 'tablet', condition: 'เบาหวาน', notes: '', dosePerIntake: 1, unit: 'เม็ด', times: ['morning'],
+      mealRelation: 'after', stockOnHand: 30, refillThresholdDays: 7, asNeeded: false, active: true,
+      stockCountedAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: b.uid,
+    });
+    await b.call('afterMedicationWrite', { patientId: a.patientId, medicationId: 'mh1' });
+    await setDoc(doc(b.db, `patients/${a.patientId}/doseLogs/l1`), {
+      medicationId: 'mh1', scheduledFor: new Date(), status: 'taken', loggedBy: b.uid, loggedAt: serverTimestamp(),
+    });
+    // a stranger gets nothing
+    await rejectsWith(c.call('afterMedicationWrite', { patientId: a.patientId, medicationId: 'mh1' }), 'permission-denied');
+
+    // only the owner changes the code
+    await rejectsWith(b.call('regenerateInviteCode', { houseId }), 'permission-denied');
+    const oldCode = house.inviteCode;
+    const { inviteCode } = await a.call('regenerateInviteCode', { houseId });
+    assert.notEqual(inviteCode, oldCode);
+    await rejectsWith(c.call('joinHouse', { code: oldCode }), 'not-found');
+
+    // the owner cannot walk out on the others; a member can leave and loses access
+    await rejectsWith(a.call('leaveHouse', { houseId }), 'failed-precondition');
+    await b.call('leaveHouse', { houseId });
+    assert.equal((await getDoc(`patients/${b.patientId}`)).houseId, undefined);
+    await rejectsWith(b.call('afterMedicationWrite', { patientId: a.patientId, medicationId: 'mh1' }), 'permission-denied');
+    // last one out closes the house
+    await a.call('leaveHouse', { houseId });
+    assert.equal((await adminDb.doc(`houses/${houseId}`).get()).exists, false);
+  });
+
+  test('the owner invites by email: a registered user gets an invitation that carries the code; nobody learns who has an account', async () => {
+    const a = await buyer('inviterA');
+    const b = await buyer('inviteeB');
+    const { houseId } = await a.call('createHouse', { name: 'บ้านเชิญ' });
+    const code = (await getDoc(`houses/${houseId}`)).inviteCode;
+
+    await rejectsWith(b.call('inviteToHouse', { houseId, email: a.email }), 'permission-denied');
+    await rejectsWith(a.call('inviteToHouse', { houseId, email: 'not-an-email' }), 'invalid-argument');
+
+    assert.deepEqual(await a.call('inviteToHouse', { houseId, email: b.email }), { ok: true });
+    const invites = await adminDb.collection(`users/${b.uid}/notifications`).where('type', '==', 'house_invite').get();
+    assert.equal(invites.size, 1);
+    assert.equal(invites.docs[0].data().houseCode, code);
+
+    // same answer for an address without an account, and nothing is created
+    assert.deepEqual(await a.call('inviteToHouse', { houseId, email: 'nobody-here@example.test' }), { ok: true });
+
+    // accepting is joining with the code in the invitation
+    await b.call('joinHouse', { code: invites.docs[0].data().houseCode });
+    assert.ok((await getDoc(`houses/${houseId}`)).memberUids.includes(b.uid));
+    // an existing member is not invited again
+    await a.call('inviteToHouse', { houseId, email: b.email });
+    assert.equal((await adminDb.collection(`users/${b.uid}/notifications`).where('type', '==', 'house_invite').get()).size, 1);
+  });
+
+  test('wrong codes are rate limited', async () => {
+    const x = await buyer('houseGuesser');
+    let last;
+    for (let i = 0; i < 10; i += 1) {
+      last = await x.call('joinHouse', { code: String(10000000 + i) }).catch((e) => e);
+    }
+    assert.equal(last.code, 'functions/resource-exhausted');
+  });
+
+  test('overdue doses tell the whole house once per round, and a logged dose stops it', async () => {
+    const { sweepOverdueDosesAt } = await import('../functions/src/house.js');
+    const { bangkokClock } = await import('../functions/src/schedule.js');
+    const a = await buyer('overdueA');
+    const b = await buyer('overdueB');
+    const { houseId } = await a.call('createHouse', { name: 'บ้านทดสอบ' });
+    await b.call('joinHouse', { code: (await getDoc(`houses/${houseId}`)).inviteCode });
+
+    const slot = Math.floor(Date.now() / 6e4) * 6e4 - 45 * 60e3; // 45 minutes ago
+    const med = { dosePerIntake: 1, stockOnHand: 50, active: true, stockCountedAt: Timestamp.fromMillis(slot - 864e5), updatedAt: Timestamp.now(), updatedBy: a.uid };
+    await adminDb.doc(`patients/${a.patientId}/medications/late`).set({ ...med, name: 'ยาที่เลยเวลา', times: [bangkokClock(slot)] });
+    await adminDb.doc(`patients/${a.patientId}/medications/done`).set({ ...med, name: 'ยาที่กินแล้ว', times: [bangkokClock(slot)] });
+    await adminDb.collection(`patients/${a.patientId}/doseLogs`).add({
+      medicationId: 'done', scheduledFor: Timestamp.fromMillis(slot), status: 'taken', loggedBy: a.uid, loggedAt: FieldValue.serverTimestamp(),
+    });
+
+    await sweepOverdueDosesAt(Date.now(), [houseId]);
+    for (const who of [a, b]) {
+      const notes = await adminDb.collection(`users/${who.uid}/notifications`).where('type', '==', 'dose_overdue').get();
+      assert.equal(notes.size, 1, 'one overdue notice per member');
+      assert.match(notes.docs[0].data().body, /ยาที่เลยเวลา/);
+    }
+    await sweepOverdueDosesAt(Date.now(), [houseId]);
+    assert.equal((await adminDb.collection(`users/${b.uid}/notifications`).where('type', '==', 'dose_overdue').get()).size, 1, 'a rerun sends nothing new');
+
+    // 40 minutes later the repeat round (every 30 min) goes out as a new notice
+    await sweepOverdueDosesAt(Date.now() + 40 * 60e3, [houseId]);
+    assert.equal((await adminDb.collection(`users/${b.uid}/notifications`).where('type', '==', 'dose_overdue').get()).size, 2);
+
+    // the caller-triggered version only sweeps the caller's own house
+    const res = await a.call('checkOverdueDoses', {});
+    assert.equal(typeof res.sent, 'number');
+
+    // the demo can pretend it is later (allowed here: emulator), within a day and a half of now
+    const later = await a.call('checkOverdueDoses', { simulateNowMs: Date.now() + 100 * 60e3 });
+    assert.equal(typeof later.sent, 'number');
+    await rejectsWith(a.call('checkOverdueDoses', { simulateNowMs: Date.now() + 5 * 864e5 }), 'invalid-argument');
+  });
+});
+
 describe('FDA pharmacy directory', () => {
   const VICTORY_MONUMENT = { lat: 13.7650, lng: 100.5381 };
 

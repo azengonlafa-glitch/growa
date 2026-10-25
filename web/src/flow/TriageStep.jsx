@@ -5,8 +5,8 @@ import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
-import './choose.css';
 import ChatTriage from './ChatTriage.jsx';
+import { saveSymptomRecord } from '../lib/symptomHistory.js';
 
 function Question({ q, busy, onAnswer, picked, setPicked }) {
   const headingRef = useRef(null);
@@ -62,6 +62,21 @@ function GuidedTriage() {
     setPicked([]);
   });
   const finish = (res) => {
+    if (res?.result) {
+      saveSymptomRecord(self?.id, {
+        id: res.sessionId,
+        title: res.result.title || 'ประเมินอาการ',
+        route: res.result.route || 'self_care',
+        routeText: res.result.routeText || 'ดูแลตัวเองเบื้องต้นได้',
+        duration: res.result.duration || 'ไม่ระบุ',
+        severity: res.result.routeText || 'ปานกลาง',
+        symptoms: res.result.symptoms || [res.result.title],
+        redFlags: res.result.route === 'emergency' ? 'มีสัญญาณอันตราย 1669' : 'ผ่านการคัดกรองสัญญาณอันตรายแล้ว',
+        advice: res.result.advice || ['พักผ่อน ดื่มน้ำ และสังเกตอาการ'],
+        suggestedMeds: res.result.suggestedCatalogIds || [],
+        source: 'guided',
+      });
+    }
     flow.update({ triage: { sessionId: res.sessionId, patientId: self.id, result: res.result }, consult: null, cart: [] });
     go('result');
   };

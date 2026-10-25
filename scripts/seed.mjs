@@ -3,7 +3,8 @@
 // Always targets the emulators (ports from firebase.json), never a real project.
 import { initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { bangkokDayStart, doseSlots, DAY_MS } from '../functions/src/schedule.js';
 import { seedCatalogAndPharmacies, seedDirectory } from './seed-data.mjs';
 
 process.env.FIRESTORE_EMULATOR_HOST ??= '127.0.0.1:8080';
@@ -98,6 +99,28 @@ batch.set(db.doc('pharmacies/demoRx1/staff/demo-pharmacist'), {
   role: 'pharmacist', displayName: 'ภก. ทดสอบ', licenseNo: 'DEMO-PH-01', licenseVerified: true, active: true,
 });
 await batch.commit();
+
+// Ten days of dose history for the medication report: mostly on time, some late, a few confirmed misses, skips and
+// doses nobody logged (those stay "not logged", never assumed missed). Deterministic, so every run looks the same.
+const nowMs = Date.now();
+const historyStart = bangkokDayStart(nowMs) - 10 * DAY_MS;
+const medIds = ['amlodipine', 'metformin', 'simvastatin'];
+const history = db.batch();
+medIds.forEach((medId, mi) => {
+  history.update(db.doc(`patients/demo-mom-self/medications/${medId}`), { startDate: Timestamp.fromMillis(historyStart) });
+  const med = { times: { amlodipine: ['morning'], metformin: ['morning', 'evening'], simvastatin: ['bedtime'] }[medId] };
+  doseSlots(med, historyStart, nowMs - 60 * 60e3).forEach((slot, i) => {
+    const r = (i * 7 + mi * 3) % 10;
+    if (r === 9) return; // nobody logged this one
+    const status = i % 23 === 0 ? 'skipped' : r === 8 ? 'missed' : 'taken';
+    const delay = r === 7 ? 95 * 60e3 : (10 + ((i * 13) % 30)) * 60e3;
+    history.set(db.collection('patients/demo-mom-self/doseLogs').doc(), {
+      medicationId: medId, scheduledFor: Timestamp.fromMillis(slot), status,
+      loggedBy: i % 4 === 0 ? 'demo-daughter' : 'demo-mom', loggedAt: Timestamp.fromMillis(Math.min(slot + delay, nowMs)),
+    });
+  });
+});
+await history.commit();
 
 // Don't depend on emulator triggers being registered yet: compute the stock
 // estimates and the demo store's rating summary directly.

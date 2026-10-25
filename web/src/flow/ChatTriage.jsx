@@ -7,6 +7,7 @@ import { useSession } from '../lib/session.js';
 import { Button, ErrorText, Icon, Notice } from '../components/ui.jsx';
 import FlowPage, { Redirect } from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
+import { saveSymptomRecord } from '../lib/symptomHistory.js';
 
 const ROUTE = { info: 'self_care', pharmacist: 'pharmacist', emergency: 'emergency' };
 const TITLE = {
@@ -98,7 +99,21 @@ export default function ChatTriage({ onFallback }) {
       setMessages((m) => [...m, { who: 'ai', text: res.reply }]);
       if (res.aiUnavailable) { setUnavailable(true); return; }
       if (res.route !== 'in_progress') {
-        flow.update({ triage: { sessionId, patientId: self.id, result: toResult(res.route, res.reply, res.suggestedCatalogIds, res.healthNotes, res.healthMissing, res.healthBasis) }, consult: null, cart: [] });
+        const triageRes = toResult(res.route, res.reply, res.suggestedCatalogIds, res.healthNotes, res.healthMissing, res.healthBasis);
+        saveSymptomRecord(self?.id, {
+          id: sessionId,
+          title: triageRes.title || 'ปรึกษาอาการกับ AI',
+          route: res.route === 'emergency' ? 'emergency' : res.route === 'pharmacist' ? 'pharmacist' : 'self_care',
+          routeText: res.route === 'emergency' ? 'ภาวะฉุกเฉิน 1669' : res.route === 'pharmacist' ? 'ควรปรึกษาเภสัชกร' : 'ดูแลตัวเองเบื้องต้นได้',
+          duration: 'จากการสนทนา',
+          severity: res.route === 'emergency' ? 'ฉุกเฉิน' : 'ปานกลาง',
+          symptoms: [t],
+          redFlags: res.route === 'emergency' ? 'มีสัญญาณอันตราย 1669' : 'ผ่านการตรวจสัญญาณอันตรายแล้ว',
+          advice: [res.reply],
+          suggestedMeds: res.suggestedCatalogIds || [],
+          source: 'chat',
+        });
+        flow.update({ triage: { sessionId, patientId: self.id, result: triageRes }, consult: null, cart: [] });
         go('result');
       }
     });

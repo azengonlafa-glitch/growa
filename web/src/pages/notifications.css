@@ -1,0 +1,49 @@
+/* Notification inbox: grouped by day, one card per notification, a coloured icon, an "ใหม่" mark and a bar on the unread ones.
+   Colours come from the theme tokens (works in morning/night mode). Only transform/opacity animate; off under prefers-reduced-motion. */
+.care-main:has(.notif) { max-width: min(860px, 100%); }
+
+.nt-group { display: grid; gap: 10px; }
+.nt-day { font-size: .92rem; font-weight: 800; color: var(--muted); padding-left: 4px; }
+.nt-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+
+.nt { position: relative; display: flex; align-items: flex-start; gap: 6px; animation: nt-in .4s cubic-bezier(.2, .8, .2, 1) both; }
+.nt:nth-child(2) { animation-delay: .04s; } .nt:nth-child(3) { animation-delay: .08s; } .nt:nth-child(n+4) { animation-delay: .12s; }
+.nt-card {
+  position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-start; gap: 14px; padding: 14px 16px 14px 18px;
+  border-radius: 20px; color: var(--text); text-decoration: none; background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1.5px solid var(--border); transition: transform .2s cubic-bezier(.2, .8, .2, 1), box-shadow .2s, border-color .2s;
+}
+a.nt-card:hover { text-decoration: none; transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 14px 24px -18px var(--primary-dark); }
+a.nt-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.nt.unread .nt-card { border-color: color-mix(in srgb, var(--primary) 45%, var(--border)); background: var(--surface); box-shadow: 0 10px 22px -20px var(--primary-dark); }
+.nt.unread .nt-card::before { content: ''; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--primary); }
+
+.nt-ico { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; }
+.nt-ico.nt-bad { background: var(--bad-soft); color: var(--bad); } .nt-ico.nt-warn { background: var(--warn-soft); color: var(--warn); }
+.nt-ico.nt-good { background: var(--good-soft); color: var(--good); } .nt-ico.nt-info { background: var(--accent-soft); color: var(--accent-text); }
+.nt-ico.nt-neutral { background: var(--surface-2); color: var(--muted); }
+
+.nt-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.nt-top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.nt-tag { font-size: .78rem; font-weight: 800; }
+.nt-tag.nt-bad { color: var(--bad); } .nt-tag.nt-warn { color: var(--warn); } .nt-tag.nt-good { color: var(--good); }
+.nt-tag.nt-info { color: var(--accent-text); } .nt-tag.nt-neutral { color: var(--muted); }
+.nt-new { padding: 1px 8px; border-radius: 999px; background: var(--primary); color: var(--primary-ink); font-size: .7rem; font-weight: 800; }
+.nt-time { margin-left: auto; color: var(--muted); font-size: .78rem; white-space: nowrap; }
+.nt-title { font-size: 1.02rem; line-height: 1.35; }
+.nt:not(.unread) .nt-title { font-weight: 600; }
+.nt-body { color: var(--muted); font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.nt-cta { display: inline-flex; align-items: center; gap: 2px; margin-top: 4px; color: var(--primary-text); font-weight: 800; font-size: .88rem; }
+.nt-mark { margin-top: 4px; align-self: flex-start; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--border-strong); background: transparent; color: var(--primary-text); font: inherit; font-weight: 700; font-size: .82rem; cursor: pointer; }
+.nt-mark:hover { background: var(--primary-soft); }
+.nt-card > .nt-mark { position: absolute; right: 14px; bottom: 12px; margin: 0; }
+
+.nt-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--accent-soft); color: var(--accent-text); font-size: .86rem; line-height: 1.45; }
+.nt-note svg { flex: none; margin-top: 2px; }
+.nt-note a { color: inherit; font-weight: 800; }
+
+@keyframes nt-in { from { opacity: 0; transform: translateY(10px); } }
+@media (max-width: 520px) { .nt-time { margin-left: 0; width: 100%; } .nt-card > .nt-mark { position: static; } }
+@media (prefers-reduced-motion: reduce) { .nt { animation: none; } .nt-card { transition: none; } a.nt-card:hover { transform: none; } }
+
+.nt-accept { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }

@@ -5,6 +5,8 @@ import { collection, collectionGroup, doc, getDoc, getDocs, query, where } from 
 import { db } from '../firebase.js';
 import { useDocData, useQueryData } from './hooks.js';
 
+const ALL_PERMS = { viewMeds: true, viewHealth: true, logDoses: true, editMeds: true, requestRefill: true, viewOrders: true };
+
 export const SessionContext = createContext(null);
 export const useSession = () => useContext(SessionContext);
 
@@ -42,6 +44,14 @@ export function useSessionData(user) {
     .filter((l) => l.status === 'active' && caredDocs[l.ref.parent.parent.id])
     .map((l) => ({ id: l.ref.parent.parent.id, ...caredDocs[l.ref.parent.parent.id], permissions: l.permissions ?? {}, viaCaregiver: true }));
 
+  // My house (a person is in at most one) with its members, and every profile that belongs to it.
+  const [houses] = useQueryData(uid ? query(collection(db, 'houses'), where('memberUids', 'array-contains', uid)) : null, [uid]);
+  const house = houses[0] ?? null;
+  const houseId = house?.id ?? null;
+  const [housePatients] = useQueryData(houseId ? query(collection(db, 'patients'), where('houseId', '==', houseId)) : null, [houseId]);
+  const [memberDocs] = useQueryData(houseId ? collection(db, 'houses', houseId, 'members') : null, [houseId]);
+  const memberNames = Object.fromEntries(memberDocs.map((m) => [m.id, m.displayName]));
+
   // Pharmacies where I am active staff (approved partner stores only).
   const [staffOf, setStaffOf] = useState([]);
   useEffect(() => {
@@ -60,11 +70,18 @@ export function useSessionData(user) {
   }, [uid]);
 
   const ownedFull = owned.map((p) => ({ ...p, isOwner: true }));
+  // Everyone in the house may do everything with the house's profiles (rules enforce the same).
+  const ownedIds = new Set(owned.map((p) => p.id));
+  const inHouse = housePatients
+    .filter((p) => !ownedIds.has(p.id) && !p.archived)
+    .map((p) => ({ ...p, isOwner: false, viaHouse: true, permissions: ALL_PERMS }));
   return {
     user,
     profile,
     loading: profileLoading || ownedLoading,
-    patients: [...ownedFull.sort((a, b) => Number(b.isSelf) - Number(a.isSelf)), ...cared],
+    patients: [...ownedFull.sort((a, b) => Number(b.isSelf) - Number(a.isSelf)), ...inHouse, ...cared.filter((c) => !ownedIds.has(c.id) && !inHouse.some((h) => h.id === c.id))],
+    house,
+    memberNames,
     invitations: links.filter((l) => l.status === 'invited'),
     staffOf,
   };
