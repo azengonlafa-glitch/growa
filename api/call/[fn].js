@@ -44,6 +44,7 @@ export default async function handler(req, res) {
   } catch (err) {
     if (err instanceof HttpsError) {
       const detail = err.code === 'unauthenticated' ? (req.authFailure ?? 'ไม่มีโทเค็นแนบมากับคำขอ') : undefined;
+      if (detail) console.warn(`[auth] ${req.query.fn} refused: ${detail} (host ${req.headers.host}, header ${req.headers.authorization ? 'yes' : 'no'}, body token ${req.body?.idToken ? 'yes' : 'no'})`);
       return res.status(STATUS_CODES[err.code] ?? 500).json({ error: { status: err.code, message: err.message, ...(detail ? { detail } : {}) } });
     }
     console.error(req.query.fn, err);

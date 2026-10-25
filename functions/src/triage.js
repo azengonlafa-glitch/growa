@@ -336,7 +336,10 @@ export const triageShareWithPharmacy = onCall(async (req) => {
     throw new HttpsError('failed-precondition', 'ร้านนี้ยังไม่เปิดให้บริการ');
   }
   const pharmacists = await activeStaffUids(pharmacyId, ['pharmacist']);
-  if (pharmacists.length === 0) throw new HttpsError('failed-precondition', 'ร้านนี้ยังไม่มีเภสัชกรที่พร้อมให้คำปรึกษา');
+  // A fictional sample store may have no pharmacist account in a demo: the request is still created and the demo simulator
+  // (functions/src/demo.js) answers it. Real stores must have a verified pharmacist.
+  const demoStore = pharmacy.data().sample === true && (process.env.FUNCTIONS_EMULATOR === 'true' || process.env.DEMO_SIMULATION === 'true');
+  if (pharmacists.length === 0 && !demoStore) throw new HttpsError('failed-precondition', 'ร้านนี้ยังไม่มีเภสัชกรที่พร้อมให้คำปรึกษา');
 
   const reviewRef = db.collection('pharmacistReviews').doc();
   const batch = db.batch();

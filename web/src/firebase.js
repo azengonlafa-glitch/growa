@@ -3,7 +3,7 @@
 // - Production (Vercel): real Firebase project from VITE_FIREBASE_* env vars,
 //   functions via the Vercel API route /api/call/<name>.
 import { initializeApp } from 'firebase/app';
-import { connectAuthEmulator, getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { connectAuthEmulator, getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from 'firebase/functions';
 
@@ -43,7 +43,7 @@ async function renewDemoSession() {
   const email = auth.currentUser?.email ?? '';
   if (!email.endsWith('@demo.test')) return false;
   try {
-    await signOut(auth);
+    // Signing in again replaces the session in place (no sign-out first, so the page does not flash to the login screen).
     await signInWithEmailAndPassword(auth, email, 'demo-medilink');
     return true;
   } catch { return false; }
