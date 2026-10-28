@@ -2,7 +2,7 @@
 // The list and the confirm button live in a sheet that floats over the map (bottom sheet on a phone,
 // side panel on a computer), the way ride-hailing apps do it.
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { call, db } from '../firebase.js';
 import { go, useAction, useQueryData } from '../lib/hooks.js';
 import { useSession } from '../lib/session.js';
@@ -13,6 +13,7 @@ import NavPill from '../components/NavPill.jsx';
 import FlowMap from './FlowMap.jsx';
 import StoreInfo from './StoreInfo.jsx';
 import { useFlow } from './state.jsx';
+import { toLine } from './ResultStep.jsx';
 import './journal.css';
 
 const RADIUS_KM = 50;
@@ -112,14 +113,24 @@ export default function MapStep() {
   }, []);
   const onSelect = useCallback((id) => setSelectedId(id), []);
 
+  // The branch is picked once it is needed, so go back to where the customer was: the basket, the symptom result, or the
+  // start of a new order.
   const next = () => run(async () => {
     const changed = flow.pharmacy?.id !== selected.id;
+    const back = flow.cart.length ? 'checkout' : flow.triage?.result ? 'result' : 'choose';
+    let { cart } = flow;
+    if (changed && cart.length) {
+      // Carry the basket over by catalogue item at this branch's own prices; items it does not sell drop out.
+      const snap = await getDocs(query(collection(db, 'pharmacies', selected.id, 'products'), where('active', '==', true)));
+      const here = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      cart = cart.map((l) => here.find((p) => p.catalogId === l.catalogId)).map((p, i) => (p ? toLine(p, cart[i].qty) : null)).filter(Boolean);
+    }
     flow.update({
       center,
       pharmacy: { id: selected.id, name: selected.name, address: selected.address, phone: selected.phone ?? null, geo: selected.geo, sample: selected.sample === true },
-      ...(changed ? { kind: null, triage: null, consult: null, cart: [] } : {}),
+      ...(changed ? { cart, consult: null } : {}),
     });
-    go('choose');
+    go(back === 'checkout' && !cart.length ? (flow.kind === 'goods' ? 'shop' : 'result') : back);
   });
 
   return (

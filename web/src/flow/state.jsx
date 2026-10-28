@@ -32,5 +32,6 @@ export function FlowProvider({ children }) {
   return <FlowContext.Provider value={value}>{children}</FlowContext.Provider>;
 }
 
-export const STEPS = ['เลือกร้าน', 'เลือกประเภท', 'ตอบคำถาม', 'ผลประเมิน', 'สั่งซื้อ'];
-export const STEPS_GOODS = ['เลือกร้าน', 'เลือกประเภท', 'เลือกสินค้า', 'สั่งซื้อ'];
+// The branch is picked when it is first needed: to see and order drugs, to talk to its pharmacist, or at the basket.
+export const STEPS = ['เลือกประเภท', 'ตอบคำถาม', 'ผลประเมิน', 'เลือกสาขา', 'สั่งซื้อ'];
+export const STEPS_GOODS = ['เลือกประเภท', 'เลือกสินค้า', 'เลือกสาขา', 'สั่งซื้อ'];

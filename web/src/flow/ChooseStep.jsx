@@ -1,6 +1,6 @@
 import { go } from '../lib/hooks.js';
 import { Icon, MockBadge } from '../components/ui.jsx';
-import FlowPage, { Redirect } from './FlowPage.jsx';
+import FlowPage from './FlowPage.jsx';
 import { useFlow } from './state.jsx';
 import { Mat } from './Mat.jsx';
 import './choose.css';
@@ -24,7 +24,6 @@ function Note({ cls, icon, title, desc, onPick }) {
 export default function ChooseStep() {
   const flow = useFlow();
   const { pharmacy } = flow;
-  if (!pharmacy) return <Redirect to="" />;
 
   const choose = (kind) => {
     flow.update({ kind, triage: null, consult: null, cart: [] });
@@ -34,7 +33,8 @@ export default function ChooseStep() {
   return (
     <div className="mat-page">
       <Mat />
-      <FlowPage step={2} title="วันนี้ต้องการอะไร" onBack={() => go('')}>
+      <FlowPage step={1} title="วันนี้ต้องการอะไร" onBack={() => go('')}>
+        {pharmacy ? (
         <div className="pick-store">
           <span className="pick-store-icon" aria-hidden><Icon name="store" size={22} /></span>
           <div className="pick-store-text">
@@ -42,8 +42,9 @@ export default function ChooseStep() {
             <span>{pharmacy.address}</span>
             {pharmacy.sample ? <span><MockBadge /></span> : null}
           </div>
-          <a href="#/">เปลี่ยนร้าน</a>
+          <a href="#/pharmacies">เปลี่ยนสาขา</a>
         </div>
+        ) : <p className="pick-note">เลือกสิ่งที่ต้องการก่อน แล้วค่อยเลือกสาขาร้านยาตอนสั่ง</p>}
 
         <ul className="pick-list">
           <Note cls="note-a" icon="pill" title="ซื้อยา" desc="ตอบคำถามอาการสั้น ๆ ก่อน ยาบางชนิดต้องให้เภสัชกรตรวจ" onPick={() => choose('drug')} />

@@ -2,6 +2,22 @@
 // Payment appears only once the pharmacy confirmed stock (and a pharmacist approved, where needed),
 // and the delivery map appears while the order is on its way.
 import { useEffect, useState } from 'react';
+
+function ReceiptBarcode() {
+  const pattern = [3,1,2,1,1,3,1,1,2,1,3,2,1,1,3,1,2,1,1,2,3,1,1,2,1,3,1,2,1,1,2,3,1,1,2,1,2,1,3,1,1,2,1,3];
+  const rects = [];
+  let x = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    const w = pattern[i] * 3;
+    if (i % 2 === 0) rects.push(<rect key={i} x={x} y={0} width={w} height={50} fill="#1a1a1a" />);
+    x += w;
+  }
+  return (
+    <svg viewBox={`0 0 ${x} 50`} preserveAspectRatio="none" style={{ width: '100%', height: 44, display: 'block' }} aria-hidden="true">
+      {rects}
+    </svg>
+  );
+}
 import { doc } from 'firebase/firestore';
 import { call, db, isProduction } from '../firebase.js';
 import { go, useAction, useDocData, useHashRoute } from '../lib/hooks.js';
@@ -267,16 +283,41 @@ export default function OrderStep() {
           </aside>
 
           <div className="track-items">
-              <Card className="stack" style={{ gap: 6 }}>
-                <h2>รายการ</h2>
-                {order.items.map((l) => (
-                  <div key={l.productId} className="between"><span>{l.name} × {l.qty}</span><span className="num">{baht(l.unitPrice * l.qty)}</span></div>
-                ))}
-                <div className="between"><span className="muted">ค่าจัดส่ง</span><span className="num">{baht(order.deliveryFee)}</span></div>
-                <div className="between"><strong>รวม</strong><strong className="num">{baht(order.total)}</strong></div>
-                <span className="muted small">ราคาเป็นข้อมูลจำลอง</span>
-              </Card>
+            <div className="receipt">
+              <div className="receipt-head">
+                <div className="receipt-title">รายการสั่งซื้อ</div>
+                {pharmacy?.name ? <div className="receipt-store">{pharmacy.name}</div> : null}
+              </div>
+              <div className="receipt-dash" />
+              <div className="receipt-col-labels">
+                <span style={{ flex: 1 }}>รายการ</span>
+                <span style={{ width: 64, textAlign: 'right' }}>ราคา</span>
+              </div>
+              <div className="receipt-dash" />
+              {order.items.map((l) => (
+                <div key={l.productId} className="receipt-summary-row">
+                  <span>{l.name} × {l.qty}</span>
+                  <span className="num">{baht(l.unitPrice * l.qty)}</span>
+                </div>
+              ))}
+              <div className="receipt-dash" />
+              <div className="receipt-summary-row">
+                <span>ค่าจัดส่ง</span>
+                <span className="num">{baht(order.deliveryFee)}</span>
+              </div>
+              <div className="receipt-dash" />
+              <div className="receipt-total-row receipt-grand">
+                <span>รวม</span>
+                <span className="num">{baht(order.total)}</span>
+              </div>
+              <div className="receipt-dash" />
+              <div className="receipt-notice">ราคาเป็นข้อมูลจำลอง</div>
+              <div className="receipt-barcode-wrap" aria-hidden="true">
+                <ReceiptBarcode />
+              </div>
+              <div className="receipt-footer-text">ขอบคุณที่ใช้ growa</div>
             </div>
+          </div>
         </div>
       )}
       </CardboardBox>

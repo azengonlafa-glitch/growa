@@ -57,6 +57,44 @@ async function compressImage(file) {
   }
 }
 
+const clock = (at) => new Intl.DateTimeFormat('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }).format(at);
+
+// The blue wall calendar from the menu, behind the phone: grid, a few dates, and two notes pinned beside the phone
+// (hints for describing symptoms, and the emergency number). Purely decorative apart from the 1669 link.
+function ChatWall({ children }) {
+  const now = new Date(Date.now() + 7 * 3600e3);
+  const month = new Intl.DateTimeFormat('th-TH', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(now);
+  const today = now.getUTCDate();
+  const dates = [[6, 14, -1], [78, 9, 3], [14, 74, 5], [70, 80, 8], [91, 84, 12], [3, 42, -4], [55, 90, 2]];
+  return (
+    <div className="chat-wall-page">
+      <div className="chat-wall" aria-hidden>
+        <b className="chat-wall-month">{month}</b>
+        {dates.map(([x, y, d]) => <span key={`${x}-${y}`} className="chat-wall-day" style={{ left: `${x}%`, top: `${y}%` }}>{String((((today - 1 + d) % 28) + 28) % 28 + 1).padStart(2, '0')}</span>)}
+        <span className="chat-wall-tape" />
+      </div>
+      <aside className="chat-note chat-note-l" aria-label="เคล็ดลับการเล่าอาการ">
+        <span className="chat-pin" aria-hidden />
+        <h2>เล่าอาการให้ชัด</h2>
+        <ul>
+          <li>เริ่มเป็นตั้งแต่เมื่อไหร่</li>
+          <li>ปวดหรือเป็นตรงไหน</li>
+          <li>ยาที่กินไปแล้ว</li>
+          <li>แพ้ยาอะไรหรือไม่</li>
+        </ul>
+        <p>ไม่ต้องพิมพ์ชื่อหรือเบอร์โทร</p>
+      </aside>
+      <aside className="chat-note chat-note-r" aria-label="เหตุฉุกเฉิน">
+        <span className="chat-pin" aria-hidden />
+        <h2>ฉุกเฉินโทร 1669</h2>
+        <p>เจ็บแน่นหน้าอก หายใจไม่ออก หมดสติ ชัก หรือเลือดออกมาก อย่ารอแชต</p>
+        <a href="tel:1669">โทร 1669</a>
+      </aside>
+      {children}
+    </div>
+  );
+}
+
 const SpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
 
 export default function ChatTriage({ onFallback }) {
@@ -79,13 +117,12 @@ export default function ChatTriage({ onFallback }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }); }, [messages, busy]);
   useEffect(() => () => recognizer.current?.abort?.(), []);
 
-  if (!flow.pharmacy) return <Redirect to="" />;
   if (flow.kind === 'goods') return <Redirect to="shop" />;
 
   const start = () => run(async () => {
     const res = await call('triageStart', { patientId: self.id, consent: true });
     setSessionId(res.sessionId);
-    setMessages([{ who: 'ai', text: res.greeting }]);
+    setMessages([{ who: 'ai', text: res.greeting, at: Date.now() }]);
   });
 
   const send = () => {
@@ -94,10 +131,10 @@ export default function ChatTriage({ onFallback }) {
     const photo = image;
     setText('');
     setImage(null);
-    setMessages((m) => [...m, { who: 'me', text: t, photo: photo?.preview }]);
+    setMessages((m) => [...m, { who: 'me', text: t, photo: photo?.preview, at: Date.now() }]);
     run(async () => {
       const res = await call('triageSendMessage', { sessionId, text: t, ...(photo ? { image: { mimeType: photo.mimeType, data: photo.data } } : {}) });
-      setMessages((m) => [...m, { who: 'ai', text: res.reply }]);
+      setMessages((m) => [...m, { who: 'ai', text: res.reply, at: Date.now() }]);
       if (res.aiUnavailable) { setUnavailable(true); return; }
       if (res.route !== 'in_progress') {
         const triageRes = toResult(res.route, res.reply, res.suggestedCatalogIds, res.healthNotes, res.healthMissing, res.healthBasis);
@@ -148,44 +185,16 @@ export default function ChatTriage({ onFallback }) {
     rec.start();
   };
 
-  const onMat = (page) => (sessionId ? page : <MatPage>{page}</MatPage>);
+  const onMat = (page) => (sessionId ? <ChatWall>{page}</ChatWall> : <MatPage>{page}</MatPage>);
   return onMat(
     <FlowPage
-      step={3}
+      step={2}
+      wide={Boolean(sessionId)}
       title={sessionId ? 'คุยกับผู้ช่วย AI' : 'ผู้ช่วยประเมินอาการ'}
       onBack={() => go('choose')}
       footer={!sessionId ? (
         <Button size="lg" block busy={busy} disabled={!consent || !self} onClick={start}>เริ่มคุย</Button>
-      ) : unavailable ? (
-        <Button size="lg" block onClick={onFallback}>ตอบเป็นชุดคำถามแทน</Button>
-      ) : (
-        <form className="chat-input" onSubmit={(e) => { e.preventDefault(); send(); }}>
-          {image ? (
-            <div className="chat-photo">
-              <img src={image.preview} alt="รูปที่จะส่ง" />
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setImage(null)}>เอารูปออก</button>
-            </div>
-          ) : null}
-          {mediaError ? <p className="error-text" role="alert">{mediaError}</p> : null}
-          <div className="chat-input-row">
-            <input ref={fileInput} type="file" accept="image/*" hidden onChange={pickPhoto} />
-            <button type="button" className="round-btn" onClick={() => fileInput.current?.click()} aria-label="แนบรูป (แผล ผื่น หรือกล่องยา)" title="แนบรูป"><Icon name="camera" /></button>
-            {SpeechRecognition ? (
-              <button type="button" className={`round-btn${listening ? ' is-listening' : ''}`} onClick={toggleVoice} aria-pressed={listening} aria-label={listening ? 'หยุดฟัง' : 'พูดแทนการพิมพ์'} title="พูด"><Icon name="mic" /></button>
-            ) : null}
-            <textarea
-              rows={2}
-              value={text}
-              maxLength={2000}
-              aria-label="พิมพ์อาการของคุณ"
-              placeholder="เล่าอาการ เช่น เจ็บคอ มีไข้ 2 วัน"
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            />
-            <Button type="submit" size="lg" busy={busy} disabled={!text.trim() && !image}>ส่ง</Button>
-          </div>
-        </form>
-      )}
+      ) : null}
     >
       {!sessionId ? (
         <div className="zones">
@@ -210,17 +219,69 @@ export default function ChatTriage({ onFallback }) {
           </div>
         </div>
       ) : (
-        <div className="chat" aria-live="polite">
-          {messages.map((m, i) => (
-            <div key={i} className={`bubble${m.who === 'me' ? ' bubble-mine' : ''}`}>
-              <span className="bubble-who">{m.who === 'me' ? 'คุณ' : 'ผู้ช่วย AI'}</span>
-              {m.photo ? <img className="bubble-photo" src={m.photo} alt="รูปที่แนบ" /> : null}
-              <p style={{ whiteSpace: 'pre-wrap' }}>{m.text}</p>
+        <div className="phone" role="group" aria-label="แชตกับผู้ช่วย AI">
+          <span className="phone-btn phone-btn-a" aria-hidden /><span className="phone-btn phone-btn-b" aria-hidden />
+          <div className="phone-screen">
+            <div className="phone-status" aria-hidden>
+              <b>{clock(Date.now())}</b><span className="phone-notch" />
+              <span className="phone-signal"><i /><i /><i /><i /></span>
             </div>
-          ))}
-          {busy ? <p className="hint chat-wait"><Icon name="clock" size={16} /> กำลังพิมพ์…</p> : null}
-          <ErrorText>{error}</ErrorText>
-          <div ref={endRef} />
+            <header className="phone-head">
+              <span className="phone-avatar" aria-hidden>AI</span>
+              <div><strong>ผู้ช่วยประเมินอาการ</strong><small>{busy ? 'กำลังพิมพ์…' : 'ออนไลน์ · ไม่ใช่การวินิจฉัย'}</small></div>
+              <a className="phone-sos" href="tel:1669" aria-label="โทรฉุกเฉิน 1669"><Icon name="phone" size={18} />1669</a>
+            </header>
+
+            <div className="chat" aria-live="polite">
+              <p className="chat-day">วันนี้</p>
+              {messages.map((m, i) => (
+                <div key={i} className={`bubble${m.who === 'me' ? ' bubble-mine' : ''}`}>
+                  {m.photo ? <img className="bubble-photo" src={m.photo} alt="รูปที่แนบ" /> : null}
+                  <p>{m.text}</p>
+                  <time>{clock(m.at ?? Date.now())}{m.who === 'me' ? ' · ส่งแล้ว' : ''}</time>
+                </div>
+              ))}
+              {busy ? <div className="bubble bubble-typing" role="status" aria-label="ผู้ช่วย AI กำลังพิมพ์"><i /><i /><i /></div> : null}
+              <ErrorText>{error}</ErrorText>
+              <div ref={endRef} />
+            </div>
+
+            {unavailable ? (
+              <div className="phone-bar"><Button size="lg" block onClick={onFallback}>ตอบเป็นชุดคำถามแทน</Button></div>
+            ) : (
+              <form className="phone-bar" onSubmit={(e) => { e.preventDefault(); send(); }}>
+                {image ? (
+                  <div className="chat-photo">
+                    <img src={image.preview} alt="รูปที่จะส่ง" />
+                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => setImage(null)}>เอารูปออก</button>
+                  </div>
+                ) : null}
+                {mediaError ? <p className="error-text" role="alert">{mediaError}</p> : null}
+                <div className="phone-row">
+                  <input ref={fileInput} type="file" accept="image/*" hidden onChange={pickPhoto} />
+                  <button type="button" className="phone-tool" onClick={() => fileInput.current?.click()} aria-label="แนบรูป (แผล ผื่น หรือกล่องยา)" title="แนบรูป"><Icon name="camera" size={22} /></button>
+                  <div className="phone-field">
+                    <textarea
+                      rows={1}
+                      value={text}
+                      maxLength={2000}
+                      aria-label="พิมพ์อาการของคุณ"
+                      placeholder="พิมพ์ข้อความ…"
+                      onChange={(e) => { setText(e.target.value); e.target.style.height = 'auto'; e.target.style.height = `${Math.min(e.target.scrollHeight, 110)}px`; }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+                    />
+                    {SpeechRecognition ? (
+                      <button type="button" className={`phone-tool phone-mic${listening ? ' is-listening' : ''}`} onClick={toggleVoice} aria-pressed={listening} aria-label={listening ? 'หยุดฟัง' : 'พูดแทนการพิมพ์'} title="พูด"><Icon name="mic" size={20} /></button>
+                    ) : null}
+                  </div>
+                  <button type="submit" className="phone-send" disabled={busy || (!text.trim() && !image)} aria-label="ส่ง">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M3.4 20.4 21 12 3.4 3.6l-.1 6.5L15 12 3.3 13.9z" /></svg>
+                  </button>
+                </div>
+              </form>
+            )}
+            <span className="phone-home" aria-hidden />
+          </div>
         </div>
       )}
     </FlowPage>

@@ -31,10 +31,11 @@ import Onboarding from './profile/Onboarding.jsx';
 // How long the green launch screen stays up once the app is ready, before the circle opens.
 const LAUNCH_HOLD_MS = 4000;
 
-// Ordering flow, one decision per screen: map → choose → questions → result → (consult) → checkout → track (stock, pay, courier map).
+// The menu (care hub) is the landing page. Ordering flow, one decision per screen: choose → questions → result → branch
+// (map) → (consult) → checkout → track, or choose → goods → branch → checkout.
 const FLOW = {
-  '': ['เลือกร้านยา', MapStep],
-  pharmacies: ['เลือกร้านยา', MapStep],
+  '': ['หน้ารวมโหมด', CareHub],
+  pharmacies: ['เลือกสาขาร้านยา', MapStep],
   choose: ['เลือกประเภท', ChooseStep],
   shop: ['ของทั่วไปในร้านยา', ShopStep],
   triage: ['ตอบคำถามอาการ', TriageStep],
@@ -97,8 +98,8 @@ function Shell({ route }) {
         <DeskPage calm>
         <main className="main care-main paper-theme" id="main" ref={mainRef} tabIndex={-1}>
           <nav className="care-bar" aria-label="แถบนำทาง">
-            <a className="btn btn-secondary btn-sm" href="#/care">‹ หน้ารวมโหมด (โฮมแคร์)</a>
-            <a className="btn btn-ghost btn-sm" href="#/">สั่งซื้อยา</a>
+            <a className="btn btn-secondary btn-sm" href="#/">‹ หน้ารวมโหมด (โฮมแคร์)</a>
+            <a className="btn btn-ghost btn-sm" href="#/choose">สั่งซื้อยา</a>
           </nav>
           {['home', 'house', 'family', 'more'].includes(page) ? <TabBar page={page} /> : null}
           <CarePage route={route} />

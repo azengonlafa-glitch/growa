@@ -31,7 +31,7 @@ export default function NavPill() {
       <span className="navpill-links">
         {LINKS.map(([path, label]) => <a key={path} href={`#/${path}`}>{label}</a>)}
       </span>
-      <a className="navpill-cta" href="#/care" aria-label="โฮมแคร์และเมนู"><Icon name="people" size={18} /><span>เมนู</span></a>
+      <a className="navpill-cta" href="#/" aria-label="โฮมแคร์และเมนู"><Icon name="people" size={18} /><span>เมนู</span></a>
       <Apple />
     </nav>
   );

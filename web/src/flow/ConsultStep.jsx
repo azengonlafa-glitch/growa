@@ -82,7 +82,7 @@ export default function ConsultStep() {
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [review?.thread?.length, review?.decision]);
 
-  if (!pharmacy) return <Redirect to="" />;
+  if (!pharmacy) return <Redirect to="pharmacies" />;
   if (!triage?.result) return <Redirect to="choose" />;
   if (triage.result.route === 'emergency') return <Redirect to="result" />;
 

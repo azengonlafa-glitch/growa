@@ -225,10 +225,6 @@ function Account() {
       <div><h2>บัญชี</h2></div>
       <div className="kv"><span className="muted">อีเมล</span><strong className="truncate">{user.email}</strong></div>
       <Password />
-      <hr className="sep" />
-      <ConfirmButton variant="secondary" question="ออกจากระบบ?" yes="ออกจากระบบ" onConfirm={() => signOut(auth)}>
-        <Icon name="logout" size={20} />ออกจากระบบ
-      </ConfirmButton>
       <DeleteAccount />
     </Card>
   );
@@ -258,6 +254,11 @@ export default function Settings() {
       <Privacy />
       <Account />
       <About />
+      <div className="settings-signout" id="signout">
+        <ConfirmButton variant="secondary" question="ออกจากระบบ?" yes="ออกจากระบบ" onConfirm={() => signOut(auth)}>
+          <Icon name="logout" size={20} />ออกจากระบบ
+        </ConfirmButton>
+      </div>
     </div>
   );
 }

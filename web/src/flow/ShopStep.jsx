@@ -8,7 +8,7 @@ import { baht } from '../lib/format.js';
 import { Badge, Button, Empty, Icon, Loading, MockBadge } from '../components/ui.jsx';
 import ProductArt from '../components/ProductArt.jsx';
 import { CardboardBox, TablePage } from './Table.jsx';
-import FlowPage, { Redirect } from './FlowPage.jsx';
+import FlowPage from './FlowPage.jsx';
 import { StockLine, toLine } from './ResultStep.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
 
@@ -64,8 +64,12 @@ function ProductCard({ product, qty, onQty }) {
 export default function ShopStep() {
   const flow = useFlow();
   const { pharmacy } = flow;
+  // Before a branch is picked, browse one partner store's shelf as a sample; the basket moves to the chosen branch's
+  // own products and prices when the branch is picked.
+  const [stores] = useQueryData(pharmacy ? null : query(collection(db, 'pharmacies'), where('verificationStatus', '==', 'approved')), [Boolean(pharmacy)]);
+  const shelfId = pharmacy?.id ?? [...stores].sort((a, b) => a.id.localeCompare(b.id))[0]?.id ?? null;
   const [products, loading] = useQueryData(
-    pharmacy ? query(collection(db, 'pharmacies', pharmacy.id, 'products'), where('active', '==', true)) : null, [pharmacy?.id],
+    shelfId ? query(collection(db, 'pharmacies', shelfId, 'products'), where('active', '==', true)) : null, [shelfId],
   );
   const [text, setText] = useState('');
   const [cat, setCat] = useState('all');
@@ -79,8 +83,6 @@ export default function ShopStep() {
     if (sort === 'high') rows.sort((a, b) => b.price - a.price);
     return rows;
   }, [goods, text, cat, sort]);
-
-  if (!pharmacy) return <Redirect to="" />;
 
   const qtyOf = (id) => flow.cart.find((l) => l.productId === id)?.qty ?? 0;
   const setQty = (product, qty) => {
@@ -97,21 +99,21 @@ export default function ShopStep() {
   return (
     <TablePage>
     <FlowPage
-      step={3}
+      step={2}
       steps={STEPS_GOODS}
       wide
       title="ของทั่วไปในร้านยา"
       onBack={() => go('choose')}
       footer={count ? (
-        <Button size="lg" block onClick={() => go('checkout')}>
+        <Button size="lg" block onClick={() => go(pharmacy ? 'checkout' : 'pharmacies')}>
           <span className="cart-label"><Icon name="store" size={22} />ตะกร้า {count} ชิ้น · {baht(total)}</span>
-          <span>ไปชำระ ›</span>
+          <span>{pharmacy ? 'ไปชำระ ›' : 'เลือกสาขา ›'}</span>
         </Button>
       ) : null}
     >
       <CardboardBox>
       <div className="paper-theme stack">
-      <div className="between"><span className="muted small">{pharmacy.name}</span><MockBadge /></div>
+      <div className="between"><span className="muted small">{pharmacy ? pharmacy.name : 'ยังไม่ได้เลือกสาขา · ราคาตัวอย่าง ราคาจริงตามสาขาที่เลือก'}</span><MockBadge /></div>
       <label className="shop-search">
         <Icon name="search" size={24} />
         <input type="search" name="shop-search" autoComplete="off" placeholder="ค้นหาสินค้า เช่น แชมพู วิตามิน…" aria-label="ค้นหาสินค้า" value={text} onChange={(e) => setText(e.target.value)} />

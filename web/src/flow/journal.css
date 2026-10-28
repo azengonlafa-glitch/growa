@@ -237,7 +237,7 @@
 /* ───────── map push pins (FlowMap) ─────────
    Store: green pin. Chosen store: bigger red pin that is pushed in from above. You: blue pin. */
 .tack { position: relative; display: block; width: 100%; height: 100%; transform-origin: 50% 100%; rotate: -10deg; transition: translate .2s, rotate .2s; }
-.tack svg { display: block; overflow: visible; filter: drop-shadow(0 3px 3px rgb(0 0 0 / 28%)); }
+.tack svg { display: block; overflow: visible; filter: drop-shadow(0 4px 5px rgb(0 0 0 / 38%)); }
 .tack-shadow { fill: rgb(0 0 0 / 22%); }
 .tack-store { --h2: #12a35a; --h3: #0a6e3c; }
 .tack-on { --h2: #e8333f; --h3: #a11622; rotate: -6deg; }

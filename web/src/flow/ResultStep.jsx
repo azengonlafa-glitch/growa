@@ -126,7 +126,6 @@ export default function ResultStep() {
   const flow = useFlow();
   const headingRef = useFocus();
   const { pharmacy, triage } = flow;
-  if (!pharmacy) return <Redirect to="" />;
   if (!triage?.result) return <Redirect to="choose" />;
 
   const { result } = triage;
@@ -140,11 +139,11 @@ export default function ResultStep() {
   const today = new Intl.DateTimeFormat('th-TH', { dateStyle: 'long', timeZone: 'Asia/Bangkok' }).format(new Date());
   return onDesk(
     <FlowPage
-      step={4}
+      step={3}
       title={emergency ? 'ต้องการความช่วยเหลือทันที' : 'ผลการประเมิน'}
       onBack={again}
       footer={outcome === 2 ? (
-        <Button size="lg" block onClick={() => go('consult')}><Icon name="people" />คุยกับเภสัชกรของร้าน</Button>
+        <Button size="lg" block onClick={() => go(pharmacy ? 'consult' : 'pharmacies')}><Icon name="people" />{pharmacy ? 'คุยกับเภสัชกรของร้าน' : 'เลือกสาขาเพื่อคุยกับเภสัชกร'}</Button>
       ) : null}
     >
       {emergency ? <Emergency result={result} headingRef={headingRef} /> : (
@@ -183,19 +182,25 @@ export default function ResultStep() {
             <Notice tone="warn" title="ไปพบแพทย์ทันทีถ้ามีอาการเหล่านี้">{result.warn.map((w) => <p key={w}>{w}</p>)}</Notice>
           ) : null}
 
-          {outcome === 1 ? <SuggestedDrugs result={result} pharmacyId={pharmacy.id} patientId={triage.patientId} cart={flow.cart ?? []} onOrder={order} /> : null}
+          {outcome === 1 && pharmacy ? <SuggestedDrugs result={result} pharmacyId={pharmacy.id} patientId={triage.patientId} cart={flow.cart ?? []} onOrder={order} /> : null}
+          {outcome === 1 && !pharmacy ? (
+            <Notice tone="info" title="เลือกสาขาร้านยาเพื่อดูยาและสั่ง">
+              ยาที่มี ราคา และสต็อกขึ้นกับสาขา เลือกสาขาก่อนแล้วระบบจะพากลับมาหน้านี้
+              <div style={{ marginTop: 10 }}><Button size="sm" onClick={() => go('pharmacies')}><Icon name="store" size={18} />เลือกสาขา</Button></div>
+            </Notice>
+          ) : null}
           {outcome === 2 ? (
             <Notice tone="info" title="ขั้นต่อไป">
-              ผลนี้ต้องให้เภสัชกรของ {pharmacy.name} ช่วยเลือกยา คุณจะแชตหรือโทรคุยกับร้านได้ในหน้าถัดไป
+              ผลนี้ต้องให้เภสัชกรของ{pharmacy ? ` ${pharmacy.name}` : 'สาขาที่คุณเลือก'} ช่วยเลือกยา คุณจะแชตหรือโทรคุยกับร้านได้ในหน้าถัดไป
               และสั่งยาที่เภสัชกรอนุมัติได้จากที่นั่น ระบบประเมินอาการไม่ได้อนุมัติการจ่ายยา
             </Notice>
           ) : null}
-          {outcome !== 1 ? <CallPharmacist pharmacy={pharmacy} /> : null}
+          {outcome !== 1 && pharmacy ? <CallPharmacist pharmacy={pharmacy} /> : null}
           {outcome === 3 ? (
             <Notice tone="warn" title="ยังไม่ควรสั่งยาเอง">
               อาการนี้ควรได้รับการตรวจจากแพทย์ ระหว่างนี้ปรึกษาเภสัชกรเรื่องการบรรเทาอาการเบื้องต้นได้
               {result.route === 'doctor' ? (
-                <div style={{ marginTop: 10 }}><Button size="sm" variant="secondary" onClick={() => go('consult')}>ปรึกษาเภสัชกรระหว่างนี้</Button></div>
+                <div style={{ marginTop: 10 }}><Button size="sm" variant="secondary" onClick={() => go(pharmacy ? 'consult' : 'pharmacies')}>ปรึกษาเภสัชกรระหว่างนี้</Button></div>
               ) : null}
             </Notice>
           ) : null}

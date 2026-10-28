@@ -83,6 +83,137 @@
   .cbox .list-item-main { flex: 1 1 140px; }
 }
 
+/* ── White receipt card for order summary (CheckoutStep) ── */
+.receipt {
+  background: #fff;
+  border-radius: 3px;
+  rotate: 0deg;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 14%), 0 12px 32px -8px rgb(0 30 80 / 28%);
+  overflow: hidden;
+  color: #111;
+  font-family: var(--font);
+}
+/* override cbox tilt & paper colour on the receipt wrapper */
+.cbox section[aria-label="รายการสินค้า"] .receipt { rotate: 0deg; background: #fff; }
+/* also disable the card-based overrides on the receipt's children */
+.receipt .muted { color: #666; }
+
+.receipt-head {
+  padding: 20px 20px 14px;
+  text-align: center;
+  border-bottom: none;
+}
+.receipt-title {
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+  color: #111;
+  font-family: var(--font-head);
+}
+.receipt-store {
+  font-size: 0.8rem;
+  color: #555;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.receipt-dash {
+  border: none;
+  border-top: 2px dashed #bbb;
+  margin: 2px 16px;
+}
+
+.receipt-col-labels {
+  display: flex;
+  align-items: center;
+  padding: 6px 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #555;
+}
+
+.receipt-line-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px dotted #e0e0e0;
+}
+.receipt-line-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.receipt-line-info strong { font-size: 0.9rem; color: #111; }
+.receipt-item-price {
+  width: 64px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #111;
+  flex-shrink: 0;
+}
+
+.receipt-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 16px;
+  font-size: 0.87rem;
+  color: #333;
+}
+.receipt-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #111;
+}
+.receipt-grand {
+  font-size: 1.05rem;
+  padding-top: 2px;
+  padding-bottom: 10px;
+}
+
+.receipt-notice {
+  padding: 10px 16px;
+  font-size: 0.72rem;
+  color: #888;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.receipt-barcode-wrap {
+  padding: 10px 16px 2px;
+}
+
+.receipt-footer-text {
+  padding: 8px 16px 16px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #222;
+}
+
+/* qty controls inside the white receipt: override the brown cbox styling */
+.receipt .qty { border-color: #ccc; background: #f8f8f8; }
+.receipt .qty button { color: #333; background: #f0f0f0; }
+.receipt .qty button:hover { background: #e0e0e0; }
+.receipt .badge { font-family: inherit; }
+/* remove the lined-paper background the cbox adds to the old card */
+.cbox section[aria-label="รายการสินค้า"] .receipt { background-image: none; padding-bottom: 0; }
+.cbox section[aria-label="รายการสินค้า"] .receipt::after { display: none; }
+
 /* Order tracking in the box: the five stages as a stamped delivery slip, side buttons as paper tags */
 .cbox .stages { position: relative; padding: 16px 10px 14px; background: #fffdf6; border-radius: 3px; box-shadow: 0 12px 18px -12px rgb(60 30 5 / 55%); rotate: -.7deg; font-family: 'Mali', var(--font); }
 .cbox .stages::before { content: ''; position: absolute; left: 50%; top: -12px; width: 90px; height: 22px; translate: -50% 0; rotate: 3deg; background: repeating-linear-gradient(135deg, rgb(170 220 160 / 88%) 0 9px, rgb(205 235 195 / 88%) 9px 18px); box-shadow: 0 3px 6px rgb(0 0 0 / 18%); }

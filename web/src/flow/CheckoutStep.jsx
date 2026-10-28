@@ -9,6 +9,22 @@ import FlowPage, { Redirect } from './FlowPage.jsx';
 import { CardboardBox, TablePage } from './Table.jsx';
 import { STEPS_GOODS, useFlow } from './state.jsx';
 
+function ReceiptBarcode() {
+  const pattern = [3,1,2,1,1,3,1,1,2,1,3,2,1,1,3,1,2,1,1,2,3,1,1,2,1,3,1,2,1,1,2,3,1,1,2,1,2,1,3,1,1,2,1,3];
+  const rects = [];
+  let x = 0;
+  for (let i = 0; i < pattern.length; i++) {
+    const w = pattern[i] * 3;
+    if (i % 2 === 0) rects.push(<rect key={i} x={x} y={0} width={w} height={50} fill="#1a1a1a" />);
+    x += w;
+  }
+  return (
+    <svg viewBox={`0 0 ${x} 50`} preserveAspectRatio="none" style={{ width: '100%', height: 44, display: 'block' }} aria-hidden="true">
+      {rects}
+    </svg>
+  );
+}
+
 export const PAYMENT_METHODS = [
   ['promptpay', 'พร้อมเพย์ (QR)', 'สแกนจ่ายผ่านแอปธนาคาร'],
   ['card', 'บัตรเครดิต/เดบิต', 'Visa / Mastercard'],
@@ -29,7 +45,7 @@ export default function CheckoutStep() {
   const [shop] = useDocData(pharmacy ? doc(db, 'pharmacies', pharmacy.id) : null, [pharmacy?.id]);
   const { busy, error, run } = useAction();
 
-  if (!pharmacy) return <Redirect to="" />;
+  if (!pharmacy) return <Redirect to="pharmacies" />;
   if (!cart.length) return <Redirect to="choose" />;
 
   const self = patients.find((p) => p.isSelf && p.isOwner);
@@ -76,31 +92,67 @@ export default function CheckoutStep() {
 
       <section className="stack" aria-label="รายการสินค้า">
         <h2>รายการ</h2>
-        <Card>
-          <div className="list">
-            {cart.map((l) => (
-              <div key={l.productId} className="list-item">
-                <span className="mini-art"><ProductArt catalogId={l.catalogId || l.productId} label={l.name} /></span>
-                <div className="list-item-main stack" style={{ gap: 2 }}>
-                  <strong>{l.name}</strong>
-                  <span className="muted small">{l.packSize} · <span className="num">{baht(l.price * l.qty)}</span></span>
-                  <Badge tone={l.requiresPharmacistReview ? 'warn' : 'neutral'}>{DRUG_CLASS[l.drugClass] ?? DRUG_CLASS.unknown}</Badge>
-                </div>
-                <div className="qty" role="group" aria-label={`จำนวน ${l.name}`}>
-                  <button type="button" onClick={() => setQty(l.productId, l.qty - 1)} aria-label={l.qty === 1 ? `เอา ${l.name} ออกจากตะกร้า` : `ลด ${l.name}`}>−</button>
-                  <span aria-live="polite">{l.qty}</span>
-                  <button type="button" onClick={() => setQty(l.productId, l.qty + 1)} aria-label={`เพิ่ม ${l.name}`} disabled={Boolean(consult?.reviewId)}>+</button>
-                </div>
-              </div>
-            ))}
-            <div className="list-item"><span>ค่าสินค้า</span><span className="num">{baht(subtotal)}</span></div>
-            <div className="list-item">
-              <span>ค่าจัดส่ง (ประมาณ)</span>
-              <span className="num">{zone ? baht(zone.fee) : km !== null && shop ? 'นอกพื้นที่' : '—'}</span>
-            </div>
+        <div className="receipt">
+          {/* Header */}
+          <div className="receipt-head">
+            <div className="receipt-title">รายการสั่งซื้อ</div>
+            <div className="receipt-store">{pharmacy.name}</div>
+            {pharmacy.address ? <div className="receipt-store muted">{pharmacy.address}</div> : null}
+            {pharmacy.sample ? <div style={{ marginTop: 4 }}><MockBadge /></div> : null}
           </div>
-        </Card>
-        <p className="muted small">ยอดจริงคำนวณจากระบบเมื่อส่งคำสั่งซื้อ ราคาและค่าจัดส่งเป็นข้อมูลจำลอง</p>
+          <div className="receipt-dash" />
+          {/* Column labels */}
+          <div className="receipt-col-labels">
+            <span style={{ flex: 1 }}>รายการ</span>
+            <span style={{ width: 72, textAlign: 'center' }}>จำนวน</span>
+            <span style={{ width: 64, textAlign: 'right' }}>ราคา</span>
+          </div>
+          <div className="receipt-dash" />
+          {/* Items */}
+          {cart.map((l) => (
+            <div key={l.productId} className="receipt-line-item">
+              <span className="mini-art"><ProductArt catalogId={l.catalogId || l.productId} label={l.name} /></span>
+              <div className="receipt-line-info">
+                <strong>{l.name}</strong>
+                <span className="muted small">{l.packSize}</span>
+                <Badge tone={l.requiresPharmacistReview ? 'warn' : 'neutral'}>{DRUG_CLASS[l.drugClass] ?? DRUG_CLASS.unknown}</Badge>
+              </div>
+              <div className="qty" role="group" aria-label={`จำนวน ${l.name}`}>
+                <button type="button" onClick={() => setQty(l.productId, l.qty - 1)} aria-label={l.qty === 1 ? `เอา ${l.name} ออกจากตะกร้า` : `ลด ${l.name}`}>−</button>
+                <span aria-live="polite">{l.qty}</span>
+                <button type="button" onClick={() => setQty(l.productId, l.qty + 1)} aria-label={`เพิ่ม ${l.name}`} disabled={Boolean(consult?.reviewId)}>+</button>
+              </div>
+              <span className="receipt-item-price num">{baht(l.price * l.qty)}</span>
+            </div>
+          ))}
+          <div className="receipt-dash" />
+          {/* Summary rows */}
+          <div className="receipt-summary-row"><span>ค่าสินค้า</span><span className="num">{baht(subtotal)}</span></div>
+          <div className="receipt-summary-row">
+            <span>ค่าจัดส่ง (ประมาณ)</span>
+            <span className="num">{zone ? baht(zone.fee) : km !== null && shop ? 'นอกพื้นที่' : '—'}</span>
+          </div>
+          <div className="receipt-dash" />
+          {/* Totals */}
+          <div className="receipt-total-row">
+            <span>จำนวนรายการ</span>
+            <span>{cart.reduce((s, l) => s + l.qty, 0)} ชิ้น</span>
+          </div>
+          <div className="receipt-total-row receipt-grand">
+            <span>รวมทั้งหมด</span>
+            <span className="num">{baht(subtotal + (zone?.fee ?? 0))}</span>
+          </div>
+          <div className="receipt-dash" />
+          {/* Disclaimer */}
+          <div className="receipt-notice">
+            ยอดจริงคำนวณจากระบบเมื่อส่งคำสั่งซื้อ<br />ราคาและค่าจัดส่งเป็นข้อมูลจำลอง
+          </div>
+          {/* Barcode */}
+          <div className="receipt-barcode-wrap" aria-hidden="true">
+            <ReceiptBarcode />
+          </div>
+          <div className="receipt-footer-text">ขอบคุณที่ใช้ growa</div>
+        </div>
         {km !== null && shop && !zone ? <Notice tone="warn">ที่อยู่ของคุณอยู่นอกพื้นที่จัดส่งของร้านนี้ ระบบอาจปฏิเสธคำสั่งซื้อ</Notice> : null}
       </section>
 

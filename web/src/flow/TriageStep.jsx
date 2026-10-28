@@ -56,7 +56,6 @@ function GuidedTriage() {
   const [picked, setPicked] = useState([]);
   const { busy, error, run } = useAction();
 
-  if (!flow.pharmacy) return <Redirect to="" />;
   if (flow.kind === 'goods') return <Redirect to="shop" />;
 
   const start = () => run(async () => {
@@ -100,7 +99,7 @@ function GuidedTriage() {
   const onMat = (page) => (state ? <DeskPage>{page}</DeskPage> : <MatPage>{page}</MatPage>);
   return onMat(
     <FlowPage
-      step={3}
+      step={2}
       title="ตอบคำถามอาการ"
       onBack={state ? back : () => go('choose')}
       footer={!state ? (

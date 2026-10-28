@@ -8,14 +8,27 @@ const GREEN = [124, 224, 168];
 const BLUE = [110, 190, 255];
 const mixColor = (t) => `rgb(${GREEN.map((g, i) => Math.round(g + (BLUE[i] - g) * t)).join(',')})`;
 
-// A push pin (round glossy head, metal needle) whose needle tip sits exactly on the map point.
-const TACK_W = 40;
-const TACK_H = 56;
-const tack = (tone, cls = '', style = '') => `<span class="tack tack-${tone}${cls}"${style}><svg viewBox="0 0 40 56" width="100%" height="100%">`
-  + '<ellipse class="tack-shadow" cx="26" cy="53" rx="7" ry="2.4" />'
-  + '<path d="M20 30v24" stroke="#9aa4ad" stroke-width="2.6" stroke-linecap="round" /><path d="M20.6 30v24" stroke="#e9eef2" stroke-width=".9" />'
-  + '<ellipse class="tack-collar" cx="20" cy="29" rx="7" ry="3" />'
-  + '<circle class="tack-head" cx="20" cy="16" r="14" /><circle cx="15" cy="11" r="4.5" fill="#fff" opacity=".55" /><circle cx="13.5" cy="9.5" r="1.8" fill="#fff" opacity=".9" />'
+// A push pin (thumbtack) — large round glossy head, cylindrical neck, angled metal needle.
+// Needle tip sits at the bottom of the icon (iconAnchor).
+const TACK_W = 52;
+const TACK_H = 72;
+const tack = (tone, cls = '', style = '') =>
+  `<span class="tack tack-${tone}${cls}"${style}><svg viewBox="0 0 52 72" width="100%" height="100%" overflow="visible">`
+  // Drop shadow under needle tip
+  + '<ellipse class="tack-shadow" cx="34" cy="70" rx="9" ry="3" />'
+  // Needle — thin metal rod angled to lower-right
+  + '<line x1="24" y1="44" x2="36" y2="70" stroke="#7a8890" stroke-width="2.5" stroke-linecap="round" />'
+  + '<line x1="24.8" y1="44" x2="36.8" y2="70" stroke="#cdd8de" stroke-width="1.1" stroke-linecap="round" />'
+  // Cylindrical neck / collar
+  + '<ellipse class="tack-collar" cx="24" cy="43" rx="8" ry="3.5" />'
+  + '<rect class="tack-collar" x="16" y="30" width="16" height="15" />'
+  + '<ellipse class="tack-collar" cx="24" cy="30" rx="8" ry="3.5" />'
+  // Main head — large round dominant circle
+  + '<circle class="tack-head" cx="24" cy="19" r="19" />'
+  // Soft gloss area (upper-left)
+  + '<ellipse cx="16" cy="10" rx="9" ry="6.5" fill="#fff" opacity=".32" transform="rotate(-25 16 10)" />'
+  // Sharp specular highlight dot
+  + '<circle cx="13" cy="8" r="3.5" fill="#fff" opacity=".85" />'
   + '</svg></span>';
 const tackIcon = (html, scale = 1) => L.divIcon({ className: 'pin-wrap', html, iconSize: [TACK_W * scale, TACK_H * scale], iconAnchor: [(TACK_W * scale) / 2, TACK_H * scale] });
 
