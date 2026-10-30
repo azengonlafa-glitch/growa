@@ -1,0 +1,43 @@
+/* Blurred classroom behind the main menu (flow/Classroom.jsx): wall, framed chalkboard, windows, desks, soft window light. */
+.class-page { position: relative; isolation: isolate; }
+.class-page .flow { position: relative; z-index: 2; }
+.classroom { position: fixed; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; background: #cfc6ad; }
+.cr-scene { position: absolute; inset: -3%; filter: blur(7px) saturate(1.05); }
+.cr-wall { position: absolute; inset: 0; background: linear-gradient(180deg, #ddd5bd 0%, #d2c8ad 55%, #b9ad8f 70%); }
+
+/* the chalkboard: dark green with chalk dust, a wooden frame and a chalk tray */
+.cr-board {
+  position: absolute; left: 9%; right: 9%; top: 9%; height: 48%; border-radius: 6px;
+  background:
+    radial-gradient(40% 50% at 25% 40%, rgb(255 255 255 / 9%), transparent 70%),
+    radial-gradient(30% 40% at 75% 60%, rgb(255 255 255 / 7%), transparent 70%),
+    linear-gradient(180deg, #34513f, #2a4334);
+  box-shadow: 0 0 0 16px #8b6a43, 0 0 0 20px #6f5233, 0 30px 40px -10px rgb(40 30 10 / 45%);
+}
+.cr-chalk { position: absolute; inset: 6% 5%; width: 90%; height: 88%; }
+.cr-chalk path, .cr-chalk circle { fill: none; stroke: rgb(255 255 255 / 55%); stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }
+.cr-tray { position: absolute; left: -2%; right: -2%; bottom: -26px; height: 12px; border-radius: 3px; background: #7a5c38; box-shadow: 0 6px 10px -4px rgb(0 0 0 / 35%); }
+.cr-tray::before { content: ''; position: absolute; left: 20%; top: -6px; width: 40px; height: 7px; border-radius: 3px; background: #f4f1e8; box-shadow: 70px 0 0 #f2d7d7, 130px 1px 0 #d9ecf6; }
+.cr-clock { position: absolute; top: 1.5%; right: 4%; width: 70px; height: 70px; border-radius: 50%; background: #f7f3ea; box-shadow: 0 0 0 6px #4b4b4b, 0 10px 14px -6px rgb(0 0 0 / 40%); }
+
+/* windows on both sides with daylight */
+.cr-window { position: absolute; top: 6%; width: 7%; height: 54%; background: linear-gradient(180deg, #f6fbff, #dcebf2); box-shadow: 0 0 0 10px #e9e3d3, 0 0 60px 20px rgb(255 252 235 / 55%); }
+.cr-window::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 47%, #e9e3d3 47% 53%, transparent 53%), linear-gradient(180deg, transparent 47%, #e9e3d3 47% 53%, transparent 53%); }
+.cr-window-l { left: -2%; } .cr-window-r { right: -2%; }
+
+/* floor and two rows of desks in front of the board */
+.cr-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 32%; background: linear-gradient(180deg, #a68a62, #8b6f4b); }
+.cr-desks { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 40%; }
+
+/* a warm diagonal of light from the window, and the darker corners of a photo */
+.cr-light { position: absolute; inset: 0; background: linear-gradient(115deg, rgb(255 250 225 / 45%) 0%, rgb(255 250 225 / 0%) 35%), linear-gradient(245deg, rgb(255 250 225 / 30%) 0%, rgb(255 250 225 / 0%) 30%); }
+.cr-vignette { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgb(40 30 15 / 35%)); }
+
+/* the header reads on the classroom */
+.class-page .flow-top { background: color-mix(in srgb, #fffdf6 78%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-radius: 0 0 22px 22px; }
+.class-page .flow-title { background: none; color: #2b2414; font-family: 'Mali', var(--font-head); }
+.class-page .hub-hint-scroll { color: #fffdf6; text-shadow: 0 1px 6px rgb(40 30 10 / 70%); }
+.class-page .hub-hint-scroll i, .class-page .hub-hint-scroll i::after { border-color: #fffdf6; background: transparent; }
+.class-page .hub-hint-scroll i::after { background: #fffdf6; }
+.class-page .hub-floor i { border-color: rgb(255 253 246 / 55%); box-shadow: 0 0 0 1.2em rgb(255 253 246 / 6%), inset 0 0 3em rgb(255 253 246 / 10%); }
+.class-page .hub-glow { background: radial-gradient(closest-side, rgb(255 250 225 / 55%), transparent); }

@@ -47,3 +47,108 @@ a.nt-card:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px
 @media (prefers-reduced-motion: reduce) { .nt { animation: none; } .nt-card { transition: none; } a.nt-card:hover { transform: none; } }
 
 .nt-accept { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+
+
+/* ───────── the inbox as a letter: an open green envelope behind cream paper, flowers, a stamp, entries in ink ───────── */
+.nt-envelope { position: relative; padding-top: 4.2rem; }
+.nt-flap { position: absolute; z-index: 0; top: 0; left: 50%; width: min(640px, 96%); height: 7rem; translate: -50% 0; background: linear-gradient(180deg, #129544, #0f7f3a); clip-path: polygon(0 100%, 50% 0, 100% 100%); filter: drop-shadow(0 -2px 0 #0d6b31); }
+.nt-letter {
+  position: relative; z-index: 1; padding: 2.4rem clamp(1.1rem, 4vw, 2.4rem) 2rem; border-radius: 6px; color: #2b2f2a;
+  background: #fffdf5 radial-gradient(rgb(60 90 60 / 5%) 1px, transparent 1.4px) 0 0 / 10px 10px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 26px 40px -26px rgb(10 60 30 / 55%), inset 0 0 0 1px rgb(0 0 0 / 3%);
+}
+.nt-envelope:not(.is-opening) .nt-letter { animation: nt-letter-in .6s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes nt-letter-in { from { opacity: 0; transform: translateY(1.4rem); } }
+.nt-fl { position: absolute; pointer-events: none; filter: drop-shadow(0 0 0 #fff) drop-shadow(1px 2px 2px rgb(0 0 0 / 15%)); }
+.nt-fl-1 { left: -1.2rem; top: -1.4rem; rotate: -12deg; } .nt-fl-2 { right: 26%; top: -1.1rem; rotate: 14deg; } .nt-fl-3 { left: -.9rem; bottom: 18%; }
+.nt-stamp {
+  position: absolute; right: 1.2rem; top: 1rem; display: grid; justify-items: center; gap: 0; width: 4.4rem; padding: .45rem .3rem .3rem; rotate: 6deg;
+  background: #fff; border: 2px dashed #e0a24a; outline: 4px solid #fff; box-shadow: 0 3px 6px rgb(0 0 0 / 14%);
+}
+.nt-stamp b { font-family: 'Fredoka', var(--font); font-size: .78rem; color: #ee7b45; line-height: 1.2; }
+.nt-dear { margin: 0; padding-right: 5rem; font-family: 'Sriracha', 'Mali', cursive; font-size: 1.15rem; color: #6b5f43; }
+.nt-letter .hero { padding: 0; margin: 0; background: none; box-shadow: none; border: 0; color: inherit; }
+.nt-letter .hero::before, .nt-letter .hero::after { display: none; }
+.nt-letter .hero-eyebrow { color: #0f7f3a; font-family: 'Sriracha', 'Mali', cursive; font-weight: 400; }
+.nt-letter .hero-title { color: #0f7f3a; font-family: 'Mitr', var(--font-head); font-weight: 700; font-size: clamp(2rem, 5vw, 2.6rem); }
+.nt-letter .segmented { background: #eef6ee; flex-wrap: wrap; }
+.nt-letter .segmented button { color: #3c5a44; }
+.nt-letter .segmented button.active { background: #129544; color: #fff; }
+.nt-letter .nt-day { color: #0f7f3a; font-family: 'Sriracha', 'Mali', cursive; font-weight: 400; font-size: 1.1rem; border-bottom: 2px solid #cfe7d3; padding-bottom: 2px; }
+.nt-letter .nt-list { gap: 0; }
+.nt-letter .nt-card { background: transparent; border: 0; border-bottom: 1.5px dashed #d6e6d8; border-radius: 0; padding: 14px 6px 14px 14px; }
+.nt-letter a.nt-card:hover { transform: none; box-shadow: none; background: #f2f9f1; border-color: #d6e6d8; }
+.nt-letter .nt.unread .nt-card { background: transparent; box-shadow: none; border-color: #d6e6d8; }
+.nt-letter .nt.unread .nt-card::before { left: 0; top: 22px; bottom: auto; width: 8px; height: 8px; border-radius: 50%; background: #129544; box-shadow: 0 0 0 3px #d4f0da; }
+.nt-letter .nt-ico { border-radius: 50%; rotate: -6deg; box-shadow: 0 0 0 3px #fff, 0 3px 6px rgb(0 0 0 / 16%); }
+.nt-letter .nt-title { color: #1f2b22; }
+.nt-letter .nt-new { background: #129544; color: #fff; }
+.nt-letter .nt-cta { color: #0f7f3a; }
+.nt-letter .nt-note { background: linear-gradient(172deg, #fff3a6, #ffe36e); color: #4a3a05; border-radius: 2px; rotate: -.6deg; box-shadow: 0 10px 14px -10px rgb(60 50 0 / 45%); }
+.nt-sign { margin: .4rem 0 0; align-self: flex-end; text-align: right; font-family: 'Sriracha', 'Mali', cursive; color: #6b5f43; line-height: 1.5; }
+.nt-sign b { font-family: 'Fredoka', var(--font); color: #0f7f3a; font-size: 1.3rem; }
+.nt-sign svg { vertical-align: -6px; }
+
+/* ───────── opening: the envelope on a cream page with confetti ───────── */
+.env-scene {
+  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  background: #fbf3dc radial-gradient(rgb(160 120 40 / 6%) 1.4px, transparent 1.8px) 0 0 / 16px 16px;
+  animation: env-scene-out .5s ease-in 2.55s forwards;
+}
+.env-confetti i { position: absolute; border-radius: 50%; opacity: .85; animation: env-confetti .8s cubic-bezier(.3, 1.6, .5, 1) backwards; }
+.env-confetti i:nth-child(3n) { border-radius: 3px; rotate: 30deg; }
+.env {
+  position: relative; width: min(26rem, 82vw); aspect-ratio: 1.45; perspective: 1100px; translate: 0 2.5rem;
+  animation: env-in .6s cubic-bezier(.2, .9, .3, 1.2) both, env-zoom .55s ease-in 2.5s forwards;
+}
+.env-back { position: absolute; inset: 0; border-radius: 10px; background: linear-gradient(180deg, #0f7f3a, #0c6c31); box-shadow: 0 30px 40px -24px rgb(10 60 30 / 60%); }
+.env-letter {
+  position: absolute; z-index: 2; left: 7%; right: 7%; top: 6%; height: 92%; display: grid; place-items: center; align-content: center; gap: .4rem;
+  padding: 1rem; border-radius: 6px; background: #fffdf5; text-align: center; box-shadow: 0 2px 6px rgb(0 0 0 / 15%);
+  animation: env-letter-out .8s cubic-bezier(.3, 1.2, .4, 1) 1.15s forwards;
+}
+.env-letter p { margin: 0; font-family: 'Sriracha', 'Mali', cursive; font-size: clamp(1.2rem, 4vw, 1.6rem); line-height: 1.25; color: #129544; }
+.env-letter b { font-family: 'Mitr', var(--font-head); font-weight: 700; font-size: 1.25em; }
+.env-l-f1 { position: absolute; left: 12%; top: 12%; }
+.env-pocket {
+  position: absolute; z-index: 3; inset: 0; border-radius: 10px; background: linear-gradient(170deg, #1fb257, #16994a);
+  clip-path: polygon(0 0, 50% 62%, 100% 0, 100% 100%, 0 100%);
+}
+.env-sticker { position: absolute; display: block; filter: drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(1px 3px 3px rgb(0 0 0 / 22%)); }
+.env-s1 { left: 9%; bottom: 8%; rotate: -8deg; } .env-s2 { left: 38%; bottom: 6%; } .env-s3 { right: 9%; bottom: 14%; rotate: 10deg; }
+.env-sticker svg { display: block; }
+.env-flap {
+  position: absolute; z-index: 4; left: 0; right: 0; top: 0; height: 64%; transform-origin: 50% 0;
+  background: linear-gradient(180deg, #149a4b, #128a43); clip-path: polygon(0 0, 100% 0, 50% 100%);
+  animation: env-flap .6s cubic-bezier(.5, 0, .3, 1) .6s forwards;
+}
+.env-say { position: absolute; left: 0; right: 0; bottom: 5%; margin: 0; text-align: center; font-family: 'Sriracha', 'Mali', cursive; color: #6b5f43; }
+.env-skip { position: absolute; right: 1.2rem; bottom: 1.2rem; padding: .5rem 1.2rem; border: 2px solid #129544; border-radius: 999px; background: #fff; color: #0f7f3a; font: inherit; font-weight: 700; cursor: pointer; }
+.env-skip:hover { background: #eaf7ec; }
+.env-skip:focus-visible { outline: 3px solid #1f6fd6; outline-offset: 2px; }
+
+@keyframes env-in { from { opacity: 0; scale: .7; translate: 0 6rem; } }
+@keyframes env-flap { 0% { transform: rotateX(0); z-index: 4; } 49% { z-index: 4; } 50% { z-index: 1; } 100% { transform: rotateX(180deg); z-index: 1; } }
+@keyframes env-letter-out { to { transform: translateY(-62%); } }
+@keyframes env-zoom { to { scale: 1.25; opacity: 0; } }
+@keyframes env-scene-out { to { opacity: 0; visibility: hidden; } }
+@keyframes env-confetti { from { scale: 0; } }
+
+@media (max-width: 520px) { .nt-stamp { width: 3.6rem; right: .8rem; } .nt-fl-2 { display: none; } }
+@media (prefers-reduced-motion: reduce) { .nt-envelope .nt-letter { animation: none !important; } }
+.nt-letter .nt-note { display: block; }
+.nt-letter .nt-note svg { vertical-align: -3px; margin-right: 6px; }
+
+/* ───────── party background behind the letter (sits above the desk, under the letter and the top links) ───────── */
+.nt-party {
+  position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 30%, #f8fbf4, #eef6ee 60%, #e3f0e6);
+}
+.nt-party-bits { position: absolute; inset: 0; width: 100%; height: 100%; }
+.nt-squiggle { position: absolute; opacity: .9; }
+.nt-pen { position: absolute; left: -2rem; top: 5%; width: min(320px, 30vw); rotate: 18deg; filter: drop-shadow(6px 10px 8px rgb(30 50 40 / 22%)); }
+.nt-gift { position: absolute; right: 3%; top: 40%; width: min(170px, 14vw); rotate: 10deg; filter: drop-shadow(6px 12px 10px rgb(30 50 40 / 25%)); }
+.notif { position: relative; z-index: 2; }
+.care-main:has(.notif) .care-bar { position: relative; z-index: 3; }
+.care-main:has(.is-opening) .care-bar { visibility: hidden; }
+@media (max-width: 900px) { .nt-pen, .nt-gift { display: none; } }

@@ -3,7 +3,7 @@
 // and the delivery map appears while the order is on its way.
 import { useEffect, useState } from 'react';
 
-function ReceiptBarcode() {
+export function ReceiptBarcode() {
   const pattern = [3,1,2,1,1,3,1,1,2,1,3,2,1,1,3,1,2,1,1,2,3,1,1,2,1,3,1,2,1,1,2,3,1,1,2,1,2,1,3,1,1,2,1,3];
   const rects = [];
   let x = 0;

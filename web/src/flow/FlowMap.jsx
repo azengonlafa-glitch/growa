@@ -8,29 +8,32 @@ const GREEN = [124, 224, 168];
 const BLUE = [110, 190, 255];
 const mixColor = (t) => `rgb(${GREEN.map((g, i) => Math.round(g + (BLUE[i] - g) * t)).join(',')})`;
 
-// A push pin (thumbtack) — large round glossy head, cylindrical neck, angled metal needle.
-// Needle tip sits at the bottom of the icon (iconAnchor).
-const TACK_W = 52;
-const TACK_H = 72;
+// Ball pin: round glossy sphere head + thin angled metal needle (like a sewing/map pin).
+// The needle tip sits at iconAnchor — bottom-right of the bounding box.
+const TACK_W = 50;
+const TACK_H = 66;
+const TACK_AX = 46; // needle-tip x inside the viewBox (= pixel anchor x)
+const TACK_AY = 64; // needle-tip y
 const tack = (tone, cls = '', style = '') =>
-  `<span class="tack tack-${tone}${cls}"${style}><svg viewBox="0 0 52 72" width="100%" height="100%" overflow="visible">`
-  // Drop shadow under needle tip
-  + '<ellipse class="tack-shadow" cx="34" cy="70" rx="9" ry="3" />'
-  // Needle — thin metal rod angled to lower-right
-  + '<line x1="24" y1="44" x2="36" y2="70" stroke="#7a8890" stroke-width="2.5" stroke-linecap="round" />'
-  + '<line x1="24.8" y1="44" x2="36.8" y2="70" stroke="#cdd8de" stroke-width="1.1" stroke-linecap="round" />'
-  // Cylindrical neck / collar
-  + '<ellipse class="tack-collar" cx="24" cy="43" rx="8" ry="3.5" />'
-  + '<rect class="tack-collar" x="16" y="30" width="16" height="15" />'
-  + '<ellipse class="tack-collar" cx="24" cy="30" rx="8" ry="3.5" />'
-  // Main head — large round dominant circle
-  + '<circle class="tack-head" cx="24" cy="19" r="19" />'
-  // Soft gloss area (upper-left)
-  + '<ellipse cx="16" cy="10" rx="9" ry="6.5" fill="#fff" opacity=".32" transform="rotate(-25 16 10)" />'
-  // Sharp specular highlight dot
-  + '<circle cx="13" cy="8" r="3.5" fill="#fff" opacity=".85" />'
+  `<span class="tack tack-${tone}${cls}"${style}><svg viewBox="0 0 50 66" width="100%" height="100%" overflow="visible">`
+  // Tiny shadow at needle tip
+  + '<ellipse class="tack-shadow" cx="45" cy="64" rx="6" ry="2" />'
+  // Thin metal needle — angled lower-right
+  + '<line x1="20" y1="32" x2="46" y2="64" stroke="#8a9298" stroke-width="1.8" stroke-linecap="round" />'
+  + '<line x1="20.8" y1="32" x2="46.8" y2="64" stroke="#d8e0e5" stroke-width="0.75" stroke-linecap="round" />'
+  // Sphere / ball head
+  + '<circle class="tack-head" cx="18" cy="17" r="16" />'
+  // Soft large gloss (upper-left)
+  + '<ellipse cx="11" cy="9" rx="7.5" ry="5.5" fill="#fff" opacity=".32" transform="rotate(-30 11 9)" />'
+  // Sharp specular highlight
+  + '<circle cx="9" cy="7" r="3.2" fill="#fff" opacity=".88" />'
   + '</svg></span>';
-const tackIcon = (html, scale = 1) => L.divIcon({ className: 'pin-wrap', html, iconSize: [TACK_W * scale, TACK_H * scale], iconAnchor: [(TACK_W * scale) / 2, TACK_H * scale] });
+const tackIcon = (html, scale = 1) => L.divIcon({
+  className: 'pin-wrap',
+  html,
+  iconSize: [TACK_W * scale, TACK_H * scale],
+  iconAnchor: [TACK_AX * scale, TACK_AY * scale],
+});
 
 const DRAW_MS = 800;
 const ANIM_MS = 1600; // longest entrance (route draw, then the time label pops)

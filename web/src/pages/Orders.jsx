@@ -5,6 +5,7 @@ import { useAction, useDocData, useQueryData } from '../lib/hooks.js';
 import { useSession, can } from '../lib/session.js';
 import { ORDER_STATUS, baht, dateTime, timeAgo } from '../lib/format.js';
 import { CardboardBox, TablePage } from '../flow/Table.jsx';
+import { ReceiptBarcode } from '../flow/OrderStep.jsx';
 import { Badge, Button, Card, ConfirmButton, Empty, ErrorText, Field, Loading, MockBadge, Notice, PageHeader } from '../components/ui.jsx';
 
 // Orders still moving open the live tracking screen; finished ones open the detail page (receipt, rating).
@@ -184,20 +185,36 @@ export function OrderDetail({ orderId }) {
       {order.reviewId ? <PharmacistThread reviewId={order.reviewId} /> : null}
 
       <div className="grid-2" style={{ alignItems: 'start' }}>
-        <Card className="stack">
-          <h3>รายการ</h3>
-          <div className="list">
+        <div className="order-receipt">
+          <div className="receipt">
+            <div className="receipt-head">
+              <div className="receipt-title">รายการสั่งซื้อ</div>
+              {pharmacy?.name ? <div className="receipt-store">{pharmacy.name}</div> : null}
+              <div className="receipt-store muted">#{order.id.slice(0, 6)}{order.createdAt ? ` · ${dateTime(order.createdAt)}` : ''}</div>
+            </div>
+            <div className="receipt-dash" />
+            <div className="receipt-col-labels">
+              <span style={{ flex: 1 }}>รายการ</span>
+              <span style={{ width: 64, textAlign: 'right' }}>ราคา</span>
+            </div>
+            <div className="receipt-dash" />
             {order.items.map((i) => (
-              <div key={i.productId} className="list-item">
+              <div key={i.productId} className="receipt-summary-row">
                 <span>{i.name} × {i.qty}{i.requiresPharmacistReview ? <> <Badge tone="warn">ผ่านเภสัชกร</Badge></> : null}</span>
                 <span className="num">{baht(i.unitPrice * i.qty)}</span>
               </div>
             ))}
-            <div className="list-item"><span>ค่าจัดส่ง</span><span className="num">{baht(order.deliveryFee)}</span></div>
-            <div className="list-item"><strong>รวม</strong><strong className="num">{baht(order.total)}</strong></div>
+            <div className="receipt-dash" />
+            <div className="receipt-summary-row"><span>ค่าจัดส่ง</span><span className="num">{baht(order.deliveryFee)}</span></div>
+            <div className="receipt-dash" />
+            <div className="receipt-total-row receipt-grand"><span>รวม</span><span className="num">{baht(order.total)}</span></div>
+            <div className="receipt-dash" />
+            {order.deliveryAddress ? <div className="receipt-notice">ส่งที่: {order.deliveryAddress.line1}</div> : null}
+            <div className="receipt-notice">ราคาเป็นข้อมูลจำลอง</div>
+            <div className="receipt-barcode-wrap" aria-hidden="true"><ReceiptBarcode /></div>
+            <div className="receipt-footer-text">ขอบคุณที่ใช้ growa</div>
           </div>
-          {order.deliveryAddress ? <p className="muted small">ส่งที่: {order.deliveryAddress.line1}</p> : null}
-        </Card>
+        </div>
 
         <Card className="stack">
           <h3>ความคืบหน้า</h3>
