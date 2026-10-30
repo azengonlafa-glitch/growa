@@ -123,6 +123,24 @@
 .cal-cell:hover .nb-sticker svg { animation: nb-wiggle .7s ease-in-out; transform-origin: 50% 20%; }
 @keyframes nb-wiggle { 25% { rotate: -9deg; } 50% { rotate: 7deg; } 75% { rotate: -4deg; } }
 
+/* post-it note swings and rustles gently around the top pin when hovered */
+.cal-cell:hover .wd {
+  transform-origin: 50% 0.3em;
+  animation: wd-rustle .65s ease-in-out;
+}
+@keyframes wd-rustle {
+  0% { transform: rotate(0deg) scale(1); }
+  22% { transform: rotate(2.4deg) translateY(-3px) scale(1.02); }
+  45% { transform: rotate(-1.8deg) translateY(-2px) scale(1.02); }
+  70% { transform: rotate(0.9deg) translateY(-1px); }
+  88% { transform: rotate(-0.4deg); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+.cal-cell:hover .wd-lift i:last-child {
+  box-shadow: 0 2.2em 1.6em rgb(3 15 50 / 65%);
+  transition: box-shadow .3s;
+}
+
 .cal-pin {
   position: absolute; left: 50%; top: -0.7em; z-index: 3; width: 1.5em; height: 1.5em; translate: -50% 0; border-radius: 50%;
   background: radial-gradient(circle at 34% 30%, #ff9a8f 0 14%, #e8352c 42%, #a3140f 100%);
@@ -168,6 +186,7 @@ p.nb-cut { display: block; }
   position: relative; padding: 0 0.2em; border: 0; background: none; cursor: pointer; touch-action: manipulation;
   font: inherit; line-height: var(--lh); color: var(--ink);
 }
+.nb-tabs button::before { content: ''; position: absolute; left: calc(50% - 22px); width: 44px; top: 50%; height: 44px; translate: 0 -50%; }
 .nb-tabs button.on::after {
   content: ''; position: absolute; inset: 0.05em -0.35em 0.1em; border: 0.08em solid var(--red-ink);
   border-radius: 55% 45% 50% 48% / 60% 50% 55% 45%; rotate: -2deg;
@@ -206,7 +225,7 @@ p.nb-cut { display: block; }
 /* one button per mode with that mode's sticker drawing, on its post-it colour; the current one also shows its name */
 .hub-dots { display: flex; align-items: center; gap: 0.5em; list-style: none; margin: 0; padding: 0.35em 0.45em; border-radius: 999px; background: rgb(5 25 80 / 40%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .hub-dots button {
-  display: flex; align-items: center; gap: 0.35em; height: 2.5em; min-width: 2.5em; padding: 0.3em; border: 0.14em solid #fff; border-radius: 999px; cursor: pointer;
+  display: flex; align-items: center; gap: 0.35em; height: max(2.5em, 44px); min-width: max(2.5em, 44px); padding: 0.3em; border: 0.14em solid #fff; border-radius: 999px; cursor: pointer;
   font: inherit; color: #fff; background: var(--paper, #e9cf9a); box-shadow: 0 0.3em 0.5em -0.3em rgb(0 0 0 / 50%);
   transition: transform .25s cubic-bezier(.3, 1.5, .5, 1), padding .3s;
 }
@@ -236,7 +255,7 @@ p.nb-cut { display: block; }
   .cal-day b { font-size: 2.3em; }
   .cal-month { font-size: 2.4em; }
   .wd { top: 3.6em; bottom: 3.6em; width: calc(100% - 2.6em); padding-right: 1em; }
-  .hub-arrow { width: 2.6em; height: 2.6em; top: auto; bottom: 0.4em; translate: none; }
+  .hub-arrow { width: max(2.6em, 44px); height: max(2.6em, 44px); top: auto; bottom: 0.4em; translate: none; }
   .hub-arrow-l { left: 0.8em; } .hub-arrow-r { right: 0.8em; }
 }
 

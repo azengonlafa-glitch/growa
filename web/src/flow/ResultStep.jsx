@@ -151,7 +151,7 @@ export default function ResultStep() {
           <header className="rp-head">
             <div>
               <span className="rp-kicker">รายงานผลประเมินเบื้องต้น</span>
-              <span>{pharmacy.name}</span>
+              <span>{pharmacy?.name ?? 'สาขาที่คุณเลือก'}</span>
               <span>วันที่ {today}</span>
             </div>
             <span className={`rp-stamp rp-stamp-${outcome}`} aria-hidden>{stamp}</span>

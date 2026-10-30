@@ -46,7 +46,7 @@ export default function HealthAnalysisView({ form, meds = [], onEditProfile, onG
           <div className="score-badge-circle" style={{ borderColor: tierColor }}>
             <span className="score-num" style={{ color: tierColor }}>{totalScore}</span>
             <span className="score-total">/100</span>
-            <span className="score-caption" style={{ background: tierColor, color: '#fff' }}>
+            <span className="score-caption" style={{ background: tierColor, color: '#102018' }}>
               {tier === 'good' ? 'สุขภาพดี' : tier === 'moderate' ? 'ปานกลาง' : 'ต้องดูแล'}
             </span>
           </div>

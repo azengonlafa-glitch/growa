@@ -29,7 +29,7 @@ import Settings from './pages/Settings.jsx';
 import Onboarding from './profile/Onboarding.jsx';
 
 // How long the green launch screen stays up once the app is ready, before the circle opens.
-const LAUNCH_HOLD_MS = 4000;
+const LAUNCH_HOLD_MS = 2000;
 
 // The menu (care hub) is the landing page. Ordering flow, one decision per screen: choose → questions → result → branch
 // (map) → (consult) → checkout → track, or choose → goods → branch → checkout.
@@ -126,9 +126,12 @@ export default function App() {
     if (!user) { setPhase('loading'); return undefined; }
     if (!ready || phase === 'done') return undefined;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // The full brand moment plays once per browser session; later sign-ins get a short one.
+    let seen = false;
+    try { seen = sessionStorage.getItem('growaLaunchSeen') === '1'; sessionStorage.setItem('growaLaunchSeen', '1'); } catch { /* ignore */ }
     const t = phase === 'loading'
-      ? setTimeout(() => setPhase('reveal'), reduced ? 0 : LAUNCH_HOLD_MS)
-      : setTimeout(() => setPhase('done'), reduced ? 0 : 1100);
+      ? setTimeout(() => setPhase('reveal'), reduced ? 0 : seen ? 300 : LAUNCH_HOLD_MS)
+      : setTimeout(() => setPhase('done'), reduced ? 0 : seen ? 500 : 1100);
     return () => clearTimeout(t);
   }, [user, ready, phase]);
 

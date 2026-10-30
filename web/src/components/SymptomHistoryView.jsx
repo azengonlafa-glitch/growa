@@ -279,6 +279,8 @@ export default function SymptomHistoryView({ patientId = 'default', patientName 
               <Field label="ชื่ออาการหลัก *" hint="เช่น ปวดศีรษะ, มีไข้หวัด, ผื่นคัน">
                 <input
                   required
+                  autoFocus
+                  autoComplete="off"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
                   placeholder="ระบุอาการหลัก..."
@@ -288,6 +290,7 @@ export default function SymptomHistoryView({ patientId = 'default', patientName 
               <div className="birth-row">
                 <Field label="ระยะเวลาที่เป็น">
                   <input
+                    autoComplete="off"
                     value={newDuration}
                     onChange={(e) => setNewDuration(e.target.value)}
                     placeholder="เช่น 2 วัน, 1 สัปดาห์"
@@ -307,6 +310,7 @@ export default function SymptomHistoryView({ patientId = 'default', patientName 
 
               <Field label="อาการร่วม (คั่นด้วยจุลภาค ,)">
                 <input
+                  autoComplete="off"
                   value={newSymptoms}
                   onChange={(e) => setNewSymptoms(e.target.value)}
                   placeholder="เช่น มีน้ำมูก, เจ็บคอ, เบื่ออาหาร"

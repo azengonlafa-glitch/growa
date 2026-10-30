@@ -129,7 +129,8 @@
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  min-height: 44px;
+  transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .care-subnav-btn:hover {
@@ -791,7 +792,8 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  min-height: 44px;
+  transition: color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .chart-type-btn.active {
@@ -851,6 +853,11 @@
 @keyframes radarPulse {
   0% { stroke-opacity: 0.85; filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.3)); }
   100% { stroke-opacity: 1; filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-radar-shape { animation: none; }
+  .care-subnav-btn, .chart-type-btn { transition: none; }
 }
 
 /* 4 Dimension detail cards */

@@ -150,7 +150,7 @@ function ConditionChips({ value, onChange }) {
         {all.map((c) => <button key={c} type="button" className={`btn btn-sm ${value.includes(c) ? 'btn-primary' : 'btn-secondary'}`} aria-pressed={value.includes(c)} onClick={() => toggle(c)}>{c}</button>)}
       </div>
       <div className="row">
-        <input style={{ flex: '1 1 180px' }} value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="โรคอื่น ๆ" aria-label="เพิ่มโรคประจำตัวอื่น" maxLength={60} />
+        <input style={{ flex: '1 1 180px' }} autoComplete="off" value={extra} onChange={(e) => setExtra(e.target.value)} placeholder="โรคอื่น ๆ" aria-label="เพิ่มโรคประจำตัวอื่น" maxLength={60} />
         <Button size="sm" variant="secondary" disabled={!extra.trim()} onClick={() => { if (!value.includes(extra.trim())) onChange([...value, extra.trim()]); setExtra(''); }}>เพิ่ม</Button>
       </div>
     </div>
@@ -339,7 +339,7 @@ function Settings({ house, isOwner }) {
         <h2>เตือนเมื่อยาเลยเวลา</h2>
         <p className="muted small">มื้อยาที่ยังไม่มีใครบันทึก จะแจ้งสมาชิกทุกคนในบ้านพร้อมกัน (ยังไม่บันทึก ไม่ได้แปลว่าพลาด จนกว่าจะมีคนยืนยัน)</p>
       </div>
-      <Field label="ชื่อบ้าน"><input value={name} onChange={(e) => setName(e.target.value)} maxLength={60} disabled={!isOwner} /></Field>
+      <Field label="ชื่อบ้าน"><input autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} disabled={!isOwner} /></Field>
       <div className="grid-2">
         <Field label="แจ้งเตือนเมื่อเลยเวลา">
           <select value={f.overdueAfterMin} onChange={num('overdueAfterMin')} disabled={!isOwner}>

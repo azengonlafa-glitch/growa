@@ -19,11 +19,11 @@
 .navpill a { color: #2f3a1f; text-decoration: none; font-weight: 700; font-size: .92rem; touch-action: manipulation; }
 .navpill-brand { font-family: var(--font-head); font-size: 1.1rem !important; margin-right: 8px; letter-spacing: .3px; }
 .navpill-links { display: flex; align-items: center; gap: 2px; }
-.navpill-links a { padding: 8px 12px; border-radius: 6px; transition: background .2s; }
+.navpill-links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 6px; transition: background .2s; }
 .navpill-links a:hover { background: rgb(255 255 255 / 40%); }
 /* the menu button is a little paper label stuck on the tape */
 .navpill-cta {
-  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 6px; rotate: 1.5deg;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; min-width: 44px; justify-content: center; padding: 0 14px; border-radius: 6px; rotate: 1.5deg;
   background: #fffaf0; color: #7c1b17 !important;
   box-shadow: 0 1px 2px rgb(50 40 20 / 35%), 0 0 0 1px rgb(120 100 60 / 12%);
   transition: transform .2s cubic-bezier(.3, 1.4, .5, 1);

@@ -200,7 +200,7 @@ function AddMedForm({ patient, med = null, onDone }) {
 
       <fieldset className="med-sec">
         <legend>ยาอะไร</legend>
-        <Field label="ชื่อยาและขนาดยา"><input required value={f.name} onChange={set('name')} placeholder="เช่น Metformin 500 mg" maxLength={200} /></Field>
+        <Field label="ชื่อยาและขนาดยา"><input required autoComplete="off" value={f.name} onChange={set('name')} placeholder="เช่น Metformin 500 mg" maxLength={200} /></Field>
         <Field label="รูปแบบยา">
           <div className="chip-row" role="group" aria-label="รูปแบบยา">
             {FORMS.map(([k, label]) => (
@@ -209,7 +209,7 @@ function AddMedForm({ patient, med = null, onDone }) {
           </div>
         </Field>
         <Field label="โรคที่เกี่ยวข้อง" hint="ไม่บังคับ เช่น ความดันโลหิตสูง">
-          <input list="med-conditions" value={f.condition} onChange={set('condition')} placeholder="เช่น เบาหวาน" maxLength={100} />
+          <input list="med-conditions" autoComplete="off" value={f.condition} onChange={set('condition')} placeholder="เช่น เบาหวาน" maxLength={100} />
           <datalist id="med-conditions">{COMMON_CONDITIONS.map((c) => <option key={c} value={c} />)}</datalist>
         </Field>
         <Field label="เชื่อมกับฐานข้อมูลยา (เพื่อสั่งเติมยาได้)">
@@ -224,7 +224,7 @@ function AddMedForm({ patient, med = null, onDone }) {
         <legend>ใช้เมื่อไร</legend>
         <div className="grid-2">
           <Field label="ครั้งละ"><input type="number" min={0.25} step={0.25} value={f.dosePerIntake} onChange={set('dosePerIntake')} /></Field>
-          <Field label="หน่วย"><input value={f.unit} onChange={set('unit')} /></Field>
+          <Field label="หน่วย"><input autoComplete="off" value={f.unit} onChange={set('unit')} /></Field>
         </div>
         <Field label="เวลาใช้ยา">
           <div className="chip-row">

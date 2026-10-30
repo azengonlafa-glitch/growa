@@ -138,7 +138,7 @@ export default function Profile({ embedded = false, patient: propPatient, initia
                   className="badge"
                   style={{
                     background: analysis.tierColor,
-                    color: '#fff',
+                    color: '#102018',
                     fontWeight: 700,
                     padding: '3px 10px',
                   }}

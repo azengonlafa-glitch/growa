@@ -50,8 +50,8 @@ export function AllergyEditor({ value, onChange }) {
         </div>
       ) : <p className="muted small">ยังไม่มีประวัติแพ้ยา ถ้าไม่เคยแพ้ยาก็เว้นไว้ได้</p>}
       <div className="grid-2">
-        <Field label="ชื่อยาหรือสารที่แพ้"><input value={substance} onChange={(e) => setSubstance(e.target.value)} placeholder="เช่น เพนิซิลลิน, ซัลฟา, แอสไพริน" /></Field>
-        <Field label="อาการที่เคยเป็น"><input value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="เช่น ผื่น, ปากบวม, หายใจลำบาก" /></Field>
+        <Field label="ชื่อยาหรือสารที่แพ้"><input autoComplete="off" value={substance} onChange={(e) => setSubstance(e.target.value)} placeholder="เช่น เพนิซิลลิน, ซัลฟา, แอสไพริน" /></Field>
+        <Field label="อาการที่เคยเป็น"><input autoComplete="off" value={reaction} onChange={(e) => setReaction(e.target.value)} placeholder="เช่น ผื่น, ปากบวม, หายใจลำบาก" /></Field>
       </div>
       <div className="row">
         <Segmented value={severity} onChange={setSeverity} options={SEVERITY} />
@@ -75,7 +75,7 @@ function ConditionPicker({ value, onChange }) {
         ))}
       </div>
       <form className="row" onSubmit={(e) => { e.preventDefault(); if (custom.trim() && !value.includes(custom.trim())) onChange([...value, custom.trim()]); setCustom(''); }}>
-        <input style={{ flex: '1 1 200px' }} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="โรคอื่น ๆ" aria-label="เพิ่มโรคประจำตัวอื่น" />
+        <input style={{ flex: '1 1 200px' }} autoComplete="off" value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="โรคอื่น ๆ" aria-label="เพิ่มโรคประจำตัวอื่น" />
         <Button size="sm" variant="secondary" type="submit" disabled={!custom.trim()}>เพิ่ม</Button>
       </form>
     </div>
