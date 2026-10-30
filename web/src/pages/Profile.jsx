@@ -148,7 +148,7 @@ export default function Profile({ embedded = false, patient: propPatient, initia
               </div>
 
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, margin: '4px 0' }}>
-                <span style={{ fontSize: '2.4rem', fontWeight: 800, color: analysis.tierColor, lineHeight: 1 }}>
+                <span style={{ fontSize: '2.4rem', fontWeight: 800, color: analysis.tierText, lineHeight: 1 }}>
                   {analysis.totalScore}
                 </span>
                 <span className="muted" style={{ fontWeight: 600 }}>/ 100 คะแนน</span>

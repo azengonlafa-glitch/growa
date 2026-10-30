@@ -38,6 +38,7 @@ function Appearance() {
       <div><h2>หน้าตาแอป</h2><p className="muted small">ตั้งค่านี้จำไว้เฉพาะเครื่องนี้</p></div>
       <div className="field">
         <span className="field-label">โหมดสี</span>
+        <span className="field-hint">โหมดกลางคืนใช้กับหน้าแผนที่และขั้นตอนสั่งซื้อ ส่วนหน้าสมุดโน้ต (สุขภาพ ยา บ้าน ตั้งค่า) คงโทนกระดาษสว่างไว้เสมอ</span>
         <div className="opt-grid" role="radiogroup" aria-label="โหมดสี">
           {THEMES.map(([id, label, hint, icon]) => (
             <button key={id} type="button" role="radio" aria-checked={prefs.theme === id} className={`opt${prefs.theme === id ? ' on' : ''}`} onClick={() => savePrefs({ theme: id })}>

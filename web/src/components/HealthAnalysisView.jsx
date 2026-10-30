@@ -16,6 +16,7 @@ export default function HealthAnalysisView({ form, meds = [], onEditProfile, onG
     tierLabel,
     tierDesc,
     tierColor,
+    tierText,
     bmi,
     bmiText,
     bmiTone,
@@ -44,7 +45,7 @@ export default function HealthAnalysisView({ form, meds = [], onEditProfile, onG
             </p>
           </div>
           <div className="score-badge-circle" style={{ borderColor: tierColor }}>
-            <span className="score-num" style={{ color: tierColor }}>{totalScore}</span>
+            <span className="score-num" style={{ color: tierText }}>{totalScore}</span>
             <span className="score-total">/100</span>
             <span className="score-caption" style={{ background: tierColor, color: '#102018' }}>
               {tier === 'good' ? 'สุขภาพดี' : tier === 'moderate' ? 'ปานกลาง' : 'ต้องดูแล'}
@@ -89,7 +90,7 @@ export default function HealthAnalysisView({ form, meds = [], onEditProfile, onG
             >
               <div className="pointer-bubble" style={{ borderColor: tierColor }}>
                 <span className="pointer-title">ระดับของคุณ</span>
-                <strong className="pointer-val num" style={{ color: tierColor }}>{totalScore} คะแนน</strong>
+                <strong className="pointer-val num" style={{ color: tierText }}>{totalScore} คะแนน</strong>
               </div>
               <div className="pointer-pin" style={{ backgroundColor: tierColor }} />
             </div>
@@ -105,7 +106,7 @@ export default function HealthAnalysisView({ form, meds = [], onEditProfile, onG
 
         {/* Tier status note */}
         <div className="analysis-tier-note" style={{ borderLeftColor: tierColor }}>
-          <strong style={{ color: tierColor, fontSize: '1.05rem' }}>{tierLabel}</strong>
+          <strong style={{ color: tierText, fontSize: '1.05rem' }}>{tierLabel}</strong>
           <p style={{ margin: '4px 0 0', color: 'var(--text)', fontSize: '0.92rem', lineHeight: 1.5 }}>
             {tierDesc}
           </p>

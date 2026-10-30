@@ -26,7 +26,7 @@ export default function FlowPage({ step, steps = STEPS, title, onBack, children,
         <NavPill />
       </header>
       {step ? (
-        <div className="flow-dots" role="img" aria-label={`ขั้นที่ ${step} จาก ${steps.length}`}>
+        <div className="flow-dots" aria-hidden="true">
           {steps.map((s, i) => <span key={s} className={i < step ? 'on' : ''} />)}
         </div>
       ) : null}

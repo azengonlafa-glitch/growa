@@ -137,17 +137,21 @@ export function analyzeHealth(form, meds = []) {
   let tierLabel = 'ระดับสุขภาพดี (เกณฑ์เหมาะสม)';
   let tierDesc = 'สุขภาพของคุณอยู่ในเกณฑ์ดี มีความเสี่ยงต่อโรคเรื้อรังต่ำ ควรคงพฤติกรรมสุขภาพที่ดีนี้ไว้อย่างต่อเนื่อง';
   let tierColor = '#10b981'; // green
+  // Darker shade of the same hue for text on light surfaces (tierColor itself only reaches ~2:1 as text).
+  let tierText = '#047857';
 
   if (totalScore < 60) {
     tier = 'poor';
     tierLabel = 'ระดับต้องดูแลเป็นพิเศษ (มีความเสี่ยง)';
     tierDesc = 'พบปัจจัยเสี่ยงด้านร่างกายหรือโรคประจำตัว ควรปรับพฤติกรรม ตรวจสุขภาพสม่ำเสมอ และปรึกษาเภสัชกร/แพทย์ในการใช้ยา';
     tierColor = '#ef4444'; // red
+    tierText = '#b91c1c';
   } else if (totalScore < 80) {
     tier = 'moderate';
     tierLabel = 'ระดับสุขภาพปานกลาง (มีจุดที่ควรปรับปรุง)';
     tierDesc = 'สุขภาพโดยรวมอยู่ในเกณฑ์พอใช้ มีบางมิติที่หากปรับปรุง (เช่น การออกกำลังกาย หรือการคุมน้ำหนัก) จะช่วยขยับขึ้นสู่เกณฑ์สุขภาพดีเยี่ยม';
     tierColor = '#f59e0b'; // amber
+    tierText = '#92400e';
   }
 
   // Recommendations Generation
@@ -261,6 +265,7 @@ export function analyzeHealth(form, meds = []) {
     tierLabel,
     tierDesc,
     tierColor,
+    tierText,
     age,
     bmi,
     bmiCategory,
