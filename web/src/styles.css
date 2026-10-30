@@ -329,7 +329,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--primary); }
 .empty { text-align: center; padding: 40px 16px; color: var(--muted); }
 .empty-icon { font-size: 2rem; margin-bottom: 6px; }
 .empty-title { color: var(--text); font-weight: 700; }
-.empty a, a[href^="tel:"] { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; }
+.empty a, a[href^="tel:"] { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 4px; }
 .loading { display: flex; align-items: center; gap: 8px; color: var(--muted); padding: 16px 0; }
 .error-text { color: var(--bad); font-size: 0.95rem; }
 .spinner {
@@ -380,7 +380,7 @@ input[type='checkbox'], input[type='radio'] { accent-color: var(--primary); }
 .leaflet-container { font-family: var(--font); }
 
 .qty { display: inline-flex; align-items: center; border: 2px solid var(--border-strong); border-radius: 999px; overflow: hidden; }
-.qty button { font: inherit; font-size: 1.2rem; border: 0; background: var(--surface-2); color: var(--text); width: 44px; height: 44px; cursor: pointer; }
+.qty button { font: inherit; font-size: 1.2rem; border: 0; background: var(--surface-2); color: var(--text); width: 44px; min-width: 44px; flex: none; height: 44px; cursor: pointer; }
 .qty span { min-width: 36px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
 
 .emergency {
@@ -591,7 +591,7 @@ hr.sep { border: 0; border-top: 1.5px solid var(--border); margin: 4px 0; }
 .phone-head > div { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
 .phone-head small { color: #5a6e66; font-size: .78rem; }
 .phone-avatar { display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: 50%; font-weight: 800; font-size: .9rem; color: #fff; background: linear-gradient(150deg, #34c27a, #12805a); box-shadow: 0 0 0 2px #fbfdfb, 0 0 0 4px #bfe6d1; }
-.phone-sos { display: inline-flex; align-items: center; gap: 4px; padding: 6px 11px; border-radius: 99px; font-weight: 800; font-size: .85rem; color: #fff; background: #d83b3b; text-decoration: none; }
+.phone-sos { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; padding: 6px 11px; border-radius: 99px; font-weight: 800; font-size: .85rem; color: #fff; background: #d83b3b; text-decoration: none; }
 .phone-sos:hover { text-decoration: none; background: #bf2c2c; }
 
 .phone .chat { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 12px 8px; gap: 6px; scroll-behavior: smooth; overscroll-behavior: contain; }
@@ -612,11 +612,11 @@ hr.sep { border: 0; border-top: 1.5px solid var(--border); margin: 4px 0; }
 .phone-field { position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-end; border-radius: 22px; background: #eef4f0; border: 1.5px solid #d2e1d9; }
 .phone-field:focus-within { border-color: #2f9d6a; background: #fff; }
 .phone-field textarea { flex: 1; min-width: 0; min-height: 0; max-height: 110px; padding: 10px 4px 10px 14px; border: 0; outline: 0; background: none; resize: none; font: inherit; font-size: .95rem; line-height: 1.4; color: inherit; box-shadow: none; }
-.phone-tool { display: grid; place-items: center; flex: none; width: 2.4rem; height: 2.4rem; border: 0; border-radius: 50%; background: none; color: #4a6e60; cursor: pointer; }
+.phone-tool { display: grid; place-items: center; flex: none; width: max(2.4rem, 44px); height: max(2.4rem, 44px); border: 0; border-radius: 50%; background: none; color: #4a6e60; cursor: pointer; }
 .phone-tool:hover { background: #dcebe3; }
 .phone-tool.is-listening { color: #fff; background: #d83b3b; animation: pulse-mic 1.2s ease-in-out infinite; }
 @keyframes pulse-mic { 50% { box-shadow: 0 0 0 7px rgb(216 59 59 / 22%); } }
-.phone-send { display: grid; place-items: center; flex: none; width: 2.7rem; height: 2.7rem; border: 0; border-radius: 50%; color: #fff; background: #1f9d63; cursor: pointer; box-shadow: 0 6px 10px -6px #0d6b42; transition: transform .2s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; }
+.phone-send { display: grid; place-items: center; flex: none; width: max(2.7rem, 44px); height: max(2.7rem, 44px); border: 0; border-radius: 50%; color: #fff; background: #1f9d63; cursor: pointer; box-shadow: 0 6px 10px -6px #0d6b42; transition: transform .2s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; }
 .phone-send svg { translate: 1px 0; }
 .phone-send:hover:not(:disabled) { transform: scale(1.08) rotate(-8deg); }
 .phone-send:disabled { opacity: .4; cursor: default; box-shadow: none; }

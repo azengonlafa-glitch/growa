@@ -420,7 +420,7 @@ html:has(.launch) { overflow: hidden; }
   display: flex; align-items: center; height: 50px; padding: 0 4px; border-radius: 999px; border: 3px solid var(--surface);
   background: var(--primary); color: #fff; box-shadow: 0 6px 14px rgb(11 138 74 / 35%); animation: qty-open .3s cubic-bezier(.2, 1.4, .4, 1);
 }
-.qty-pill button { width: 38px; height: 38px; border: 0; border-radius: 50%; display: grid; place-items: center; background: transparent; color: inherit; cursor: pointer; }
+.qty-pill button { width: 44px; height: 44px; border: 0; border-radius: 50%; display: grid; place-items: center; background: transparent; color: inherit; cursor: pointer; }
 .qty-pill button:hover { background: rgb(255 255 255 / 18%); }
 .qty-pill span { min-width: 26px; text-align: center; font-weight: 700; font-size: 1.15rem; animation: pop .25s; }
 @keyframes qty-open { from { clip-path: inset(0 0 0 calc(100% - 50px) round 999px); } to { clip-path: inset(0 0 0 0 round 999px); } }
@@ -437,7 +437,7 @@ html:has(.launch) { overflow: hidden; }
 .product:hover .thumb svg.product-art { transform: translateY(-4px) scale(1.06) rotate(-2deg); }
 .mini-art { flex: none; width: 64px; height: 64px; border-radius: 16px; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; }
 .mini-art .product-art { width: 100%; height: 100%; }
-@media (max-width: 480px) { .mini-art { width: 48px; height: 48px; border-radius: 12px; } .list-item .qty button { width: 38px; } }
+@media (max-width: 480px) { .mini-art { width: 48px; height: 48px; border-radius: 12px; } }
 .product-photo { display: block; width: 100%; height: 100%; object-fit: contain; mix-blend-mode: multiply; }
 .product .thumb .product-photo { transition: transform .35s cubic-bezier(.2, 1.4, .4, 1); }
 .product:hover .thumb .product-photo { transform: scale(1.06); }
